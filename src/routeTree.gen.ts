@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as Phase2RouteImport } from './routes/phase-2'
+import { Route as LogoStudioRouteImport } from './routes/logo-studio'
 import { Route as IndexRouteImport } from './routes/index'
 
 const Phase2Route = Phase2RouteImport.update({
   id: '/phase-2',
   path: '/phase-2',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogoStudioRoute = LogoStudioRouteImport.update({
+  id: '/logo-studio',
+  path: '/logo-studio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -25,27 +31,31 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/logo-studio': typeof LogoStudioRoute
   '/phase-2': typeof Phase2Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/logo-studio': typeof LogoStudioRoute
   '/phase-2': typeof Phase2Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/logo-studio': typeof LogoStudioRoute
   '/phase-2': typeof Phase2Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/phase-2'
+  fullPaths: '/' | '/logo-studio' | '/phase-2'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/phase-2'
-  id: '__root__' | '/' | '/phase-2'
+  to: '/' | '/logo-studio' | '/phase-2'
+  id: '__root__' | '/' | '/logo-studio' | '/phase-2'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LogoStudioRoute: typeof LogoStudioRoute
   Phase2Route: typeof Phase2Route
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/phase-2'
       fullPath: '/phase-2'
       preLoaderRoute: typeof Phase2RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logo-studio': {
+      id: '/logo-studio'
+      path: '/logo-studio'
+      fullPath: '/logo-studio'
+      preLoaderRoute: typeof LogoStudioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -70,8 +87,19 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LogoStudioRoute: LogoStudioRoute,
   Phase2Route: Phase2Route,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
