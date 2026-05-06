@@ -13,6 +13,7 @@ import { generateConcepts, mergeAIDirections } from "@/components/brand-kit/conc
 import type { LogoConcept, ProfileLite } from "@/components/brand-kit/conceptTypes";
 import { exportConceptPDF } from "@/components/brand-kit/exportConceptPdf";
 import { listBrandProfiles, loadBrandProfile, saveConcepts, generateAIDirections, generateSlogans, savePhase2Selections, markPhaseComplete } from "@/api/phase2.functions";
+import { generatePremiumLogoImage } from "@/api/premiumLogoImage.functions";
 import { toPng } from "html-to-image";
 import abLogo from "@/assets/ab-logo.png";
 import { DesignDnaEditor } from "@/components/DesignDnaEditor";
@@ -55,6 +56,11 @@ function Phase2() {
   const [mascotEnabled, setMascotEnabled] = useState(false);
   const [mascotStyle, setMascotStyle] = useState<string>("geometric");
   const [mascotIdea, setMascotIdea] = useState("");
+
+  // Premium AI image rendering
+  const [premiumImage, setPremiumImage] = useState<string | null>(null);
+  const [premiumBusy, setPremiumBusy] = useState(false);
+  const [premiumDescriptor, setPremiumDescriptor] = useState("CONSULTING");
 
   // Initial deterministic generation
   useEffect(() => {
