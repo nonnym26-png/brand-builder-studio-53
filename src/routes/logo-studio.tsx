@@ -844,7 +844,7 @@ function RenderingCard({
             conceptType: rendering.concept_type,
             accentHex: palette.accent,
           })}
-          onImprove={onNotSuitable}
+          onImprove={onImprove}
           busy={busy}
         />
 
