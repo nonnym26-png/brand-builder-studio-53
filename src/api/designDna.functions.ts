@@ -27,7 +27,7 @@ export const getDesignDna = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     return {
-      design_dna: (row?.design_dna ?? null) as unknown,
+      design_dna: (row?.design_dna ?? null) as Record<string, unknown> | null,
       generated_at: (row?.design_dna_generated_at as string | null) ?? null,
     };
   });
