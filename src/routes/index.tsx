@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Download, Shuffle, Type, Palette as PaletteIcon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -97,6 +97,9 @@ function Index() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Link to="/phase-2" className="text-xs font-medium text-muted-foreground hover:text-foreground">
+              Phase 2 →
+            </Link>
             <Button variant="outline" size="sm" onClick={randomize}>
               <Shuffle className="mr-2 h-3.5 w-3.5" /> Surprise me
             </Button>
