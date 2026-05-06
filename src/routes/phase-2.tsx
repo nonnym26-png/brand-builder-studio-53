@@ -218,6 +218,181 @@ function Phase2() {
         <section className="space-y-6">
           <DesignDnaEditor brandProfileId={selectedId || null} />
 
+          {/* Creative selections */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Color scheme */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h3 className="mb-3 inline-flex items-center gap-2 text-sm font-semibold tracking-tight">
+                <PaletteIcon className="h-4 w-4" /> Color Scheme
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                {PALETTES.map((p) => (
+                  <button
+                    key={p.name}
+                    onClick={() => setProfile({
+                      ...profile,
+                      primary_hex: p.colors[2],
+                      secondary_hex: p.colors[3],
+                      accent_hex: p.colors[2],
+                      neutral_hex: p.colors[0],
+                    })}
+                    className="rounded-md border border-border p-2 text-left hover:border-foreground/40"
+                  >
+                    <div className="flex h-6 overflow-hidden rounded">
+                      {p.colors.map((c) => <div key={c} className="flex-1" style={{ background: c }} />)}
+                    </div>
+                    <div className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{p.name}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Typography */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h3 className="mb-3 inline-flex items-center gap-2 text-sm font-semibold tracking-tight">
+                <Type className="h-4 w-4" /> Typography
+              </h3>
+              <div className="space-y-2">
+                {(["heading", "body", "accent"] as const).map((slot) => (
+                  <div key={slot}>
+                    <Label className="text-xs uppercase text-muted-foreground">{slot}</Label>
+                    <Select value={fonts[slot]} onValueChange={(v) => setFonts({ ...fonts, [slot]: v as FontKey })}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(FONTS) as FontKey[]).map((k) => (
+                          <SelectItem key={k} value={k}>
+                            <span style={{ fontFamily: FONTS[k].family }}>{FONTS[k].label}</span>
+                            <span className="ml-2 text-[10px] text-muted-foreground">{FONTS[k].category}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Slogans */}
+            <div className="rounded-xl border border-border bg-card p-5 md:col-span-2">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight">
+                  <MessageSquare className="h-4 w-4" /> Slogan Generation
+                </h3>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={sloganBusy}
+                  onClick={async () => {
+                    setSloganBusy(true);
+                    try {
+                      const out = await generateSlogans({ data: { profile: profile as unknown as Record<string, unknown>, count: 6 } });
+                      setSlogans(out);
+                      toast.success("Slogans generated");
+                    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+                    finally { setSloganBusy(false); }
+                  }}
+                >
+                  <Wand2 className="mr-1.5 h-3.5 w-3.5" /> {sloganBusy ? "Thinking…" : "Generate slogans"}
+                </Button>
+              </div>
+              {slogans.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Click generate to get 6 AI-written tagline candidates from this brand profile.</p>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {slogans.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setChosenSlogan(s)}
+                      className={`rounded-md border px-3 py-2 text-left text-sm transition ${chosenSlogan === s ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground/40"}`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Elements */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h3 className="mb-3 text-sm font-semibold tracking-tight">Brand Elements</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {ELEMENT_OPTIONS.map((el) => {
+                  const on = elements.includes(el);
+                  return (
+                    <button
+                      key={el}
+                      onClick={() => setElements(on ? elements.filter((x) => x !== el) : [...elements, el])}
+                      className={`rounded-full border px-3 py-1 text-xs transition ${on ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground/40"}`}
+                    >
+                      {el}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mascot */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold tracking-tight">Mascot</h3>
+                <label className="inline-flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={mascotEnabled} onChange={(e) => setMascotEnabled(e.target.checked)} />
+                  Include mascot
+                </label>
+              </div>
+              {mascotEnabled && (
+                <div className="space-y-2">
+                  <Select value={mascotStyle} onValueChange={setMascotStyle}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["geometric", "line-art", "mythological", "animal", "abstract figure", "vintage"].map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input placeholder="Mascot idea (e.g. crowned lion, paper crane…)" value={mascotIdea} onChange={(e) => setMascotIdea(e.target.value)} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Save selections + advance */}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!selectedId}
+              onClick={async () => {
+                if (!selectedId) { toast.error("Pick a profile first"); return; }
+                await savePhase2Selections({ data: {
+                  id: selectedId,
+                  palette: { primary: profile.primary_hex || "", secondary: profile.secondary_hex || "", accent: profile.accent_hex || "", neutral: profile.neutral_hex || "" },
+                  fonts,
+                  slogans,
+                  chosenSlogan: chosenSlogan || null,
+                  elements,
+                  mascot: { enabled: mascotEnabled, style: mascotStyle, idea: mascotIdea },
+                } });
+                toast.success("Selections saved");
+              }}
+            >
+              <Save className="mr-1.5 h-3.5 w-3.5" /> Save selections
+            </Button>
+            <Button
+              size="sm"
+              disabled={!selectedId || !selectedConceptId}
+              onClick={async () => {
+                if (!selectedId) return;
+                const selected = concepts.find((c) => c.id === selectedConceptId) ?? null;
+                await saveConcepts({ data: { id: selectedId, concepts, selected, notes } });
+                await markPhaseComplete({ data: { id: selectedId, phase: 2 } });
+                window.location.href = "/phase-3";
+              }}
+            >
+              Continue to Phase 3 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            </Button>
+          </div>
+
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight inline-flex items-center gap-2">
