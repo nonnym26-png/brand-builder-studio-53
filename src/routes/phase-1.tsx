@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { PhaseStepper } from "@/components/PhaseStepper";
 import { listBrandProfiles, loadBrandProfile, markPhaseComplete } from "@/api/phase2.functions";
 import { saveBrandProfileDraft } from "@/api/profile.functions";
-import { PHASE_2_REQUIRED_FIELDS, getMissingRequiredFields } from "@/server/profile.shared";
+import { PHASE_2_REQUIRED_FIELDS, getMissingRequiredFields } from "@/lib/profile.shared";
 import abLogo from "@/assets/ab-logo.png";
 
 export const Route = createFileRoute("/phase-1")({
