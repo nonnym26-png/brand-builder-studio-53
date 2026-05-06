@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { listBrandProfiles, loadBrandProfile } from "@/api/phase2.functions";
 import { LogoSVGPreview } from "@/components/LogoSVGPreview";
 import { DesignDnaPanel } from "@/components/DesignDnaPanel";
+import { LogoQualityFilter, evaluateLogoQuality } from "@/components/LogoQualityFilter";
 import {
   DesignControls,
   DEFAULT_DESIGN_CONTROLS,
@@ -593,6 +594,26 @@ function LogoStudioPage() {
     }
   };
 
+  const handleImprove = async (mock: MockRendering) => {
+    if (!selectedId) return toast.error("Select a brand profile first");
+    setBusy(mock.id, true);
+    try {
+      const id = await ensureRow(mock);
+      await updateLogoRendering({
+        data: { id, patch: { status: "Needs Refinement" } },
+      });
+      setCards((prev) => ({
+        ...prev,
+        [mock.id]: { ...prev[mock.id], dbId: id, status: "Needs Refinement" },
+      }));
+      toast.success("Flagged to refine before presenting");
+    } catch (err) {
+      toast.error((err as Error)?.message ?? "Failed to flag for refinement");
+    } finally {
+      setBusy(mock.id, false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -661,6 +682,7 @@ function LogoStudioPage() {
                 onFavorite={() => handleFavorite(r)}
                 onSelect={() => handleSelect(r)}
                 onNotSuitable={() => handleNotSuitable(r)}
+                onImprove={() => handleImprove(r)}
               />
             ))}
           </div>
@@ -780,6 +802,7 @@ function RenderingCard({
   onFavorite,
   onSelect,
   onNotSuitable,
+  onImprove,
 }: {
   rendering: MockRendering;
   palette: Palette;
@@ -789,6 +812,7 @@ function RenderingCard({
   onFavorite: () => void;
   onSelect: () => void;
   onNotSuitable: () => void;
+  onImprove: () => void;
 }) {
   const svg = rendering.svg(palette, brandName, initials);
   const { status, isFavorite, isSelected, busy } = state;
@@ -835,6 +859,17 @@ function RenderingCard({
         </div>
 
         <DiamondScorePanel scores={rendering.diamond_score} />
+
+        <LogoQualityFilter
+          report={evaluateLogoQuality({
+            scores: rendering.diamond_score,
+            svg,
+            conceptType: rendering.concept_type,
+            accentHex: palette.accent,
+          })}
+          onImprove={onImprove}
+          busy={busy}
+        />
 
         <div className="mt-auto flex gap-2 pt-2">
           <Button
@@ -949,6 +984,23 @@ function GeneratedRenderingCard({
           <Field label="Production Notes" value={(row.production_notes as string) || "—"} />
         </div>
         {score && <DiamondScorePanel scores={score} />}
+        <LogoQualityFilter
+          report={evaluateLogoQuality({
+            scores: score,
+            svg,
+            conceptType: row.concept_type as string | null,
+            accentHex: null,
+          })}
+          onImprove={async () => {
+            try {
+              await updateLogoRendering({ data: { id, patch: { status: "Needs Refinement" } } });
+              toast.success("Marked for refinement");
+              await onChanged();
+            } catch (e) {
+              toast.error((e as Error).message);
+            }
+          }}
+        />
         <div className="mt-auto flex gap-2 pt-2">
           <Button variant={isFavorite ? "default" : "outline"} size="sm" className="flex-1" onClick={onFav}>
             <Heart className="mr-1.5 h-4 w-4" /> {isFavorite ? "Favorited" : "Save Favorite"}
