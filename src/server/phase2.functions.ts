@@ -1,15 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
-
-function admin() {
-  const url = process.env.SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  return createClient<Database>(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-}
+import { getAdminClient } from "./phase2.server";
 
 export const listBrandProfiles = createServerFn({ method: "GET" }).handler(async () => {
-  const sb = admin();
+  const sb = getAdminClient();
   const { data, error } = await sb
     .from("brand_profiles")
     .select("id, business_name, client_name, industry, project_status, updated_at")
@@ -22,7 +15,7 @@ export const listBrandProfiles = createServerFn({ method: "GET" }).handler(async
 export const loadBrandProfile = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data }) => {
-    const sb = admin();
+    const sb = getAdminClient();
     const { data: row, error } = await sb.from("brand_profiles").select("*").eq("id", data.id).maybeSingle();
     if (error) throw new Error(error.message);
     return row;
@@ -37,7 +30,7 @@ export const saveConcepts = createServerFn({ method: "POST" })
     aiPrompt?: string;
   }) => input)
   .handler(async ({ data }) => {
-    const sb = admin();
+    const sb = getAdminClient();
     const { error } = await sb
       .from("brand_profiles")
       .update({
