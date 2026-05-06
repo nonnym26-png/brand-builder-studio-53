@@ -9,6 +9,7 @@
  */
 
 import { getAdminClient } from "./phase2.server";
+import { PREMIUM_LOGO_FORMULA_PROMPT } from "../components/PremiumLogoFormula";
 
 export const AB_LOGO_RENDERING_PROMPT_TEMPLATE = `You are the senior brand identity designer at Anaglyph Branding.
 
@@ -32,6 +33,8 @@ Do not ignore production rules.
 Do not create generic template layouts.
 
 The logo should feel like a professional brand identity presentation, not a cheap logo builder result.
+
+${PREMIUM_LOGO_FORMULA_PROMPT}
 
 SVG technical rules (mandatory):
 - viewBox="0 0 1200 800"
