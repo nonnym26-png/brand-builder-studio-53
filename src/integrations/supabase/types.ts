@@ -52,6 +52,8 @@ export type Database = {
           current_marketing_materials: string | null
           customer_long_term_vision: string | null
           customer_pain_points: string | null
+          design_dna: Json | null
+          design_dna_generated_at: string | null
           diamond_recommendation_notes: string | null
           digital_usage: string[] | null
           digital_usage_notes: string | null
@@ -170,6 +172,8 @@ export type Database = {
           current_marketing_materials?: string | null
           customer_long_term_vision?: string | null
           customer_pain_points?: string | null
+          design_dna?: Json | null
+          design_dna_generated_at?: string | null
           diamond_recommendation_notes?: string | null
           digital_usage?: string[] | null
           digital_usage_notes?: string | null
@@ -288,6 +292,8 @@ export type Database = {
           current_marketing_materials?: string | null
           customer_long_term_vision?: string | null
           customer_pain_points?: string | null
+          design_dna?: Json | null
+          design_dna_generated_at?: string | null
           diamond_recommendation_notes?: string | null
           digital_usage?: string[] | null
           digital_usage_notes?: string | null
