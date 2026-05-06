@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getAdminClient } from "@/server/phase2.server";
-import { generateLogoRenderingsForProfile } from "@/server/generateLogos.server";
 
 const ALLOWED_FIELDS = [
   "concept_name",
@@ -228,14 +227,4 @@ export const deleteLogoRendering = createServerFn({ method: "POST" })
     const { error } = await sb.from("logo_renderings").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
-  });
-
-/** Generate 6 AI-produced logo renderings for a brand profile and insert them. */
-export const generateLogoRenderings = createServerFn({ method: "POST" })
-  .inputValidator((input: { brand_profile_id: string }) => {
-    if (!input?.brand_profile_id) throw new Error("brand_profile_id is required");
-    return input;
-  })
-  .handler(async ({ data }) => {
-    return generateLogoRenderingsForProfile(data.brand_profile_id);
   });
