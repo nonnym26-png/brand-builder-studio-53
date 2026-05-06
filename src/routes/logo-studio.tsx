@@ -21,6 +21,7 @@ import {
   DEFAULT_DESIGN_CONTROLS,
   type DesignControlsValue,
 } from "@/components/DesignControls";
+import { PremiumLogoFormulaCard } from "@/components/PremiumLogoFormula";
 import { generateDesignDna, getDesignDna } from "@/api/designDna.functions";
 import type { DesignDna } from "@/server/designDna.server";
 import {
@@ -633,6 +634,7 @@ function LogoStudioPage() {
           hasProfile={Boolean(selectedId && profile)}
         />
         <DesignControls value={controls} onChange={setControls} />
+        <PremiumLogoFormulaCard />
         <DiamondStandardCard />
 
         <section>
