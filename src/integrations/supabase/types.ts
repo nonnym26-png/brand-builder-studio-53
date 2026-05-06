@@ -385,6 +385,101 @@ export type Database = {
           },
         ]
       }
+      design_dna: {
+        Row: {
+          accent_color_usage: string | null
+          avoidance_rules: string | null
+          brand_personality_summary: string | null
+          brand_profile_id: string
+          color_hierarchy: string | null
+          composition_notes: string | null
+          created_at: string
+          design_style: string | null
+          designer_notes: string | null
+          id: string
+          layout_system: string | null
+          letter_spacing_style: string | null
+          line_style: string | null
+          logo_variation_rules: string | null
+          monogram_direction: string | null
+          premium_design_rules: string | null
+          primary_font_style: string | null
+          production_rules: string | null
+          secondary_font_style: string | null
+          shape_language: string | null
+          social_media_rules: string | null
+          spacing_rules: string | null
+          symbol_direction: string | null
+          typography_direction: string | null
+          updated_at: string
+          visual_tone: string | null
+        }
+        Insert: {
+          accent_color_usage?: string | null
+          avoidance_rules?: string | null
+          brand_personality_summary?: string | null
+          brand_profile_id: string
+          color_hierarchy?: string | null
+          composition_notes?: string | null
+          created_at?: string
+          design_style?: string | null
+          designer_notes?: string | null
+          id?: string
+          layout_system?: string | null
+          letter_spacing_style?: string | null
+          line_style?: string | null
+          logo_variation_rules?: string | null
+          monogram_direction?: string | null
+          premium_design_rules?: string | null
+          primary_font_style?: string | null
+          production_rules?: string | null
+          secondary_font_style?: string | null
+          shape_language?: string | null
+          social_media_rules?: string | null
+          spacing_rules?: string | null
+          symbol_direction?: string | null
+          typography_direction?: string | null
+          updated_at?: string
+          visual_tone?: string | null
+        }
+        Update: {
+          accent_color_usage?: string | null
+          avoidance_rules?: string | null
+          brand_personality_summary?: string | null
+          brand_profile_id?: string
+          color_hierarchy?: string | null
+          composition_notes?: string | null
+          created_at?: string
+          design_style?: string | null
+          designer_notes?: string | null
+          id?: string
+          layout_system?: string | null
+          letter_spacing_style?: string | null
+          line_style?: string | null
+          logo_variation_rules?: string | null
+          monogram_direction?: string | null
+          premium_design_rules?: string | null
+          primary_font_style?: string | null
+          production_rules?: string | null
+          secondary_font_style?: string | null
+          shape_language?: string | null
+          social_media_rules?: string | null
+          spacing_rules?: string | null
+          symbol_direction?: string | null
+          typography_direction?: string | null
+          updated_at?: string
+          visual_tone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_dna_brand_profile_id_fkey"
+            columns: ["brand_profile_id"]
+            isOneToOne: false
+            referencedRelation: "brand_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       logo_renderings: {
         Row: {
           brand_profile_id: string
