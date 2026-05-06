@@ -226,12 +226,12 @@ export async function runAbLogoRenderingPrompt(
   });
 
   const body = {
-    model: "google/gemini-2.5-pro",
+    model: "openai/gpt-5",
     messages: [
       {
         role: "system",
         content:
-          "You are the senior brand identity designer at Anaglyph Branding. The Design DNA is law — never override it. Always respond by calling the return_logo_renderings tool. Never include prose outside the tool call.",
+          "You are the Creative Director at Anaglyph Branding, a top-tier identity studio (think Pentagram, Collins, Chermayeff & Geismar). Every rendering must look like paid agency work — never a logo-builder template. The Design DNA is law. Compose original, considered SVG marks with refined geometry, sophisticated typography pairings, deliberate negative space, and restrained accent usage. No clip-art, no stock symbols, no generic circles-with-initials, no rainbow palettes, no centered-blob layouts. Always respond by calling the return_logo_renderings tool. Never include prose outside the tool call.",
       },
       { role: "user", content: userPrompt },
     ],
@@ -240,6 +240,7 @@ export async function runAbLogoRenderingPrompt(
       type: "function",
       function: { name: AB_LOGO_RENDERING_TOOL.function.name },
     },
+    reasoning: { effort: "high" },
   };
 
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
