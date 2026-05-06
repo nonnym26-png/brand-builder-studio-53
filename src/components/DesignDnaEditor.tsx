@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import {
   DESIGN_DNA_FIELDS,
   loadDesignDnaRecord,
   saveDesignDnaRecord,
+  runDesignDnaPrompt,
 } from "@/api/designDna.functions";
 
 type Values = Partial<Record<(typeof DESIGN_DNA_FIELDS)[number], string>>;
@@ -45,6 +46,7 @@ export function DesignDnaEditor({ brandProfileId }: { brandProfileId: string | n
   const [values, setValues] = useState<Values>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,6 +96,31 @@ export function DesignDnaEditor({ brandProfileId }: { brandProfileId: string | n
     }
   };
 
+  const generate = async () => {
+    if (!brandProfileId) {
+      toast.error("Select a Brand Profile first");
+      return;
+    }
+    setGenerating(true);
+    try {
+      const { record } = await runDesignDnaPrompt({
+        data: { brand_profile_id: brandProfileId },
+      });
+      const next: Values = {};
+      for (const k of DESIGN_DNA_FIELDS) {
+        const v = (record as Record<string, unknown>)[k];
+        if (typeof v === "string") next[k] = v;
+      }
+      setValues(next);
+      setUpdatedAt(record.updated_at ?? null);
+      toast.success("Design DNA generated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Generation failed");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   if (!brandProfileId) {
     return (
       <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
@@ -111,10 +138,16 @@ export function DesignDnaEditor({ brandProfileId }: { brandProfileId: string | n
             {updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : "Not saved yet"}
           </p>
         </div>
-        <Button size="sm" onClick={save} disabled={saving || loading}>
-          {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />}
-          Save Design DNA
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={generate} disabled={generating || loading || saving}>
+            {generating ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1.5 h-3.5 w-3.5" />}
+            Generate with AI
+          </Button>
+          <Button size="sm" onClick={save} disabled={saving || loading || generating}>
+            {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />}
+            Save Design DNA
+          </Button>
+        </div>
       </div>
 
       {loading ? (
