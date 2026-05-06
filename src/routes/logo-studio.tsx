@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { listBrandProfiles, loadBrandProfile } from "@/api/phase2.functions";
 import { LogoSVGPreview } from "@/components/LogoSVGPreview";
 import { DesignDnaPanel } from "@/components/DesignDnaPanel";
+import { LogoQualityFilter, evaluateLogoQuality } from "@/components/LogoQualityFilter";
 import {
   DesignControls,
   DEFAULT_DESIGN_CONTROLS,
@@ -836,6 +837,17 @@ function RenderingCard({
 
         <DiamondScorePanel scores={rendering.diamond_score} />
 
+        <LogoQualityFilter
+          report={evaluateLogoQuality({
+            scores: rendering.diamond_score,
+            svg,
+            conceptType: rendering.concept_type,
+            accentHex: palette.accent,
+          })}
+          onImprove={onNotSuitable}
+          busy={busy}
+        />
+
         <div className="mt-auto flex gap-2 pt-2">
           <Button
             variant={isFavorite ? "default" : "outline"}
@@ -949,6 +961,23 @@ function GeneratedRenderingCard({
           <Field label="Production Notes" value={(row.production_notes as string) || "—"} />
         </div>
         {score && <DiamondScorePanel scores={score} />}
+        <LogoQualityFilter
+          report={evaluateLogoQuality({
+            scores: score,
+            svg,
+            conceptType: row.concept_type as string | null,
+            accentHex: null,
+          })}
+          onImprove={async () => {
+            try {
+              await updateLogoRendering({ data: { id, patch: { status: "Needs Refinement" } } });
+              toast.success("Marked for refinement");
+              await onChanged();
+            } catch (e) {
+              toast.error((e as Error).message);
+            }
+          }}
+        />
         <div className="mt-auto flex gap-2 pt-2">
           <Button variant={isFavorite ? "default" : "outline"} size="sm" className="flex-1" onClick={onFav}>
             <Heart className="mr-1.5 h-4 w-4" /> {isFavorite ? "Favorited" : "Save Favorite"}
