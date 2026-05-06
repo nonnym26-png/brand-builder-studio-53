@@ -15,6 +15,7 @@ import { exportConceptPDF } from "@/components/brand-kit/exportConceptPdf";
 import { listBrandProfiles, loadBrandProfile, saveConcepts, generateAIDirections } from "@/api/phase2.functions";
 import { toPng } from "html-to-image";
 import abLogo from "@/assets/ab-logo.png";
+import { DesignDnaEditor } from "@/components/DesignDnaEditor";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -205,6 +206,8 @@ function Phase2() {
 
         {/* Right: concept gallery */}
         <section className="space-y-6">
+          <DesignDnaEditor brandProfileId={selectedId || null} />
+
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight inline-flex items-center gap-2">
