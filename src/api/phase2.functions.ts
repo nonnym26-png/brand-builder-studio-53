@@ -119,3 +119,98 @@ Return ONLY through the provided tool. Voice: confident, agency-grade, specific.
       id: string; name: string; tagline: string; rationale: string; moodWords: string[]; usageNotes: string;
     }>;
   });
+
+/** Mark a phase complete with timestamp. */
+export const markPhaseComplete = createServerFn({ method: "POST" })
+  .inputValidator((input: { id: string; phase: 1 | 2 | 3 }) => input)
+  .handler(async ({ data }) => {
+    const sb = getAdminClient();
+    const col = `phase_${data.phase}_completed_at`;
+    const { error } = await sb
+      .from("brand_profiles")
+      .update({ [col]: new Date().toISOString() } as never)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Persist Phase 2 creative selections (palette, fonts, slogans, elements, mascot). */
+export const savePhase2Selections = createServerFn({ method: "POST" })
+  .inputValidator((input: {
+    id: string;
+    palette?: Record<string, string> | null;
+    fonts?: { heading?: string; body?: string; accent?: string } | null;
+    slogans?: string[] | null;
+    chosenSlogan?: string | null;
+    elements?: string[] | null;
+    mascot?: { enabled: boolean; style?: string; idea?: string } | null;
+  }) => input)
+  .handler(async ({ data }) => {
+    const sb = getAdminClient();
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (data.palette) {
+      patch.primary_hex = data.palette.primary ?? null;
+      patch.secondary_hex = data.palette.secondary ?? null;
+      patch.accent_hex = data.palette.accent ?? null;
+      patch.neutral_hex = data.palette.neutral ?? null;
+    }
+    if (data.fonts) patch.phase_2_fonts = data.fonts;
+    if (data.slogans) patch.phase_2_slogans = data.slogans;
+    if (data.chosenSlogan !== undefined) patch.tagline_ideas = data.chosenSlogan ?? null;
+    if (data.elements) patch.phase_2_elements = data.elements;
+    if (data.mascot) patch.phase_2_mascot = data.mascot;
+    const { error } = await sb.from("brand_profiles").update(patch as never).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Generate slogan / tagline candidates via Lovable AI Gateway. */
+export const generateSlogans = createServerFn({ method: "POST" })
+  .inputValidator((input: { profile: Record<string, unknown>; count?: number; tone?: string }) => input)
+  .handler(async ({ data }) => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("AI gateway is not configured.");
+    const count = Math.min(Math.max(data.count ?? 6, 3), 12);
+
+    const system = `You are a senior copy director at Anaglyph Branding (AB).
+Write slogan / tagline candidates for the supplied brand. Voice: confident, premium, specific. No clichés. No generic agency speak. 3-7 words each.`;
+    const user = `BRAND PROFILE:\n${JSON.stringify(data.profile, null, 2)}\n\nReturn ${count} distinct slogans${data.tone ? ` in a ${data.tone} tone` : ""}.`;
+
+    const body = {
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "return_slogans",
+          description: "Return slogan candidates.",
+          parameters: {
+            type: "object",
+            properties: { slogans: { type: "array", items: { type: "string" } } },
+            required: ["slogans"],
+            additionalProperties: false,
+          },
+        },
+      }],
+      tool_choice: { type: "function", function: { name: "return_slogans" } },
+    };
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) {
+      if (resp.status === 429) throw new Error("AI rate limit reached. Try again shortly.");
+      if (resp.status === 402) throw new Error("AI credits exhausted. Add credits in Workspace → Usage.");
+      throw new Error(`AI gateway error (${resp.status})`);
+    }
+    const json = await resp.json();
+    const args = json?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    if (!args) throw new Error("AI returned no tool call");
+    const parsed = JSON.parse(args);
+    return (parsed.slogans as string[]).filter((s) => typeof s === "string" && s.trim());
+  });

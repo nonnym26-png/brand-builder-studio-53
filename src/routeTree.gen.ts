@@ -9,13 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as Phase3RouteImport } from './routes/phase-3'
 import { Route as Phase2RouteImport } from './routes/phase-2'
+import { Route as Phase1RouteImport } from './routes/phase-1'
 import { Route as LogoStudioRouteImport } from './routes/logo-studio'
 import { Route as IndexRouteImport } from './routes/index'
 
+const Phase3Route = Phase3RouteImport.update({
+  id: '/phase-3',
+  path: '/phase-3',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const Phase2Route = Phase2RouteImport.update({
   id: '/phase-2',
   path: '/phase-2',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Phase1Route = Phase1RouteImport.update({
+  id: '/phase-1',
+  path: '/phase-1',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogoStudioRoute = LogoStudioRouteImport.update({
@@ -32,40 +44,62 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/logo-studio': typeof LogoStudioRoute
+  '/phase-1': typeof Phase1Route
   '/phase-2': typeof Phase2Route
+  '/phase-3': typeof Phase3Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/logo-studio': typeof LogoStudioRoute
+  '/phase-1': typeof Phase1Route
   '/phase-2': typeof Phase2Route
+  '/phase-3': typeof Phase3Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/logo-studio': typeof LogoStudioRoute
+  '/phase-1': typeof Phase1Route
   '/phase-2': typeof Phase2Route
+  '/phase-3': typeof Phase3Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/logo-studio' | '/phase-2'
+  fullPaths: '/' | '/logo-studio' | '/phase-1' | '/phase-2' | '/phase-3'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/logo-studio' | '/phase-2'
-  id: '__root__' | '/' | '/logo-studio' | '/phase-2'
+  to: '/' | '/logo-studio' | '/phase-1' | '/phase-2' | '/phase-3'
+  id: '__root__' | '/' | '/logo-studio' | '/phase-1' | '/phase-2' | '/phase-3'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LogoStudioRoute: typeof LogoStudioRoute
+  Phase1Route: typeof Phase1Route
   Phase2Route: typeof Phase2Route
+  Phase3Route: typeof Phase3Route
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/phase-3': {
+      id: '/phase-3'
+      path: '/phase-3'
+      fullPath: '/phase-3'
+      preLoaderRoute: typeof Phase3RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/phase-2': {
       id: '/phase-2'
       path: '/phase-2'
       fullPath: '/phase-2'
       preLoaderRoute: typeof Phase2RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/phase-1': {
+      id: '/phase-1'
+      path: '/phase-1'
+      fullPath: '/phase-1'
+      preLoaderRoute: typeof Phase1RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/logo-studio': {
@@ -88,7 +122,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LogoStudioRoute: LogoStudioRoute,
+  Phase1Route: Phase1Route,
   Phase2Route: Phase2Route,
+  Phase3Route: Phase3Route,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

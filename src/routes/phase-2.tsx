@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Database, Download, RefreshCw, Save, Sparkles, Wand2 } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, Database, Download, RefreshCw, Save, Sparkles, Wand2, MessageSquare, Type, Palette as PaletteIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,10 +12,13 @@ import { ConceptMark } from "@/components/brand-kit/ConceptRenderer";
 import { generateConcepts, mergeAIDirections } from "@/components/brand-kit/conceptEngine";
 import type { LogoConcept, ProfileLite } from "@/components/brand-kit/conceptTypes";
 import { exportConceptPDF } from "@/components/brand-kit/exportConceptPdf";
-import { listBrandProfiles, loadBrandProfile, saveConcepts, generateAIDirections } from "@/api/phase2.functions";
+import { listBrandProfiles, loadBrandProfile, saveConcepts, generateAIDirections, generateSlogans, savePhase2Selections, markPhaseComplete } from "@/api/phase2.functions";
 import { toPng } from "html-to-image";
 import abLogo from "@/assets/ab-logo.png";
 import { DesignDnaEditor } from "@/components/DesignDnaEditor";
+import { PhaseStepper } from "@/components/PhaseStepper";
+import { PALETTES } from "@/components/brand-kit/palettes";
+import { FONTS, type FontKey } from "@/components/brand-kit/types";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -41,6 +44,17 @@ function Phase2() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+
+  // New Phase 2 creative selections
+  const [fonts, setFonts] = useState<{ heading: FontKey; body: FontKey; accent: FontKey }>({ heading: "playfair", body: "inter", accent: "bebas" });
+  const [slogans, setSlogans] = useState<string[]>([]);
+  const [chosenSlogan, setChosenSlogan] = useState<string>("");
+  const [sloganBusy, setSloganBusy] = useState(false);
+  const ELEMENT_OPTIONS = ["Badge", "Ribbon", "Frame", "Monogram bracket", "Divider", "Dot accent", "Line", "Swoosh", "Crest", "Underline"];
+  const [elements, setElements] = useState<string[]>([]);
+  const [mascotEnabled, setMascotEnabled] = useState(false);
+  const [mascotStyle, setMascotStyle] = useState<string>("geometric");
+  const [mascotIdea, setMascotIdea] = useState("");
 
   // Initial deterministic generation
   useEffect(() => {
@@ -108,7 +122,7 @@ function Phase2() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
-        <div className="mx-auto flex max-w-[1500px] items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3 px-6 py-4">
           <div className="flex items-center gap-3">
             <img src={abLogo} alt="Anaglyph" className="h-9 w-auto" />
             <div className="leading-tight">
@@ -116,11 +130,7 @@ function Phase2() {
               <div className="text-xs text-muted-foreground">Phase 2 · Internal use</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Link to="/" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-              <ArrowLeft className="h-3.5 w-3.5" /> Back to builder
-            </Link>
-          </div>
+          <PhaseStepper current="/phase-2" completed={{ "/phase-2": Boolean(selectedConceptId) }} />
         </div>
       </header>
 
@@ -207,6 +217,181 @@ function Phase2() {
         {/* Right: concept gallery */}
         <section className="space-y-6">
           <DesignDnaEditor brandProfileId={selectedId || null} />
+
+          {/* Creative selections */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Color scheme */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h3 className="mb-3 inline-flex items-center gap-2 text-sm font-semibold tracking-tight">
+                <PaletteIcon className="h-4 w-4" /> Color Scheme
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                {PALETTES.map((p) => (
+                  <button
+                    key={p.name}
+                    onClick={() => setProfile({
+                      ...profile,
+                      primary_hex: p.colors[2],
+                      secondary_hex: p.colors[3],
+                      accent_hex: p.colors[2],
+                      neutral_hex: p.colors[0],
+                    })}
+                    className="rounded-md border border-border p-2 text-left hover:border-foreground/40"
+                  >
+                    <div className="flex h-6 overflow-hidden rounded">
+                      {p.colors.map((c) => <div key={c} className="flex-1" style={{ background: c }} />)}
+                    </div>
+                    <div className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{p.name}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Typography */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h3 className="mb-3 inline-flex items-center gap-2 text-sm font-semibold tracking-tight">
+                <Type className="h-4 w-4" /> Typography
+              </h3>
+              <div className="space-y-2">
+                {(["heading", "body", "accent"] as const).map((slot) => (
+                  <div key={slot}>
+                    <Label className="text-xs uppercase text-muted-foreground">{slot}</Label>
+                    <Select value={fonts[slot]} onValueChange={(v) => setFonts({ ...fonts, [slot]: v as FontKey })}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(FONTS) as FontKey[]).map((k) => (
+                          <SelectItem key={k} value={k}>
+                            <span style={{ fontFamily: FONTS[k].family }}>{FONTS[k].label}</span>
+                            <span className="ml-2 text-[10px] text-muted-foreground">{FONTS[k].category}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Slogans */}
+            <div className="rounded-xl border border-border bg-card p-5 md:col-span-2">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight">
+                  <MessageSquare className="h-4 w-4" /> Slogan Generation
+                </h3>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={sloganBusy}
+                  onClick={async () => {
+                    setSloganBusy(true);
+                    try {
+                      const out = await generateSlogans({ data: { profile: profile as unknown as Record<string, unknown>, count: 6 } });
+                      setSlogans(out);
+                      toast.success("Slogans generated");
+                    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+                    finally { setSloganBusy(false); }
+                  }}
+                >
+                  <Wand2 className="mr-1.5 h-3.5 w-3.5" /> {sloganBusy ? "Thinking…" : "Generate slogans"}
+                </Button>
+              </div>
+              {slogans.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Click generate to get 6 AI-written tagline candidates from this brand profile.</p>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {slogans.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setChosenSlogan(s)}
+                      className={`rounded-md border px-3 py-2 text-left text-sm transition ${chosenSlogan === s ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground/40"}`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Elements */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h3 className="mb-3 text-sm font-semibold tracking-tight">Brand Elements</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {ELEMENT_OPTIONS.map((el) => {
+                  const on = elements.includes(el);
+                  return (
+                    <button
+                      key={el}
+                      onClick={() => setElements(on ? elements.filter((x) => x !== el) : [...elements, el])}
+                      className={`rounded-full border px-3 py-1 text-xs transition ${on ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground/40"}`}
+                    >
+                      {el}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mascot */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold tracking-tight">Mascot</h3>
+                <label className="inline-flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={mascotEnabled} onChange={(e) => setMascotEnabled(e.target.checked)} />
+                  Include mascot
+                </label>
+              </div>
+              {mascotEnabled && (
+                <div className="space-y-2">
+                  <Select value={mascotStyle} onValueChange={setMascotStyle}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["geometric", "line-art", "mythological", "animal", "abstract figure", "vintage"].map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input placeholder="Mascot idea (e.g. crowned lion, paper crane…)" value={mascotIdea} onChange={(e) => setMascotIdea(e.target.value)} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Save selections + advance */}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!selectedId}
+              onClick={async () => {
+                if (!selectedId) { toast.error("Pick a profile first"); return; }
+                await savePhase2Selections({ data: {
+                  id: selectedId,
+                  palette: { primary: profile.primary_hex || "", secondary: profile.secondary_hex || "", accent: profile.accent_hex || "", neutral: profile.neutral_hex || "" },
+                  fonts,
+                  slogans,
+                  chosenSlogan: chosenSlogan || null,
+                  elements,
+                  mascot: { enabled: mascotEnabled, style: mascotStyle, idea: mascotIdea },
+                } });
+                toast.success("Selections saved");
+              }}
+            >
+              <Save className="mr-1.5 h-3.5 w-3.5" /> Save selections
+            </Button>
+            <Button
+              size="sm"
+              disabled={!selectedId || !selectedConceptId}
+              onClick={async () => {
+                if (!selectedId) return;
+                const selected = concepts.find((c) => c.id === selectedConceptId) ?? null;
+                await saveConcepts({ data: { id: selectedId, concepts, selected, notes } });
+                await markPhaseComplete({ data: { id: selectedId, phase: 2 } });
+                window.location.href = "/phase-3";
+              }}
+            >
+              Continue to Phase 3 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            </Button>
+          </div>
 
           <div className="flex items-center justify-between">
             <div>

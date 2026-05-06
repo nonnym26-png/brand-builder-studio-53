@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Download, Wand2, Type, Palette as PaletteIcon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { FONTS, type BrandState, type FontKey, type IconKey, type LogoLayout } f
 import { PALETTES } from "@/components/brand-kit/palettes";
 import { exportBrandKitPDF } from "@/components/brand-kit/exportPdf";
 import abLogo from "@/assets/ab-logo.png";
+import { PhaseStepper } from "@/components/PhaseStepper";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -96,10 +97,8 @@ function Index() {
               <div className="text-xs text-muted-foreground">Logo &amp; Identity Builder</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Link to="/phase-2" className="text-xs font-medium text-muted-foreground hover:text-foreground">
-              Phase 2 →
-            </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <PhaseStepper />
             <Button variant="outline" size="sm" onClick={randomize}>
               <Wand2 className="mr-2 h-3.5 w-3.5" /> Generate Design
             </Button>
