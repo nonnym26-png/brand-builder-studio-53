@@ -15,6 +15,12 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { listBrandProfiles, loadBrandProfile } from "@/api/phase2.functions";
 import { LogoSVGPreview } from "@/components/LogoSVGPreview";
+import {
+  DiamondScoreBadge,
+  DiamondScorePanel,
+  computeOverall,
+  type DiamondScores,
+} from "@/components/DiamondScore";
 
 export const Route = createFileRoute("/logo-studio")({
   head: () => ({
@@ -62,7 +68,7 @@ type MockRendering = {
   id: string;
   concept_name: string;
   concept_type: string;
-  diamond_score: number;
+  diamond_score: DiamondScores;
   strategic_value: string;
   production_value: string;
   why_not_generic: string;
