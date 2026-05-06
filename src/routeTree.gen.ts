@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as Phase2RouteImport } from './routes/phase-2'
+import { Route as Phase1RouteImport } from './routes/phase-1'
 import { Route as LogoStudioRouteImport } from './routes/logo-studio'
 import { Route as IndexRouteImport } from './routes/index'
 
 const Phase2Route = Phase2RouteImport.update({
   id: '/phase-2',
   path: '/phase-2',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Phase1Route = Phase1RouteImport.update({
+  id: '/phase-1',
+  path: '/phase-1',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogoStudioRoute = LogoStudioRouteImport.update({
@@ -32,30 +38,34 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/logo-studio': typeof LogoStudioRoute
+  '/phase-1': typeof Phase1Route
   '/phase-2': typeof Phase2Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/logo-studio': typeof LogoStudioRoute
+  '/phase-1': typeof Phase1Route
   '/phase-2': typeof Phase2Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/logo-studio': typeof LogoStudioRoute
+  '/phase-1': typeof Phase1Route
   '/phase-2': typeof Phase2Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/logo-studio' | '/phase-2'
+  fullPaths: '/' | '/logo-studio' | '/phase-1' | '/phase-2'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/logo-studio' | '/phase-2'
-  id: '__root__' | '/' | '/logo-studio' | '/phase-2'
+  to: '/' | '/logo-studio' | '/phase-1' | '/phase-2'
+  id: '__root__' | '/' | '/logo-studio' | '/phase-1' | '/phase-2'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LogoStudioRoute: typeof LogoStudioRoute
+  Phase1Route: typeof Phase1Route
   Phase2Route: typeof Phase2Route
 }
 
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/phase-2'
       fullPath: '/phase-2'
       preLoaderRoute: typeof Phase2RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/phase-1': {
+      id: '/phase-1'
+      path: '/phase-1'
+      fullPath: '/phase-1'
+      preLoaderRoute: typeof Phase1RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/logo-studio': {
@@ -88,8 +105,19 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LogoStudioRoute: LogoStudioRoute,
+  Phase1Route: Phase1Route,
   Phase2Route: Phase2Route,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
