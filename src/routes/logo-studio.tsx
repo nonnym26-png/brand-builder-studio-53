@@ -16,6 +16,11 @@ import { toast } from "sonner";
 import { listBrandProfiles, loadBrandProfile } from "@/api/phase2.functions";
 import { LogoSVGPreview } from "@/components/LogoSVGPreview";
 import { DesignDnaPanel } from "@/components/DesignDnaPanel";
+import {
+  DesignControls,
+  DEFAULT_DESIGN_CONTROLS,
+  type DesignControlsValue,
+} from "@/components/DesignControls";
 import { generateDesignDna, getDesignDna } from "@/api/designDna.functions";
 import type { DesignDna } from "@/server/designDna.server";
 import {
@@ -390,6 +395,7 @@ function LogoStudioPage() {
   const [dna, setDna] = useState<DesignDna | null>(null);
   const [dnaGeneratedAt, setDnaGeneratedAt] = useState<string | null>(null);
   const [dnaLoading, setDnaLoading] = useState(false);
+  const [controls, setControls] = useState<DesignControlsValue>(DEFAULT_DESIGN_CONTROLS);
 
   useEffect(() => {
     let cancelled = false;
@@ -626,6 +632,7 @@ function LogoStudioPage() {
           onGenerate={handleGenerateDna}
           hasProfile={Boolean(selectedId && profile)}
         />
+        <DesignControls value={controls} onChange={setControls} />
         <DiamondStandardCard />
 
         <section>
