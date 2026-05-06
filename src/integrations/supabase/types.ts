@@ -52,6 +52,7 @@ export type Database = {
           current_marketing_materials: string | null
           customer_long_term_vision: string | null
           customer_pain_points: string | null
+          diamond_recommendation_notes: string | null
           digital_usage: string[] | null
           digital_usage_notes: string | null
           email_address: string | null
@@ -95,6 +96,7 @@ export type Database = {
           phase_2_concept_notes: string | null
           phase_2_logo_concepts: Json | null
           phase_2_refinement_notes: string | null
+          phase_2_rendering_status: string | null
           phone_number: string | null
           preferred_contact_method: string | null
           primary_color_name: string | null
@@ -108,12 +110,14 @@ export type Database = {
           project_priority: string | null
           project_status: string | null
           ready_for_phase_2: boolean | null
+          ready_for_phase_3: boolean | null
           recommended_next_step: string | null
           required_file_formats: string[] | null
           secondary_color_name: string | null
           secondary_hex: string | null
           secondary_pantone: string | null
           selected_logo_concept: Json | null
+          selected_logo_rendering_id: string | null
           shape_preferences: string[] | null
           shapes_to_avoid: string | null
           styles_to_avoid: string | null
@@ -166,6 +170,7 @@ export type Database = {
           current_marketing_materials?: string | null
           customer_long_term_vision?: string | null
           customer_pain_points?: string | null
+          diamond_recommendation_notes?: string | null
           digital_usage?: string[] | null
           digital_usage_notes?: string | null
           email_address?: string | null
@@ -209,6 +214,7 @@ export type Database = {
           phase_2_concept_notes?: string | null
           phase_2_logo_concepts?: Json | null
           phase_2_refinement_notes?: string | null
+          phase_2_rendering_status?: string | null
           phone_number?: string | null
           preferred_contact_method?: string | null
           primary_color_name?: string | null
@@ -222,12 +228,14 @@ export type Database = {
           project_priority?: string | null
           project_status?: string | null
           ready_for_phase_2?: boolean | null
+          ready_for_phase_3?: boolean | null
           recommended_next_step?: string | null
           required_file_formats?: string[] | null
           secondary_color_name?: string | null
           secondary_hex?: string | null
           secondary_pantone?: string | null
           selected_logo_concept?: Json | null
+          selected_logo_rendering_id?: string | null
           shape_preferences?: string[] | null
           shapes_to_avoid?: string | null
           styles_to_avoid?: string | null
@@ -280,6 +288,7 @@ export type Database = {
           current_marketing_materials?: string | null
           customer_long_term_vision?: string | null
           customer_pain_points?: string | null
+          diamond_recommendation_notes?: string | null
           digital_usage?: string[] | null
           digital_usage_notes?: string | null
           email_address?: string | null
@@ -323,6 +332,7 @@ export type Database = {
           phase_2_concept_notes?: string | null
           phase_2_logo_concepts?: Json | null
           phase_2_refinement_notes?: string | null
+          phase_2_rendering_status?: string | null
           phone_number?: string | null
           preferred_contact_method?: string | null
           primary_color_name?: string | null
@@ -336,12 +346,14 @@ export type Database = {
           project_priority?: string | null
           project_status?: string | null
           ready_for_phase_2?: boolean | null
+          ready_for_phase_3?: boolean | null
           recommended_next_step?: string | null
           required_file_formats?: string[] | null
           secondary_color_name?: string | null
           secondary_hex?: string | null
           secondary_pantone?: string | null
           selected_logo_concept?: Json | null
+          selected_logo_rendering_id?: string | null
           shape_preferences?: string[] | null
           shapes_to_avoid?: string | null
           styles_to_avoid?: string | null
@@ -357,7 +369,15 @@ export type Database = {
           words_to_describe_brand?: string | null
           years_in_business?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "brand_profiles_selected_logo_rendering_id_fkey"
+            columns: ["selected_logo_rendering_id"]
+            isOneToOne: false
+            referencedRelation: "logo_renderings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       logo_renderings: {
         Row: {
