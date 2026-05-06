@@ -94,11 +94,19 @@ export type Database = {
           neutral_pantone: string | null
           orientation_preferences: string[] | null
           other_avoidance_notes: string | null
+          phase_1_completed_at: string | null
           phase_2_ai_prompt: string | null
+          phase_2_completed_at: string | null
           phase_2_concept_notes: string | null
+          phase_2_elements: Json | null
+          phase_2_fonts: Json | null
           phase_2_logo_concepts: Json | null
+          phase_2_mascot: Json | null
           phase_2_refinement_notes: string | null
           phase_2_rendering_status: string | null
+          phase_2_slogans: Json | null
+          phase_3_assets: Json | null
+          phase_3_completed_at: string | null
           phone_number: string | null
           preferred_contact_method: string | null
           primary_color_name: string | null
@@ -214,11 +222,19 @@ export type Database = {
           neutral_pantone?: string | null
           orientation_preferences?: string[] | null
           other_avoidance_notes?: string | null
+          phase_1_completed_at?: string | null
           phase_2_ai_prompt?: string | null
+          phase_2_completed_at?: string | null
           phase_2_concept_notes?: string | null
+          phase_2_elements?: Json | null
+          phase_2_fonts?: Json | null
           phase_2_logo_concepts?: Json | null
+          phase_2_mascot?: Json | null
           phase_2_refinement_notes?: string | null
           phase_2_rendering_status?: string | null
+          phase_2_slogans?: Json | null
+          phase_3_assets?: Json | null
+          phase_3_completed_at?: string | null
           phone_number?: string | null
           preferred_contact_method?: string | null
           primary_color_name?: string | null
@@ -334,11 +350,19 @@ export type Database = {
           neutral_pantone?: string | null
           orientation_preferences?: string[] | null
           other_avoidance_notes?: string | null
+          phase_1_completed_at?: string | null
           phase_2_ai_prompt?: string | null
+          phase_2_completed_at?: string | null
           phase_2_concept_notes?: string | null
+          phase_2_elements?: Json | null
+          phase_2_fonts?: Json | null
           phase_2_logo_concepts?: Json | null
+          phase_2_mascot?: Json | null
           phase_2_refinement_notes?: string | null
           phase_2_rendering_status?: string | null
+          phase_2_slogans?: Json | null
+          phase_3_assets?: Json | null
+          phase_3_completed_at?: string | null
           phone_number?: string | null
           preferred_contact_method?: string | null
           primary_color_name?: string | null
