@@ -15,6 +15,7 @@ import { exportConceptPDF } from "@/components/brand-kit/exportConceptPdf";
 import { listBrandProfiles, loadBrandProfile, saveConcepts, generateAIDirections } from "@/api/phase2.functions";
 import { toPng } from "html-to-image";
 import abLogo from "@/assets/ab-logo.png";
+import { DesignDnaEditor } from "@/components/DesignDnaEditor";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
