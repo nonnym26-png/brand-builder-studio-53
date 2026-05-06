@@ -6,7 +6,7 @@ import {
   isVectorConfirmed,
   MISSING_FIELDS_MESSAGE,
   VECTOR_REQUIRED_MESSAGE,
-} from "@/server/profile.shared";
+} from "@/lib/profile.shared";
 
 type ProfilePatch = Record<string, unknown>;
 
