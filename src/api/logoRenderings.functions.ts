@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getAdminClient } from "@/server/phase2.server";
+import { runAbLogoRenderingPrompt } from "@/server/abLogoRenderingPrompt.server";
 
 const ALLOWED_FIELDS = [
   "concept_name",
@@ -227,4 +228,47 @@ export const deleteLogoRendering = createServerFn({ method: "POST" })
     const { error } = await sb.from("logo_renderings").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/**
+ * Generate 6 SVG logo renderings for a brand profile using the saved Design DNA.
+ * Persists results to logo_renderings and returns the inserted rows.
+ */
+export const generateLogoRenderingsFromDna = createServerFn({ method: "POST" })
+  .inputValidator((input: { brand_profile_id: string }) => {
+    if (!input?.brand_profile_id) throw new Error("brand_profile_id is required");
+    return input;
+  })
+  .handler(async ({ data }) => {
+    const sb = getAdminClient();
+
+    const renderings = await runAbLogoRenderingPrompt(data.brand_profile_id);
+    if (!renderings.length) throw new Error("AI returned 0 renderings");
+
+    const rows = renderings.map((r) => ({
+      brand_profile_id: data.brand_profile_id,
+      status: "Generated",
+      design_tier: "Agency-Level",
+      concept_name: r.concept_name,
+      concept_type: r.concept_type,
+      layout_style: r.layout_style,
+      shape_system: r.shape_system,
+      typography_system: r.typography_system,
+      symbol_system: r.symbol_system,
+      color_system: r.color_system as never,
+      svg_markup: r.svg_markup,
+      strategic_value_statement: r.strategic_value_statement,
+      production_value_statement: r.production_value_statement,
+      why_not_generic: r.why_not_generic,
+      one_color_version_notes: r.one_color_version_notes,
+      social_media_version_notes: r.social_media_version_notes,
+      print_apparel_signage_notes: r.print_apparel_signage_notes,
+    }));
+
+    const { data: inserted, error } = await sb
+      .from("logo_renderings")
+      .insert(rows as never)
+      .select("*");
+    if (error) throw new Error(error.message);
+    return inserted ?? [];
   });
