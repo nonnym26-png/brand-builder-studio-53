@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Database, Download, RefreshCw, Save, Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, Database, Download, RefreshCw, Save, Sparkles, Wand2, MessageSquare, Type, Palette as PaletteIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,10 +12,13 @@ import { ConceptMark } from "@/components/brand-kit/ConceptRenderer";
 import { generateConcepts, mergeAIDirections } from "@/components/brand-kit/conceptEngine";
 import type { LogoConcept, ProfileLite } from "@/components/brand-kit/conceptTypes";
 import { exportConceptPDF } from "@/components/brand-kit/exportConceptPdf";
-import { listBrandProfiles, loadBrandProfile, saveConcepts, generateAIDirections } from "@/api/phase2.functions";
+import { listBrandProfiles, loadBrandProfile, saveConcepts, generateAIDirections, generateSlogans, savePhase2Selections, markPhaseComplete } from "@/api/phase2.functions";
 import { toPng } from "html-to-image";
 import abLogo from "@/assets/ab-logo.png";
 import { DesignDnaEditor } from "@/components/DesignDnaEditor";
+import { PhaseStepper } from "@/components/PhaseStepper";
+import { PALETTES } from "@/components/brand-kit/palettes";
+import { FONTS, type FontKey } from "@/components/brand-kit/types";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -41,6 +44,17 @@ function Phase2() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+
+  // New Phase 2 creative selections
+  const [fonts, setFonts] = useState<{ heading: FontKey; body: FontKey; accent: FontKey }>({ heading: "playfair", body: "inter", accent: "bebas" });
+  const [slogans, setSlogans] = useState<string[]>([]);
+  const [chosenSlogan, setChosenSlogan] = useState<string>("");
+  const [sloganBusy, setSloganBusy] = useState(false);
+  const ELEMENT_OPTIONS = ["Badge", "Ribbon", "Frame", "Monogram bracket", "Divider", "Dot accent", "Line", "Swoosh", "Crest", "Underline"];
+  const [elements, setElements] = useState<string[]>([]);
+  const [mascotEnabled, setMascotEnabled] = useState(false);
+  const [mascotStyle, setMascotStyle] = useState<string>("geometric");
+  const [mascotIdea, setMascotIdea] = useState("");
 
   // Initial deterministic generation
   useEffect(() => {
@@ -108,7 +122,7 @@ function Phase2() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
-        <div className="mx-auto flex max-w-[1500px] items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3 px-6 py-4">
           <div className="flex items-center gap-3">
             <img src={abLogo} alt="Anaglyph" className="h-9 w-auto" />
             <div className="leading-tight">
@@ -116,11 +130,7 @@ function Phase2() {
               <div className="text-xs text-muted-foreground">Phase 2 · Internal use</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Link to="/" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-              <ArrowLeft className="h-3.5 w-3.5" /> Back to builder
-            </Link>
-          </div>
+          <PhaseStepper current="/phase-2" completed={{ "/phase-2": Boolean(selectedConceptId) }} />
         </div>
       </header>
 
