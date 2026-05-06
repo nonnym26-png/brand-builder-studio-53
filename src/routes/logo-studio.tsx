@@ -14,6 +14,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { listBrandProfiles, loadBrandProfile } from "@/api/phase2.functions";
+import { LogoSVGPreview } from "@/components/LogoSVGPreview";
 
 export const Route = createFileRoute("/logo-studio")({
   head: () => ({
@@ -538,10 +539,7 @@ function RenderingCard({
         </div>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
-        <div
-          className="aspect-[3/2] w-full overflow-hidden rounded-md border bg-[#FAFAF7]"
-          dangerouslySetInnerHTML={{ __html: svg }}
-        />
+        <LogoSVGPreview svgMarkup={svg} title={`${rendering.concept_name} — SVG`} />
         <div className="space-y-3 text-sm">
           <Field label="Strategic Value" value={rendering.strategic_value} />
           <Field label="Production Value" value={rendering.production_value} />
