@@ -619,7 +619,7 @@ function RenderingCard({
             <CardTitle className="text-base">{rendering.concept_name}</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">{rendering.concept_type}</p>
           </div>
-          <DiamondScore value={rendering.diamond_score} />
+          <DiamondScoreBadge overall={computeOverall(rendering.diamond_score)} />
         </div>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
@@ -630,6 +630,8 @@ function RenderingCard({
           <Field label="Why This Is Not Generic" value={rendering.why_not_generic} />
           <Field label="Production Notes" value={rendering.production_notes} />
         </div>
+
+        <DiamondScorePanel scores={rendering.diamond_score} />
 
         <div className="mt-auto flex gap-2 pt-2">
           <Button
@@ -671,17 +673,4 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DiamondScore({ value }: { value: number }) {
-  const tone =
-    value >= 90 ? "bg-emerald-500" : value >= 80 ? "bg-amber-500" : "bg-muted-foreground";
-  return (
-    <div className="flex flex-col items-center">
-      <div className={`h-10 w-10 rotate-45 ${tone} flex items-center justify-center rounded-sm`}>
-        <span className="-rotate-45 text-xs font-bold text-white">{value}</span>
-      </div>
-      <span className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-        Diamond
-      </span>
-    </div>
-  );
-}
+
