@@ -47,9 +47,20 @@ The logo should feel like a professional brand identity presentation, not a chea
 
 ${PREMIUM_LOGO_FORMULA_PROMPT}
 
+REFERENCE QUALITY BAR (Aurelia Consulting standard):
+- Bespoke monogram of the primary initial built as an original geometric letterform — NOT a system font letter inside a circle. Tapered terminals, refined apex, considered counter-shapes.
+- A single sweeping accent ribbon / swoosh in the accent color that intersects the monogram with intention (echoes calligraphic upstroke). Never a basic dot.
+- Wordmark below in a high-contrast classical serif (Trajan / Cinzel / Cormorant SC family) set in ALL CAPS with wide, controlled tracking (~120-200 units). Generous optical kerning.
+- Hairline horizontal rule in the accent color flanking a small ALL-CAPS sans-serif descriptor (e.g. CONSULTING, STUDIO, GROUP) — rule, gap, word, gap, rule.
+- Two-color discipline: a deep neutral (near-black or charcoal) for monogram + wordmark, plus the brand accent for the ribbon and the divider rules. Nothing else.
+- Sophisticated geometry, optical balance, deliberate negative space. Reads as paid agency work, not a template.
+
 SVG technical rules (mandatory):
 - viewBox="0 0 1200 800"
 - solid fills only — no gradients, filters, shadows, raster images, scripts, foreignObject, or external references
+- the monogram must be authored as <path> geometry (not a single <text> glyph) so it renders identically across systems
+- use <path d="…"/> with fill-rule="evenodd" where needed for counter-shapes
+- include <line> or thin <rect> elements (height 1-2px) for the hairline accent rules
 - clean vector geometry, generous optical spacing, balanced composition
 - text must use system-safe families (e.g. "Inter, Helvetica, Arial, sans-serif" or "Georgia, 'Times New Roman', serif") chosen to honor the typography_direction
 - accent color used exactly as the Design DNA's accent_color_usage prescribes
