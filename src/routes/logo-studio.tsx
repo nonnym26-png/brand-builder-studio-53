@@ -929,4 +929,40 @@ function GeneratedRenderingCard({
   );
 }
 
+function DiamondStandardCard() {
+  const principles = [
+    "Print-ready at any size",
+    "Stitch-ready for embroidery",
+    "Cut-ready for vinyl & signage",
+    "Scales from favicon to billboard",
+    "Simplifies cleanly to one color",
+    "Saves cleanly as vector artwork",
+  ];
+  return (
+    <Card className="border-primary/20">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Diamond className="h-5 w-5 text-primary" />
+          <CardTitle className="text-base">AB Diamond Standard</CardTitle>
+          <Badge variant="outline" className="ml-auto">Quality benchmark</Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground mb-4">
+          If it cannot print, stitch, cut, scale, simplify, or save cleanly as vector artwork — it is not
+          ready. Every rendering below is reviewed against this standard before it reaches the client.
+        </p>
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {principles.map((p) => (
+            <li key={p} className="flex items-start gap-2 text-sm">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <span>{p}</span>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
 
