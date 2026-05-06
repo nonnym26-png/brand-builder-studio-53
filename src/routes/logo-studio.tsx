@@ -890,4 +890,95 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+function GeneratedRenderingCard({
+  row,
+  onChanged,
+}: {
+  row: Record<string, unknown>;
+  onChanged: () => void | Promise<void>;
+}) {
+  const id = String(row.id);
+  const status = (row.status as RenderingStatus) ?? "Generated";
+  const isFavorite = Boolean(row.is_favorite);
+  const isSelected = Boolean(row.is_selected);
+  const score = (row.diamond_score as DiamondScores | null) ?? null;
+  const overall = score ? computeOverall(score) : 0;
+  const svg = (row.svg_markup as string) || "";
+
+  const onFav = async () => {
+    try {
+      await setLogoRenderingFavorite({ data: { id, is_favorite: !isFavorite } });
+      await onChanged();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+  const onSel = async () => {
+    try {
+      await selectLogoRendering({ data: { id } });
+      await updateLogoRendering({ data: { id, patch: { status: "Selected" } } });
+      await onChanged();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+  const onNot = async () => {
+    try {
+      await updateLogoRendering({ data: { id, patch: { status: "Not Suitable" } } });
+      await onChanged();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const ringClass = isSelected
+    ? "ring-2 ring-primary"
+    : isFavorite
+      ? "ring-2 ring-rose-400"
+      : status === "Not Suitable"
+        ? "opacity-60"
+        : "";
+
+  return (
+    <Card className={`flex flex-col transition ${ringClass}`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">{(row.concept_name as string) || "Untitled"}</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">{(row.concept_type as string) || ""}</p>
+            <Badge variant="secondary" className="mt-2">{status}</Badge>
+          </div>
+          {score && <DiamondScoreBadge overall={overall} />}
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col gap-4">
+        {svg && <LogoSVGPreview svgMarkup={svg} title={`${row.concept_name} — SVG`} />}
+        <div className="space-y-3 text-sm">
+          <Field label="Strategic Value" value={(row.strategic_value_statement as string) || "—"} />
+          <Field label="Production Value" value={(row.production_value_statement as string) || "—"} />
+          <Field label="Why Not Generic" value={(row.why_not_generic as string) || "—"} />
+          <Field label="Production Notes" value={(row.production_notes as string) || "—"} />
+        </div>
+        {score && <DiamondScorePanel scores={score} />}
+        <div className="mt-auto flex gap-2 pt-2">
+          <Button variant={isFavorite ? "default" : "outline"} size="sm" className="flex-1" onClick={onFav}>
+            <Heart className="mr-1.5 h-4 w-4" /> {isFavorite ? "Favorited" : "Save Favorite"}
+          </Button>
+          <Button variant={isSelected ? "default" : "outline"} size="sm" className="flex-1" onClick={onSel}>
+            <Check className="mr-1.5 h-4 w-4" /> {isSelected ? "Selected" : "Select"}
+          </Button>
+          <Button
+            variant={status === "Not Suitable" ? "destructive" : "outline"}
+            size="sm"
+            className="flex-1"
+            onClick={onNot}
+          >
+            <X className="mr-1.5 h-4 w-4" /> Not Suitable
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 
