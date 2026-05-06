@@ -362,6 +362,81 @@ function Phase2() {
             </div>
           </div>
 
+          {/* Premium AI Logo Render — Aurelia-quality */}
+          <div className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-card to-primary/5 p-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight">
+                  <Sparkles className="h-4 w-4 text-primary" /> Premium Logo Render
+                </h3>
+                <p className="text-xs text-muted-foreground">Agency-grade lockup generated with Lovable AI (Nano Banana Pro). Bespoke monogram + accent ribbon + classical serif wordmark + descriptor.</p>
+              </div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-[1fr_320px]">
+              <div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-lg border border-border bg-white p-4">
+                {premiumImage ? (
+                  <img src={premiumImage} alt="Premium logo render" className="max-h-[480px] w-auto object-contain" />
+                ) : (
+                  <div className="text-center text-xs text-muted-foreground">
+                    <Sparkles className="mx-auto mb-2 h-6 w-6 opacity-40" />
+                    Click <strong>Render Premium Logo</strong> to generate an Aurelia-level lockup.
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-xs uppercase text-muted-foreground">Descriptor</Label>
+                  <Input className="mt-1" value={premiumDescriptor} onChange={(e) => setPremiumDescriptor(e.target.value)} placeholder="CONSULTING, STUDIO, GROUP…" />
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Brand: <strong>{profile.business_name}</strong><br />
+                  Initial: <strong>{(profile.initials_abbreviation || profile.business_name || "A").charAt(0).toUpperCase()}</strong><br />
+                  Colors: <span style={{ color: profile.primary_hex || undefined }}>{profile.primary_hex || "#0F0F10"}</span> · <span style={{ color: profile.accent_hex || undefined }}>{profile.accent_hex || "#B81F2A"}</span>
+                </div>
+                <Button
+                  className="w-full"
+                  disabled={premiumBusy}
+                  onClick={async () => {
+                    setPremiumBusy(true);
+                    setPremiumImage(null);
+                    try {
+                      const out = await generatePremiumLogoImage({ data: {
+                        brandName: profile.business_name || "Brand",
+                        initial: (profile.initials_abbreviation || profile.business_name || "A").charAt(0),
+                        descriptor: premiumDescriptor,
+                        primaryHex: profile.neutral_hex || profile.primary_hex || "#0F0F10",
+                        accentHex: profile.accent_hex || profile.primary_hex || "#B81F2A",
+                        extraDirection: chosenSlogan ? `Tone: ${chosenSlogan}` : undefined,
+                      } });
+                      setPremiumImage(out.imageUrl);
+                      toast.success("Premium logo rendered");
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Render failed");
+                    } finally {
+                      setPremiumBusy(false);
+                    }
+                  }}
+                >
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" /> {premiumBusy ? "Rendering… (30-60s)" : "Render Premium Logo"}
+                </Button>
+                {premiumImage && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      const a = document.createElement("a");
+                      a.href = premiumImage;
+                      a.download = `${(profile.business_name || "logo").toLowerCase().replace(/\s+/g, "-")}-premium.png`;
+                      a.click();
+                    }}
+                  >
+                    <Download className="mr-1.5 h-3.5 w-3.5" /> Download PNG
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Save selections + advance */}
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button
