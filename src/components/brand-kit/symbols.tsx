@@ -162,18 +162,21 @@ export function Symbol({
       );
     case "scissors":
       return (
-        <g stroke={color} strokeWidth="6" fill="none">
-          <circle cx="26" cy="76" r="12" />
-          <circle cx="74" cy="76" r="12" />
-          <path d="M34 68 L 92 10" />
-          <path d="M66 68 L 8 10" />
+        <g stroke={color} strokeWidth="5" fill="none" strokeLinecap="round">
+          <circle cx="26" cy="74" r="11" />
+          <circle cx="74" cy="74" r="11" />
+          <path d="M34 66 L 88 14" stroke={duotone ? a : color} />
+          <path d="M66 66 L 12 14" />
+          <circle cx="50" cy="44" r="3" fill={color} stroke="none" />
         </g>
       );
     case "needle":
       return (
-        <g stroke={color} strokeWidth="6" fill={fill} strokeLinecap="round">
-          <path d="M14 86 L 86 14" />
-          <circle cx="14" cy="86" r="6" fill="none" />
+        <g stroke={color} strokeWidth="4" fill="none" strokeLinecap="round">
+          <path d="M14 86 L 86 14" strokeWidth="6" />
+          <ellipse cx="20" cy="80" rx="9" ry="5" transform="rotate(-45 20 80)" />
+          <circle cx="20" cy="80" r="2.5" fill={color} stroke="none" />
+          <path d="M84 12 C 92 12, 92 22, 84 22" stroke={duotone ? a : color} />
         </g>
       );
     case "molecule":
