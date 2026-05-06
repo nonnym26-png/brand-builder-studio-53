@@ -734,25 +734,37 @@ function RenderingCard({
   palette,
   brandName,
   initials,
-  status,
-  onAction,
+  state,
+  onFavorite,
+  onSelect,
+  onNotSuitable,
 }: {
   rendering: MockRendering;
   palette: Palette;
   brandName: string;
   initials: string;
-  status: CardStatus;
-  onAction: (s: CardStatus) => void;
+  state: CardState;
+  onFavorite: () => void;
+  onSelect: () => void;
+  onNotSuitable: () => void;
 }) {
   const svg = rendering.svg(palette, brandName, initials);
-  const ringClass =
-    status === "selected"
-      ? "ring-2 ring-primary"
-      : status === "favorite"
-        ? "ring-2 ring-rose-400"
-        : status === "rejected"
-          ? "opacity-60"
-          : "";
+  const { status, isFavorite, isSelected, busy } = state;
+  const ringClass = isSelected
+    ? "ring-2 ring-primary"
+    : isFavorite
+      ? "ring-2 ring-rose-400"
+      : status === "Not Suitable"
+        ? "opacity-60"
+        : "";
+  const statusTone: Record<RenderingStatus, string> = {
+    Generated: "secondary",
+    Favorite: "secondary",
+    Selected: "default",
+    "Needs Refinement": "outline",
+    "Not Suitable": "destructive",
+    "Approved for Phase 3": "default",
+  } as never;
 
   return (
     <Card className={`flex flex-col transition ${ringClass}`}>
@@ -761,6 +773,12 @@ function RenderingCard({
           <div>
             <CardTitle className="text-base">{rendering.concept_name}</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">{rendering.concept_type}</p>
+            <Badge
+              variant={statusTone[status] as "secondary" | "default" | "outline" | "destructive"}
+              className="mt-2"
+            >
+              {status}
+            </Badge>
           </div>
           <DiamondScoreBadge overall={computeOverall(rendering.diamond_score)} />
         </div>
@@ -778,28 +796,31 @@ function RenderingCard({
 
         <div className="mt-auto flex gap-2 pt-2">
           <Button
-            variant={status === "favorite" ? "default" : "outline"}
+            variant={isFavorite ? "default" : "outline"}
             size="sm"
             className="flex-1"
-            onClick={() => onAction("favorite")}
+            onClick={onFavorite}
+            disabled={busy}
           >
-            <Heart className="mr-1.5 h-4 w-4" /> Favorite
+            <Heart className="mr-1.5 h-4 w-4" /> {isFavorite ? "Favorited" : "Save Favorite"}
           </Button>
           <Button
-            variant={status === "selected" ? "default" : "outline"}
+            variant={isSelected ? "default" : "outline"}
             size="sm"
             className="flex-1"
-            onClick={() => onAction("selected")}
+            onClick={onSelect}
+            disabled={busy}
           >
-            <Check className="mr-1.5 h-4 w-4" /> Select
+            <Check className="mr-1.5 h-4 w-4" /> {isSelected ? "Selected" : "Select Rendering"}
           </Button>
           <Button
-            variant={status === "rejected" ? "destructive" : "outline"}
+            variant={status === "Not Suitable" ? "destructive" : "outline"}
             size="sm"
             className="flex-1"
-            onClick={() => onAction("rejected")}
+            onClick={onNotSuitable}
+            disabled={busy}
           >
-            <X className="mr-1.5 h-4 w-4" /> Reject
+            <X className="mr-1.5 h-4 w-4" /> Not Suitable
           </Button>
         </div>
       </CardContent>
