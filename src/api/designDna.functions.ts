@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { generateAndSaveDesignDna } from "@/server/designDna.server";
 import { getAdminClient } from "@/server/phase2.server";
+import { runAbDesignDnaPrompt } from "@/server/abDesignDnaPrompt.server";
 
 type Json =
   | string
@@ -144,5 +145,50 @@ export const saveDesignDnaRecord = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
+    return { record: inserted as DesignDnaRecord };
+  });
+
+/** Run the AB Design DNA Prompt against a brand profile and persist the result. */
+export const runDesignDnaPrompt = createServerFn({ method: "POST" })
+  .inputValidator((input: { brand_profile_id: string }) => {
+    if (!input?.brand_profile_id) throw new Error("brand_profile_id is required");
+    return input;
+  })
+  .handler(async ({ data }) => {
+    const sb = getAdminClient();
+    const { data: profile, error } = await sb
+      .from("brand_profiles")
+      .select("*")
+      .eq("id", data.brand_profile_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!profile) throw new Error("Brand Profile not found");
+
+    const result = await runAbDesignDnaPrompt(profile as Record<string, unknown>);
+
+    const { data: existing, error: findErr } = await sb
+      .from("design_dna")
+      .select("id")
+      .eq("brand_profile_id", data.brand_profile_id)
+      .maybeSingle();
+    if (findErr) throw new Error(findErr.message);
+
+    if (existing?.id) {
+      const { data: updated, error: upErr } = await sb
+        .from("design_dna")
+        .update(result as never)
+        .eq("id", existing.id)
+        .select("*")
+        .single();
+      if (upErr) throw new Error(upErr.message);
+      return { record: updated as DesignDnaRecord };
+    }
+
+    const { data: inserted, error: insErr } = await sb
+      .from("design_dna")
+      .insert({ brand_profile_id: data.brand_profile_id, ...result } as never)
+      .select("*")
+      .single();
+    if (insErr) throw new Error(insErr.message);
     return { record: inserted as DesignDnaRecord };
   });
