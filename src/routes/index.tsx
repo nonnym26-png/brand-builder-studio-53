@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Download, Wand2, Type, Palette as PaletteIcon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
