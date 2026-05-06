@@ -15,6 +15,12 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { listBrandProfiles, loadBrandProfile } from "@/api/phase2.functions";
 import { LogoSVGPreview } from "@/components/LogoSVGPreview";
+import {
+  DiamondScoreBadge,
+  DiamondScorePanel,
+  computeOverall,
+  type DiamondScores,
+} from "@/components/DiamondScore";
 
 export const Route = createFileRoute("/logo-studio")({
   head: () => ({
@@ -62,7 +68,7 @@ type MockRendering = {
   id: string;
   concept_name: string;
   concept_type: string;
-  diamond_score: number;
+  diamond_score: DiamondScores;
   strategic_value: string;
   production_value: string;
   why_not_generic: string;
@@ -116,7 +122,20 @@ const MOCK_RENDERINGS: MockRendering[] = [
     id: "wordmark",
     concept_name: "The Signature",
     concept_type: "Premium Wordmark",
-    diamond_score: 92,
+    diamond_score: {
+      brand_strategy_fit: 9.5,
+      visual_balance: 9.4,
+      typography_quality: 9.6,
+      shape_strength: 9.0,
+      color_strength: 9.0,
+      vector_readiness: 9.8,
+      one_color_strength: 9.7,
+      embroidery_readiness: 9.5,
+      signage_readiness: 9.4,
+      social_media_readiness: 8.8,
+      apparel_readiness: 9.3,
+      professional_polish: 9.5,
+    },
     strategic_value:
       "A confident type-led mark that lets the brand name carry the identity — no decoration required.",
     production_value:
@@ -139,7 +158,20 @@ const MOCK_RENDERINGS: MockRendering[] = [
     id: "combination",
     concept_name: "Mark + Wordmark",
     concept_type: "Icon + Wordmark",
-    diamond_score: 89,
+    diamond_score: {
+      brand_strategy_fit: 9.0,
+      visual_balance: 8.8,
+      typography_quality: 8.9,
+      shape_strength: 9.0,
+      color_strength: 8.7,
+      vector_readiness: 9.2,
+      one_color_strength: 8.9,
+      embroidery_readiness: 8.6,
+      signage_readiness: 9.0,
+      social_media_readiness: 9.4,
+      apparel_readiness: 8.7,
+      professional_polish: 9.0,
+    },
     strategic_value:
       "A flexible system: lockup for headers, standalone icon for app icons, favicons, and social avatars.",
     production_value:
@@ -164,7 +196,20 @@ const MOCK_RENDERINGS: MockRendering[] = [
     id: "emblem",
     concept_name: "The Emblem",
     concept_type: "Badge / Emblem",
-    diamond_score: 87,
+    diamond_score: {
+      brand_strategy_fit: 8.6,
+      visual_balance: 8.8,
+      typography_quality: 8.7,
+      shape_strength: 8.9,
+      color_strength: 8.5,
+      vector_readiness: 8.6,
+      one_color_strength: 8.8,
+      embroidery_readiness: 8.4,
+      signage_readiness: 8.7,
+      social_media_readiness: 8.5,
+      apparel_readiness: 8.9,
+      professional_polish: 8.7,
+    },
     strategic_value:
       "Heritage-style badge — communicates craft, history and trust. Strong on packaging and merch.",
     production_value:
@@ -192,7 +237,20 @@ const MOCK_RENDERINGS: MockRendering[] = [
     id: "monogram",
     concept_name: "The Monogram",
     concept_type: "Monogram / Initials",
-    diamond_score: 85,
+    diamond_score: {
+      brand_strategy_fit: 8.4,
+      visual_balance: 8.6,
+      typography_quality: 8.5,
+      shape_strength: 8.7,
+      color_strength: 8.3,
+      vector_readiness: 8.8,
+      one_color_strength: 8.9,
+      embroidery_readiness: 8.4,
+      signage_readiness: 8.5,
+      social_media_readiness: 8.7,
+      apparel_readiness: 8.4,
+      professional_polish: 8.5,
+    },
     strategic_value:
       "Initial-driven mark that reads instantly at small scale. Built to live as an avatar and a stamp.",
     production_value:
@@ -218,7 +276,20 @@ const MOCK_RENDERINGS: MockRendering[] = [
     id: "industry",
     concept_name: "The Industry Symbol",
     concept_type: "Industry Symbol Mark",
-    diamond_score: 84,
+    diamond_score: {
+      brand_strategy_fit: 8.3,
+      visual_balance: 8.4,
+      typography_quality: 8.2,
+      shape_strength: 8.5,
+      color_strength: 8.1,
+      vector_readiness: 8.5,
+      one_color_strength: 8.4,
+      embroidery_readiness: 8.2,
+      signage_readiness: 8.4,
+      social_media_readiness: 8.3,
+      apparel_readiness: 8.4,
+      professional_polish: 8.3,
+    },
     strategic_value:
       "A category-relevant symbol that signals what the brand does without resorting to clichés.",
     production_value:
@@ -246,7 +317,20 @@ const MOCK_RENDERINGS: MockRendering[] = [
     id: "social",
     concept_name: "Social-Ready Simplified",
     concept_type: "Social Media Mark",
-    diamond_score: 90,
+    diamond_score: {
+      brand_strategy_fit: 9.0,
+      visual_balance: 9.1,
+      typography_quality: 9.0,
+      shape_strength: 9.2,
+      color_strength: 8.9,
+      vector_readiness: 9.4,
+      one_color_strength: 9.5,
+      embroidery_readiness: 9.0,
+      signage_readiness: 8.8,
+      social_media_readiness: 9.6,
+      apparel_readiness: 9.0,
+      professional_polish: 9.1,
+    },
     strategic_value:
       "Stripped-down version of the brand mark optimized for avatars, favicons, app icons and stories.",
     production_value:
@@ -535,7 +619,7 @@ function RenderingCard({
             <CardTitle className="text-base">{rendering.concept_name}</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">{rendering.concept_type}</p>
           </div>
-          <DiamondScore value={rendering.diamond_score} />
+          <DiamondScoreBadge overall={computeOverall(rendering.diamond_score)} />
         </div>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
@@ -546,6 +630,8 @@ function RenderingCard({
           <Field label="Why This Is Not Generic" value={rendering.why_not_generic} />
           <Field label="Production Notes" value={rendering.production_notes} />
         </div>
+
+        <DiamondScorePanel scores={rendering.diamond_score} />
 
         <div className="mt-auto flex gap-2 pt-2">
           <Button
@@ -587,17 +673,4 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DiamondScore({ value }: { value: number }) {
-  const tone =
-    value >= 90 ? "bg-emerald-500" : value >= 80 ? "bg-amber-500" : "bg-muted-foreground";
-  return (
-    <div className="flex flex-col items-center">
-      <div className={`h-10 w-10 rotate-45 ${tone} flex items-center justify-center rounded-sm`}>
-        <span className="-rotate-45 text-xs font-bold text-white">{value}</span>
-      </div>
-      <span className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-        Diamond
-      </span>
-    </div>
-  );
-}
+
