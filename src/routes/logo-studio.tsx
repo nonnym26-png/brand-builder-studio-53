@@ -15,6 +15,9 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { listBrandProfiles, loadBrandProfile } from "@/api/phase2.functions";
 import { LogoSVGPreview } from "@/components/LogoSVGPreview";
+import { DesignDnaPanel } from "@/components/DesignDnaPanel";
+import { generateDesignDna, getDesignDna } from "@/api/designDna.functions";
+import type { DesignDna } from "@/server/designDna.server";
 import {
   listLogoRenderings,
   createLogoRendering,
@@ -384,6 +387,9 @@ function LogoStudioPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [cards, setCards] = useState<Record<string, CardState>>({});
+  const [dna, setDna] = useState<DesignDna | null>(null);
+  const [dnaGeneratedAt, setDnaGeneratedAt] = useState<string | null>(null);
+  const [dnaLoading, setDnaLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -412,10 +418,13 @@ function LogoStudioPage() {
     Promise.all([
       loadBrandProfile({ data: { id: selectedId } }),
       listLogoRenderings({ data: { brand_profile_id: selectedId } }),
+      getDesignDna({ data: { brand_profile_id: selectedId } }),
     ])
-      .then(([row, renderings]) => {
+      .then(([row, renderings, dnaResult]) => {
         if (cancelled) return;
         setProfile((row as ProfileFull) ?? null);
+        setDna((dnaResult.design_dna as DesignDna | null) ?? null);
+        setDnaGeneratedAt(dnaResult.generated_at);
         const next: Record<string, CardState> = {};
         for (const mock of MOCK_RENDERINGS) {
           const match = (renderings as Array<Record<string, unknown>>).find(
@@ -444,6 +453,22 @@ function LogoStudioPage() {
       cancelled = true;
     };
   }, [selectedId]);
+
+  const handleGenerateDna = async () => {
+    if (!selectedId) return toast.error("Select a brand profile first");
+    setDnaLoading(true);
+    const t = toast.loading("Generating Design DNA…");
+    try {
+      const result = await generateDesignDna({ data: { brand_profile_id: selectedId } });
+      setDna(result.design_dna);
+      setDnaGeneratedAt(result.generated_at);
+      toast.success("Design DNA ready", { id: t });
+    } catch (err) {
+      toast.error((err as Error)?.message ?? "Failed to generate Design DNA", { id: t });
+    } finally {
+      setDnaLoading(false);
+    }
+  };
 
   const palette = paletteFromProfile(profile);
   const brandName = (profile?.business_name as string) || "Your Brand";
@@ -594,6 +619,13 @@ function LogoStudioPage() {
 
       <main className="container mx-auto px-6 py-8 space-y-8">
         <ProfileSummary profile={profile} loading={loadingProfile} palette={palette} />
+        <DesignDnaPanel
+          dna={dna}
+          generatedAt={dnaGeneratedAt}
+          loading={dnaLoading}
+          onGenerate={handleGenerateDna}
+          hasProfile={Boolean(selectedId && profile)}
+        />
         <DiamondStandardCard />
 
         <section>
