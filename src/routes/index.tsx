@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Download, Shuffle, Type, Palette as PaletteIcon, Sparkles } from "lucide-react";
+import { Download, Wand2, Type, Palette as PaletteIcon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,7 +101,7 @@ function Index() {
               Phase 2 →
             </Link>
             <Button variant="outline" size="sm" onClick={randomize}>
-              <Shuffle className="mr-2 h-3.5 w-3.5" /> Surprise me
+              <Wand2 className="mr-2 h-3.5 w-3.5" /> Generate Design
             </Button>
             <Button size="sm" onClick={() => exportBrandKitPDF(state)}>
               <Download className="mr-2 h-3.5 w-3.5" /> Export PDF
@@ -197,38 +197,74 @@ function Index() {
             </TabsContent>
 
             <TabsContent value="palette" className="space-y-4 pt-4">
-              <div className="grid grid-cols-1 gap-2">
-                {PALETTES.map((p) => (
-                  <button
-                    key={p.name}
-                    onClick={() => update("palette", p)}
-                    className={`flex items-center gap-3 rounded-md border p-2 text-left transition ${
-                      state.palette.name === p.name ? "border-foreground" : "border-border hover:border-foreground/40"
-                    }`}
-                  >
-                    <div className="flex h-8 flex-1 overflow-hidden rounded">
-                      {p.colors.map((c, i) => (
-                        <div key={i} style={{ background: c }} className="flex-1" />
-                      ))}
-                    </div>
-                    <span className="w-16 text-xs font-medium">{p.name}</span>
-                  </button>
-                ))}
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Preset palettes
+                </Label>
+                <div className="mt-2 grid grid-cols-1 gap-2">
+                  {PALETTES.map((p) => (
+                    <button
+                      key={p.name}
+                      onClick={() => update("palette", { ...p, colors: [...p.colors] })}
+                      className={`flex items-center gap-3 rounded-md border p-2 text-left transition ${
+                        state.palette.name === p.name ? "border-foreground" : "border-border hover:border-foreground/40"
+                      }`}
+                    >
+                      <div className="flex h-8 flex-1 overflow-hidden rounded">
+                        {p.colors.map((c, i) => (
+                          <div key={i} style={{ background: c }} className="flex-1" />
+                        ))}
+                      </div>
+                      <span className="w-16 text-xs font-medium">{p.name}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Brand color
+                  Custom colors
                 </Label>
-                <div className="mt-2 flex gap-2">
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Click a swatch to edit. Tap once more to set as the brand color.
+                </p>
+                <div className="mt-2 space-y-2">
                   {state.palette.colors.map((c, i) => (
-                    <button
+                    <div
                       key={i}
-                      onClick={() => update("paletteIndex", i)}
-                      className={`h-10 flex-1 rounded-md border-2 transition ${
-                        state.paletteIndex === i ? "border-foreground" : "border-transparent"
+                      className={`flex items-center gap-2 rounded-md border p-2 transition ${
+                        state.paletteIndex === i ? "border-foreground" : "border-border"
                       }`}
-                      style={{ background: c }}
-                    />
+                    >
+                      <input
+                        type="color"
+                        value={c}
+                        onChange={(e) => {
+                          const next = [...state.palette.colors];
+                          next[i] = e.target.value;
+                          update("palette", { ...state.palette, name: "Custom", colors: next });
+                        }}
+                        className="h-9 w-10 cursor-pointer rounded border border-border bg-transparent"
+                        aria-label={`Color ${i + 1}`}
+                      />
+                      <Input
+                        value={c}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          const next = [...state.palette.colors];
+                          next[i] = v;
+                          update("palette", { ...state.palette, name: "Custom", colors: next });
+                        }}
+                        className="h-9 flex-1 font-mono text-xs uppercase"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={state.paletteIndex === i ? "default" : "outline"}
+                        onClick={() => update("paletteIndex", i)}
+                      >
+                        {state.paletteIndex === i ? "Brand" : "Set"}
+                      </Button>
+                    </div>
                   ))}
                 </div>
               </div>
