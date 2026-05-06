@@ -9,7 +9,18 @@
  */
 
 import { getAdminClient } from "./phase2.server";
-import { PREMIUM_LOGO_FORMULA_PROMPT } from "../components/PremiumLogoFormula";
+
+const PREMIUM_LOGO_FORMULA_PROMPT = `PREMIUM LOGO FORMULA — every rendering MUST satisfy all 10 rules:
+1. A strong primary mark — monogram, symbol, badge, or refined wordmark.
+2. A readable wordmark — business name clear, balanced, confident at any size.
+3. A secondary descriptor — if applicable use CONSULTING, SERVICES, STUDIO, GROUP with controlled letter spacing.
+4. A restrained accent — accent color used sparingly: dot, underline, swoosh, separator, or monogram detail.
+5. Strong spacing — the logo must breathe. Avoid crowding.
+6. Clear hierarchy — the viewer must know what to read first.
+7. Scalable geometry — works from favicon to billboard.
+8. Simple color system — 1 to 3 solid colors maximum.
+9. No cheap effects — no gradients, shadows, bevels, glows, photos, or busy backgrounds.
+10. Variation-ready — supports icon-only, wordmark, stacked, horizontal, black, white, and one-color versions.`;
 
 export const AB_LOGO_RENDERING_PROMPT_TEMPLATE = `You are the senior brand identity designer at Anaglyph Branding.
 
