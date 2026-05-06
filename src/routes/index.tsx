@@ -48,7 +48,7 @@ function Index() {
     letterSpacing: 0,
     weight: 700,
     uppercase: false,
-    palette: PALETTES[0],
+    palette: PALETTES[0], // Anaglyph (AB brand)
     paletteIndex: 2,
   });
 
