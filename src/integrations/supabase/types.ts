@@ -359,6 +359,119 @@ export type Database = {
         }
         Relationships: []
       }
+      logo_renderings: {
+        Row: {
+          brand_profile_id: string
+          brand_recognition_statement: string | null
+          business_growth_value: string | null
+          color_system: Json | null
+          concept_name: string | null
+          concept_type: string | null
+          created_at: string
+          design_tier: string | null
+          diamond_score: Json | null
+          id: string
+          is_favorite: boolean
+          is_selected: boolean
+          layout_style: string | null
+          one_color_version_notes: string | null
+          print_apparel_signage_notes: string | null
+          production_notes: string | null
+          production_risks: string | null
+          production_value_statement: string | null
+          ready_for_phase_3: boolean
+          refinement_recommendations: string | null
+          rendering_notes: string | null
+          shape_system: string | null
+          social_media_version_notes: string | null
+          status: string
+          strategic_value_statement: string | null
+          svg_markup: string | null
+          symbol_system: string | null
+          typography_system: string | null
+          updated_at: string
+          variation_notes: string | null
+          why_not_generic: string | null
+          why_this_works: string | null
+        }
+        Insert: {
+          brand_profile_id: string
+          brand_recognition_statement?: string | null
+          business_growth_value?: string | null
+          color_system?: Json | null
+          concept_name?: string | null
+          concept_type?: string | null
+          created_at?: string
+          design_tier?: string | null
+          diamond_score?: Json | null
+          id?: string
+          is_favorite?: boolean
+          is_selected?: boolean
+          layout_style?: string | null
+          one_color_version_notes?: string | null
+          print_apparel_signage_notes?: string | null
+          production_notes?: string | null
+          production_risks?: string | null
+          production_value_statement?: string | null
+          ready_for_phase_3?: boolean
+          refinement_recommendations?: string | null
+          rendering_notes?: string | null
+          shape_system?: string | null
+          social_media_version_notes?: string | null
+          status?: string
+          strategic_value_statement?: string | null
+          svg_markup?: string | null
+          symbol_system?: string | null
+          typography_system?: string | null
+          updated_at?: string
+          variation_notes?: string | null
+          why_not_generic?: string | null
+          why_this_works?: string | null
+        }
+        Update: {
+          brand_profile_id?: string
+          brand_recognition_statement?: string | null
+          business_growth_value?: string | null
+          color_system?: Json | null
+          concept_name?: string | null
+          concept_type?: string | null
+          created_at?: string
+          design_tier?: string | null
+          diamond_score?: Json | null
+          id?: string
+          is_favorite?: boolean
+          is_selected?: boolean
+          layout_style?: string | null
+          one_color_version_notes?: string | null
+          print_apparel_signage_notes?: string | null
+          production_notes?: string | null
+          production_risks?: string | null
+          production_value_statement?: string | null
+          ready_for_phase_3?: boolean
+          refinement_recommendations?: string | null
+          rendering_notes?: string | null
+          shape_system?: string | null
+          social_media_version_notes?: string | null
+          status?: string
+          strategic_value_statement?: string | null
+          svg_markup?: string | null
+          symbol_system?: string | null
+          typography_system?: string | null
+          updated_at?: string
+          variation_notes?: string | null
+          why_not_generic?: string | null
+          why_this_works?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logo_renderings_brand_profile_id_fkey"
+            columns: ["brand_profile_id"]
+            isOneToOne: false
+            referencedRelation: "brand_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
