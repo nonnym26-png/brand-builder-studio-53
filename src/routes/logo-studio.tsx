@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Check, Heart, Loader2, X } from "lucide-react";
+import { ArrowLeft, Check, Heart, Loader2, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import {
   setLogoRenderingFavorite,
   selectLogoRendering,
   updateLogoRendering,
+  generateLogoRenderings,
 } from "@/api/logoRenderings.functions";
 import {
   DiamondScoreBadge,
@@ -384,6 +385,8 @@ function LogoStudioPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [cards, setCards] = useState<Record<string, CardState>>({});
+  const [dbRenderings, setDbRenderings] = useState<Array<Record<string, unknown>>>([]);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -416,6 +419,7 @@ function LogoStudioPage() {
       .then(([row, renderings]) => {
         if (cancelled) return;
         setProfile((row as ProfileFull) ?? null);
+        setDbRenderings(renderings as Array<Record<string, unknown>>);
         const next: Record<string, CardState> = {};
         for (const mock of MOCK_RENDERINGS) {
           const match = (renderings as Array<Record<string, unknown>>).find(
@@ -444,6 +448,31 @@ function LogoStudioPage() {
       cancelled = true;
     };
   }, [selectedId]);
+
+  const reloadRenderings = async () => {
+    if (!selectedId) return;
+    const rows = (await listLogoRenderings({
+      data: { brand_profile_id: selectedId },
+    })) as Array<Record<string, unknown>>;
+    setDbRenderings(rows);
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedId) return toast.error("Select a brand profile first");
+    setGenerating(true);
+    const t = toast.loading("Generating 6 logo renderings…");
+    try {
+      const result = (await generateLogoRenderings({
+        data: { brand_profile_id: selectedId },
+      })) as { count: number };
+      await reloadRenderings();
+      toast.success(`Generated ${result.count} renderings`, { id: t });
+    } catch (err) {
+      toast.error((err as Error)?.message ?? "Generation failed", { id: t });
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const palette = paletteFromProfile(profile);
   const brandName = (profile?.business_name as string) || "Your Brand";
@@ -598,14 +627,38 @@ function LogoStudioPage() {
         <section>
           <div className="mb-4 flex items-end justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Sample Logo Renderings</h2>
+              <h2 className="text-lg font-semibold">Logo Renderings</h2>
               <p className="text-sm text-muted-foreground">
-                Mock concepts using the brand's color palette. AI generation, refinement, variations and final
-                export will plug in next.
+                AI-generated SVG concepts saved to the brand profile. Mock concepts below act as a template
+                preview until you generate the real set.
               </p>
             </div>
-            <Badge variant="secondary">{MOCK_RENDERINGS.length} concepts</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">
+                {dbRenderings.length > 0 ? `${dbRenderings.length} saved` : `${MOCK_RENDERINGS.length} mocks`}
+              </Badge>
+              <Button
+                onClick={handleGenerate}
+                disabled={!selectedId || generating || loadingProfile}
+                size="sm"
+              >
+                {generating ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-1.5 h-4 w-4" />
+                )}
+                Generate Dynamic Logo Renderings
+              </Button>
+            </div>
           </div>
+
+          {dbRenderings.length > 0 && (
+            <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {dbRenderings.map((r) => (
+                <GeneratedRenderingCard key={String(r.id)} row={r} onChanged={reloadRenderings} />
+              ))}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             {MOCK_RENDERINGS.map((r) => (
@@ -834,6 +887,97 @@ function Field({ label, value }: { label: string; value: string }) {
       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="text-sm leading-snug">{value}</p>
     </div>
+  );
+}
+
+function GeneratedRenderingCard({
+  row,
+  onChanged,
+}: {
+  row: Record<string, unknown>;
+  onChanged: () => void | Promise<void>;
+}) {
+  const id = String(row.id);
+  const status = (row.status as RenderingStatus) ?? "Generated";
+  const isFavorite = Boolean(row.is_favorite);
+  const isSelected = Boolean(row.is_selected);
+  const score = (row.diamond_score as DiamondScores | null) ?? null;
+  const overall = score ? computeOverall(score) : 0;
+  const svg = (row.svg_markup as string) || "";
+
+  const onFav = async () => {
+    try {
+      await setLogoRenderingFavorite({ data: { id, is_favorite: !isFavorite } });
+      await onChanged();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+  const onSel = async () => {
+    try {
+      await selectLogoRendering({ data: { id } });
+      await updateLogoRendering({ data: { id, patch: { status: "Selected" } } });
+      await onChanged();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+  const onNot = async () => {
+    try {
+      await updateLogoRendering({ data: { id, patch: { status: "Not Suitable" } } });
+      await onChanged();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const ringClass = isSelected
+    ? "ring-2 ring-primary"
+    : isFavorite
+      ? "ring-2 ring-rose-400"
+      : status === "Not Suitable"
+        ? "opacity-60"
+        : "";
+
+  return (
+    <Card className={`flex flex-col transition ${ringClass}`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">{(row.concept_name as string) || "Untitled"}</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">{(row.concept_type as string) || ""}</p>
+            <Badge variant="secondary" className="mt-2">{status}</Badge>
+          </div>
+          {score && <DiamondScoreBadge overall={overall} />}
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col gap-4">
+        {svg && <LogoSVGPreview svgMarkup={svg} title={`${row.concept_name} — SVG`} />}
+        <div className="space-y-3 text-sm">
+          <Field label="Strategic Value" value={(row.strategic_value_statement as string) || "—"} />
+          <Field label="Production Value" value={(row.production_value_statement as string) || "—"} />
+          <Field label="Why Not Generic" value={(row.why_not_generic as string) || "—"} />
+          <Field label="Production Notes" value={(row.production_notes as string) || "—"} />
+        </div>
+        {score && <DiamondScorePanel scores={score} />}
+        <div className="mt-auto flex gap-2 pt-2">
+          <Button variant={isFavorite ? "default" : "outline"} size="sm" className="flex-1" onClick={onFav}>
+            <Heart className="mr-1.5 h-4 w-4" /> {isFavorite ? "Favorited" : "Save Favorite"}
+          </Button>
+          <Button variant={isSelected ? "default" : "outline"} size="sm" className="flex-1" onClick={onSel}>
+            <Check className="mr-1.5 h-4 w-4" /> {isSelected ? "Selected" : "Select"}
+          </Button>
+          <Button
+            variant={status === "Not Suitable" ? "destructive" : "outline"}
+            size="sm"
+            className="flex-1"
+            onClick={onNot}
+          >
+            <X className="mr-1.5 h-4 w-4" /> Not Suitable
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
