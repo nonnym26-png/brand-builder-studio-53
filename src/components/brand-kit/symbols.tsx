@@ -60,19 +60,23 @@ export function Symbol({
       );
     case "key":
       return (
-        <g fill={fill} stroke={color} strokeWidth={sw}>
-          <circle cx="30" cy="50" r="20" fill="none" stroke={color} strokeWidth="10" />
-          <rect x="48" y="44" width="44" height="12" fill={color} />
-          <rect x="78" y="56" width="8" height="14" fill={color} />
+        <g>
+          <circle cx="32" cy="50" r="18" fill={fill} stroke={color} strokeWidth={stroke ? 6 : 8} />
+          <circle cx="32" cy="50" r="6" fill={duotone ? a : color} />
+          <rect x="50" y="46" width="42" height="8" fill={color} />
+          <rect x="74" y="54" width="6" height="12" fill={color} />
+          <rect x="86" y="54" width="6" height="10" fill={color} />
         </g>
       );
     case "tools":
       return (
-        <g stroke={color} strokeWidth="10" strokeLinecap="round" fill="none">
-          <path d="M20 86 L 70 36" />
-          <path d="M30 16 L 16 30 L 30 44 L 44 30 Z" fill={duotone ? a : color} stroke="none" />
-          <path d="M82 86 L 56 60" />
-          <circle cx="84" cy="84" r="8" fill={color} stroke="none" />
+        <g>
+          <g stroke={color} strokeWidth="8" strokeLinecap="round" fill="none">
+            <path d="M22 78 L 60 40" />
+            <path d="M78 78 L 50 50" />
+          </g>
+          <path d="M60 18 L 44 32 L 56 44 L 72 30 Z" fill={duotone ? a : color} />
+          <circle cx="82" cy="82" r="10" fill="none" stroke={color} strokeWidth="6" />
         </g>
       );
     case "gear":
