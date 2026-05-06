@@ -16,6 +16,13 @@ import { toast } from "sonner";
 import { listBrandProfiles, loadBrandProfile } from "@/api/phase2.functions";
 import { LogoSVGPreview } from "@/components/LogoSVGPreview";
 import {
+  listLogoRenderings,
+  createLogoRendering,
+  setLogoRenderingFavorite,
+  selectLogoRendering,
+  updateLogoRendering,
+} from "@/api/logoRenderings.functions";
+import {
   DiamondScoreBadge,
   DiamondScorePanel,
   computeOverall,
@@ -62,7 +69,23 @@ type ProfileFull = Record<string, unknown> & {
   initials_abbreviation?: string | null;
 };
 
-type CardStatus = "neutral" | "favorite" | "selected" | "rejected";
+export const RENDERING_STATUSES = [
+  "Generated",
+  "Favorite",
+  "Selected",
+  "Needs Refinement",
+  "Not Suitable",
+  "Approved for Phase 3",
+] as const;
+export type RenderingStatus = (typeof RENDERING_STATUSES)[number];
+
+type CardState = {
+  dbId?: string;
+  status: RenderingStatus;
+  isFavorite: boolean;
+  isSelected: boolean;
+  busy?: boolean;
+};
 
 type MockRendering = {
   id: string;
@@ -360,7 +383,7 @@ function LogoStudioPage() {
   const [profile, setProfile] = useState<ProfileFull | null>(null);
   const [loadingList, setLoadingList] = useState(true);
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const [statuses, setStatuses] = useState<Record<string, CardStatus>>({});
+  const [cards, setCards] = useState<Record<string, CardState>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -386,11 +409,34 @@ function LogoStudioPage() {
     }
     let cancelled = false;
     setLoadingProfile(true);
-    loadBrandProfile({ data: { id: selectedId } })
-      .then((row) => {
+    Promise.all([
+      loadBrandProfile({ data: { id: selectedId } }),
+      listLogoRenderings({ data: { brand_profile_id: selectedId } }),
+    ])
+      .then(([row, renderings]) => {
         if (cancelled) return;
         setProfile((row as ProfileFull) ?? null);
-        setStatuses({});
+        const next: Record<string, CardState> = {};
+        for (const mock of MOCK_RENDERINGS) {
+          const match = (renderings as Array<Record<string, unknown>>).find(
+            (r) => r.concept_name === mock.concept_name,
+          );
+          if (match) {
+            next[mock.id] = {
+              dbId: match.id as string,
+              status: ((match.status as RenderingStatus) ?? "Generated"),
+              isFavorite: Boolean(match.is_favorite),
+              isSelected: Boolean(match.is_selected),
+            };
+          } else {
+            next[mock.id] = {
+              status: "Generated",
+              isFavorite: false,
+              isSelected: false,
+            };
+          }
+        }
+        setCards(next);
       })
       .catch((err) => toast.error(err?.message ?? "Failed to load profile"))
       .finally(() => !cancelled && setLoadingProfile(false));
@@ -403,21 +449,116 @@ function LogoStudioPage() {
   const brandName = (profile?.business_name as string) || "Your Brand";
   const initials = deriveInitials(brandName, profile?.initials_abbreviation as string | null);
 
-  const setStatus = (id: string, status: CardStatus) => {
-    setStatuses((prev) => {
-      const next = { ...prev };
-      // Only one selected at a time
-      if (status === "selected") {
-        Object.keys(next).forEach((k) => {
-          if (next[k] === "selected") next[k] = "neutral";
-        });
+  const setBusy = (mockId: string, busy: boolean) =>
+    setCards((prev) => ({ ...prev, [mockId]: { ...prev[mockId], busy } }));
+
+  const ensureRow = async (mock: MockRendering): Promise<string> => {
+    const existing = cards[mock.id]?.dbId;
+    if (existing) return existing;
+    const svg = mock.svg(palette, brandName, initials);
+    const created = (await createLogoRendering({
+      data: {
+        brand_profile_id: selectedId,
+        patch: {
+          concept_name: mock.concept_name,
+          concept_type: mock.concept_type,
+          svg_markup: svg,
+          diamond_score: mock.diamond_score,
+          strategic_value_statement: mock.strategic_value,
+          production_value_statement: mock.production_value,
+          why_not_generic: mock.why_not_generic,
+          production_notes: mock.production_notes,
+          status: "Generated",
+        },
+      },
+    })) as { id: string };
+    setCards((prev) => ({
+      ...prev,
+      [mock.id]: { ...prev[mock.id], dbId: created.id },
+    }));
+    return created.id;
+  };
+
+  const handleFavorite = async (mock: MockRendering) => {
+    if (!selectedId) return toast.error("Select a brand profile first");
+    setBusy(mock.id, true);
+    try {
+      const id = await ensureRow(mock);
+      const current = cards[mock.id];
+      const nextFav = !current?.isFavorite;
+      await setLogoRenderingFavorite({ data: { id, is_favorite: nextFav } });
+      // Reflect status: if not selected, "Favorite" when on, else revert to "Generated"
+      let nextStatus = current?.status ?? "Generated";
+      if (!current?.isSelected) {
+        nextStatus = nextFav ? "Favorite" : "Generated";
+        await updateLogoRendering({ data: { id, patch: { status: nextStatus } } });
       }
-      next[id] = prev[id] === status ? "neutral" : status;
-      return next;
-    });
-    if (status === "favorite") toast.success("Added to favorites");
-    if (status === "selected") toast.success("Selected as primary direction");
-    if (status === "rejected") toast("Marked as rejected");
+      setCards((prev) => ({
+        ...prev,
+        [mock.id]: { ...prev[mock.id], dbId: id, isFavorite: nextFav, status: nextStatus },
+      }));
+      toast.success(nextFav ? "Saved to favorites" : "Removed from favorites");
+    } catch (err) {
+      toast.error((err as Error)?.message ?? "Failed to update favorite");
+    } finally {
+      setBusy(mock.id, false);
+    }
+  };
+
+  const handleSelect = async (mock: MockRendering) => {
+    if (!selectedId) return toast.error("Select a brand profile first");
+    setBusy(mock.id, true);
+    try {
+      const id = await ensureRow(mock);
+      await selectLogoRendering({ data: { id } });
+      await updateLogoRendering({ data: { id, patch: { status: "Selected" } } });
+      setCards((prev) => {
+        const next: Record<string, CardState> = {};
+        for (const [k, v] of Object.entries(prev)) {
+          if (v.dbId && v.isSelected && k !== mock.id) {
+            next[k] = {
+              ...v,
+              isSelected: false,
+              status: v.status === "Selected" ? "Generated" : v.status,
+            };
+          } else {
+            next[k] = v;
+          }
+        }
+        next[mock.id] = {
+          ...next[mock.id],
+          dbId: id,
+          isSelected: true,
+          status: "Selected",
+        };
+        return next;
+      });
+      toast.success("Selected as primary rendering");
+    } catch (err) {
+      toast.error((err as Error)?.message ?? "Failed to select");
+    } finally {
+      setBusy(mock.id, false);
+    }
+  };
+
+  const handleNotSuitable = async (mock: MockRendering) => {
+    if (!selectedId) return toast.error("Select a brand profile first");
+    setBusy(mock.id, true);
+    try {
+      const id = await ensureRow(mock);
+      await updateLogoRendering({
+        data: { id, patch: { status: "Not Suitable" } },
+      });
+      setCards((prev) => ({
+        ...prev,
+        [mock.id]: { ...prev[mock.id], dbId: id, status: "Not Suitable" },
+      }));
+      toast("Marked as Not Suitable");
+    } catch (err) {
+      toast.error((err as Error)?.message ?? "Failed to update status");
+    } finally {
+      setBusy(mock.id, false);
+    }
   };
 
   return (
@@ -474,8 +615,10 @@ function LogoStudioPage() {
                 palette={palette}
                 brandName={brandName}
                 initials={initials}
-                status={statuses[r.id] ?? "neutral"}
-                onAction={(s) => setStatus(r.id, s)}
+                state={cards[r.id] ?? { status: "Generated", isFavorite: false, isSelected: false }}
+                onFavorite={() => handleFavorite(r)}
+                onSelect={() => handleSelect(r)}
+                onNotSuitable={() => handleNotSuitable(r)}
               />
             ))}
           </div>
