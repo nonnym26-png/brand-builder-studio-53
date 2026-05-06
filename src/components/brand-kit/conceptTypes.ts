@@ -61,6 +61,9 @@ export type LogoConcept = {
   headingWeight: number;
   letterSpacing: number;   // em
   uppercase: boolean;
+  subFont: string;         // CSS font-family for tagline/labels
+  subWeight: number;
+  subLetterSpacing: number;
   palette: {
     name: string;
     primary: string;

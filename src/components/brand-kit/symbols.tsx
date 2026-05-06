@@ -60,19 +60,23 @@ export function Symbol({
       );
     case "key":
       return (
-        <g fill={fill} stroke={color} strokeWidth={sw}>
-          <circle cx="30" cy="50" r="20" fill="none" stroke={color} strokeWidth="10" />
-          <rect x="48" y="44" width="44" height="12" fill={color} />
-          <rect x="78" y="56" width="8" height="14" fill={color} />
+        <g>
+          <circle cx="32" cy="50" r="18" fill={fill} stroke={color} strokeWidth={stroke ? 6 : 8} />
+          <circle cx="32" cy="50" r="6" fill={duotone ? a : color} />
+          <rect x="50" y="46" width="42" height="8" fill={color} />
+          <rect x="74" y="54" width="6" height="12" fill={color} />
+          <rect x="86" y="54" width="6" height="10" fill={color} />
         </g>
       );
     case "tools":
       return (
-        <g stroke={color} strokeWidth="10" strokeLinecap="round" fill="none">
-          <path d="M20 86 L 70 36" />
-          <path d="M30 16 L 16 30 L 30 44 L 44 30 Z" fill={duotone ? a : color} stroke="none" />
-          <path d="M82 86 L 56 60" />
-          <circle cx="84" cy="84" r="8" fill={color} stroke="none" />
+        <g>
+          <g stroke={color} strokeWidth="8" strokeLinecap="round" fill="none">
+            <path d="M22 78 L 60 40" />
+            <path d="M78 78 L 50 50" />
+          </g>
+          <path d="M60 18 L 44 32 L 56 44 L 72 30 Z" fill={duotone ? a : color} />
+          <circle cx="82" cy="82" r="10" fill="none" stroke={color} strokeWidth="6" />
         </g>
       );
     case "gear":
@@ -151,25 +155,30 @@ export function Symbol({
       );
     case "fork-knife":
       return (
-        <g stroke={color} strokeWidth="6" fill={fill} strokeLinecap="round">
-          <path d="M28 8 L 28 48 M22 8 L 22 28 M34 8 L 34 28 M28 48 L 28 92" />
-          <path d="M70 8 C 60 20, 60 40, 70 48 L 70 92" />
+        <g stroke={color} strokeWidth="5" fill="none" strokeLinecap="round">
+          <path d="M22 10 L 22 30 M28 10 L 28 30 M34 10 L 34 30" />
+          <path d="M22 30 C 22 38, 28 40, 28 46 L 28 92" />
+          <path d="M34 30 C 34 38, 28 40, 28 46" />
+          <path d="M70 10 C 60 22, 60 42, 70 50 L 70 92" stroke={duotone ? a : color} />
         </g>
       );
     case "scissors":
       return (
-        <g stroke={color} strokeWidth="6" fill="none">
-          <circle cx="26" cy="76" r="12" />
-          <circle cx="74" cy="76" r="12" />
-          <path d="M34 68 L 92 10" />
-          <path d="M66 68 L 8 10" />
+        <g stroke={color} strokeWidth="5" fill="none" strokeLinecap="round">
+          <circle cx="26" cy="74" r="11" />
+          <circle cx="74" cy="74" r="11" />
+          <path d="M34 66 L 88 14" stroke={duotone ? a : color} />
+          <path d="M66 66 L 12 14" />
+          <circle cx="50" cy="44" r="3" fill={color} stroke="none" />
         </g>
       );
     case "needle":
       return (
-        <g stroke={color} strokeWidth="6" fill={fill} strokeLinecap="round">
-          <path d="M14 86 L 86 14" />
-          <circle cx="14" cy="86" r="6" fill="none" />
+        <g stroke={color} strokeWidth="4" fill="none" strokeLinecap="round">
+          <path d="M14 86 L 86 14" strokeWidth="6" />
+          <ellipse cx="20" cy="80" rx="9" ry="5" transform="rotate(-45 20 80)" />
+          <circle cx="20" cy="80" r="2.5" fill={color} stroke="none" />
+          <path d="M84 12 C 92 12, 92 22, 84 22" stroke={duotone ? a : color} />
         </g>
       );
     case "molecule":
@@ -222,11 +231,11 @@ export function Symbol({
       );
     case "rocket":
       return (
-        <g fill={fill} stroke={color} strokeWidth={sw} strokeLinejoin="round">
-          <path d="M50 6 C 70 24, 74 50, 70 70 L 30 70 C 26 50, 30 24, 50 6 Z" />
-          <circle cx="50" cy="40" r="8" fill={duotone ? a : "white"} />
-          <path d="M30 70 L 18 90 L 38 78 Z" fill={duotone ? a : color} />
-          <path d="M70 70 L 82 90 L 62 78 Z" fill={duotone ? a : color} />
+        <g strokeLinejoin="round">
+          <path d="M50 6 C 68 26, 70 50, 66 72 L 34 72 C 30 50, 32 26, 50 6 Z" fill={fill} stroke={color} strokeWidth={sw} />
+          <circle cx="50" cy="38" r="8" fill={duotone ? a : color} />
+          <path d="M34 72 L 22 90 L 40 80 Z" fill={duotone ? a : color} />
+          <path d="M66 72 L 78 90 L 60 80 Z" fill={duotone ? a : color} />
         </g>
       );
     case "diamond-cut":
