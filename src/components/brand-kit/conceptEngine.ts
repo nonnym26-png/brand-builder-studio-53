@@ -1,13 +1,21 @@
 import type { LogoConcept, MarkType, ProfileLite, SymbolKey } from "./conceptTypes";
 
+/** Each font kind defines a heading + a complementary sub face (for taglines, labels, ticks). */
 const FONT_LIBRARY = {
-  modern: { family: "'Inter', sans-serif", weight: 700, ls: -0.01, upper: false },
-  geometric: { family: "'Space Grotesk', sans-serif", weight: 700, ls: -0.005, upper: false },
-  editorial: { family: "'Playfair Display', serif", weight: 700, ls: 0, upper: false },
-  classic: { family: "'Cormorant Garamond', serif", weight: 600, ls: 0.02, upper: true },
-  display: { family: "'DM Serif Display', serif", weight: 400, ls: 0, upper: false },
-  industrial: { family: "'Space Grotesk', sans-serif", weight: 700, ls: 0.18, upper: true },
-  technical: { family: "'JetBrains Mono', monospace", weight: 700, ls: 0.05, upper: true },
+  modern:     { family: "'Inter', sans-serif",            weight: 800, ls: -0.025, upper: false,
+                sub: "'Inter', sans-serif",               subWeight: 500, subLs: 0.22 },
+  geometric:  { family: "'Space Grotesk', sans-serif",    weight: 700, ls: -0.02,  upper: false,
+                sub: "'Inter', sans-serif",               subWeight: 500, subLs: 0.24 },
+  editorial:  { family: "'Playfair Display', serif",      weight: 700, ls: -0.005, upper: false,
+                sub: "'Inter', sans-serif",               subWeight: 500, subLs: 0.30 },
+  classic:    { family: "'Cormorant Garamond', serif",    weight: 600, ls: 0.06,   upper: true,
+                sub: "'Inter', sans-serif",               subWeight: 400, subLs: 0.34 },
+  display:    { family: "'DM Serif Display', serif",      weight: 400, ls: 0,      upper: false,
+                sub: "'Inter', sans-serif",               subWeight: 500, subLs: 0.26 },
+  industrial: { family: "'Space Grotesk', sans-serif",    weight: 700, ls: 0.22,   upper: true,
+                sub: "'JetBrains Mono', monospace",       subWeight: 500, subLs: 0.30 },
+  technical:  { family: "'JetBrains Mono', monospace",    weight: 700, ls: 0.04,   upper: true,
+                sub: "'JetBrains Mono', monospace",       subWeight: 400, subLs: 0.30 },
 };
 
 type FontKind = keyof typeof FONT_LIBRARY;
@@ -243,6 +251,9 @@ export function generateConcepts(profile: ProfileLite): LogoConcept[] {
       headingWeight: f.weight,
       letterSpacing: f.ls,
       uppercase: f.upper,
+      subFont: f.sub,
+      subWeight: f.subWeight,
+      subLetterSpacing: f.subLs,
       palette,
       moodWords: d.moodWords,
       usageNotes: d.usage,
