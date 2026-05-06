@@ -1,6 +1,7 @@
 import type { Palette } from "./types";
 
 export const PALETTES: Palette[] = [
+  { name: "Anaglyph", colors: ["#0F0F10", "#1F1F22", "#D6262C", "#2BA8E0", "#FFFFFF"] },
   { name: "Ember", colors: ["#0F0E0E", "#2C2826", "#E85D2F", "#F2C8A2", "#F6F1EA"] },
   { name: "Forest", colors: ["#0E1A12", "#1F3A2A", "#5C8C5A", "#C8D8B4", "#F4F1E8"] },
   { name: "Indigo", colors: ["#0B1020", "#1F2A50", "#4F6BFF", "#B8C2FF", "#F5F6FB"] },

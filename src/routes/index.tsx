@@ -12,6 +12,7 @@ import { LogoMark } from "@/components/brand-kit/LogoMark";
 import { FONTS, type BrandState, type FontKey, type IconKey, type LogoLayout } from "@/components/brand-kit/types";
 import { PALETTES } from "@/components/brand-kit/palettes";
 import { exportBrandKitPDF } from "@/components/brand-kit/exportPdf";
+import abLogo from "@/assets/ab-logo.png";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -89,12 +90,10 @@ function Index() {
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-foreground text-background">
-              <span className="font-serif text-lg font-bold leading-none">AB</span>
-            </div>
+            <img src={abLogo} alt="Anaglyph Branding" className="h-10 w-auto" />
             <div className="leading-tight">
-              <div className="text-sm font-semibold tracking-tight">AB Brand Kit</div>
-              <div className="text-xs text-muted-foreground">Logo & Identity Builder</div>
+              <div className="text-sm font-semibold tracking-tight">Anaglyph Brand Kit</div>
+              <div className="text-xs text-muted-foreground">Logo &amp; Identity Builder</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
