@@ -594,6 +594,26 @@ function LogoStudioPage() {
     }
   };
 
+  const handleImprove = async (mock: MockRendering) => {
+    if (!selectedId) return toast.error("Select a brand profile first");
+    setBusy(mock.id, true);
+    try {
+      const id = await ensureRow(mock);
+      await updateLogoRendering({
+        data: { id, patch: { status: "Needs Refinement" } },
+      });
+      setCards((prev) => ({
+        ...prev,
+        [mock.id]: { ...prev[mock.id], dbId: id, status: "Needs Refinement" },
+      }));
+      toast.success("Flagged to refine before presenting");
+    } catch (err) {
+      toast.error((err as Error)?.message ?? "Failed to flag for refinement");
+    } finally {
+      setBusy(mock.id, false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -662,6 +682,7 @@ function LogoStudioPage() {
                 onFavorite={() => handleFavorite(r)}
                 onSelect={() => handleSelect(r)}
                 onNotSuitable={() => handleNotSuitable(r)}
+                onImprove={() => handleImprove(r)}
               />
             ))}
           </div>
@@ -781,6 +802,7 @@ function RenderingCard({
   onFavorite,
   onSelect,
   onNotSuitable,
+  onImprove,
 }: {
   rendering: MockRendering;
   palette: Palette;
@@ -790,6 +812,7 @@ function RenderingCard({
   onFavorite: () => void;
   onSelect: () => void;
   onNotSuitable: () => void;
+  onImprove: () => void;
 }) {
   const svg = rendering.svg(palette, brandName, initials);
   const { status, isFavorite, isSelected, busy } = state;
