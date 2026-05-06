@@ -1,12 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getAdminClient } from "./phase2.server";
+import { getAdminClient } from "@/server/phase2.server";
 import {
   buildBrandProfileSummary,
   getMissingRequiredFields,
   isVectorConfirmed,
   MISSING_FIELDS_MESSAGE,
   VECTOR_REQUIRED_MESSAGE,
-} from "./profile.shared";
+} from "@/server/profile.shared";
 
 type ProfilePatch = Record<string, unknown>;
 

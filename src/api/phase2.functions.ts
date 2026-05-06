@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getAdminClient } from "./phase2.server";
+import { getAdminClient } from "@/server/phase2.server";
 
 export const listBrandProfiles = createServerFn({ method: "GET" }).handler(async () => {
   const sb = getAdminClient();

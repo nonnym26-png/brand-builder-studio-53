@@ -12,7 +12,7 @@ import { ConceptMark } from "@/components/brand-kit/ConceptRenderer";
 import { generateConcepts, mergeAIDirections } from "@/components/brand-kit/conceptEngine";
 import type { LogoConcept, ProfileLite } from "@/components/brand-kit/conceptTypes";
 import { exportConceptPDF } from "@/components/brand-kit/exportConceptPdf";
-import { listBrandProfiles, loadBrandProfile, saveConcepts, generateAIDirections } from "@/server/phase2.functions";
+import { listBrandProfiles, loadBrandProfile, saveConcepts, generateAIDirections } from "@/api/phase2.functions";
 import { toPng } from "html-to-image";
 import abLogo from "@/assets/ab-logo.png";
 
