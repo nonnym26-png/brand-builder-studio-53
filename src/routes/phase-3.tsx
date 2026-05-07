@@ -1579,23 +1579,24 @@ async function buildAbBrandKitPdf(d: {
   y += row2H + 14;
 
   /* ----- Section 5: Brand Application Recommendations (anchored to bottom of page 1) ----- */
-  const apps = d.doc.applications.filter((a) => a.selected && a.dataUrl);
+  // Render Section 5 with any selected applications, image or not.
+  const apps = d.doc.applications.filter((a) => a.selected && (a.title?.trim() || a.dataUrl)).slice(0, 5);
   if (apps.length > 0) {
     const cardsH = 150;
     const HEADER_H_P1 = 22;
-    // Anchor to bottom of page 1 (leave room for footer).
     const FOOTER_SAFE_P1 = 70;
-    const py1 = pageH - FOOTER_SAFE_P1 - cardsH - HEADER_H_P1;
+    const py1 = pageH - FOOTER_SAFE_P1 - cardsH;
     sectionHeader("5", "Brand Application Recommendations", margin, py1, contentW);
     card(margin, py1 + HEADER_H_P1, contentW, cardsH - HEADER_H_P1);
-    const inner = { x: margin + 12, y: py1 + 32, w: contentW - 24, h: cardsH - 50 };
-    const maxCols = Math.min(apps.length, 5);
+    const inner = { x: margin + 14, y: py1 + HEADER_H_P1 + 12, w: contentW - 28, h: cardsH - HEADER_H_P1 - 24 };
+    const maxCols = apps.length;
     const gap = 10;
     const cardW = (inner.w - gap * (maxCols - 1)) / maxCols;
-    const imgH = inner.h - 30;
-    for (let i = 0; i < Math.min(apps.length, 5); i++) {
+    const imgH = inner.h - 28;
+    for (let i = 0; i < apps.length; i++) {
       const a = apps[i];
       const x = inner.x + i * (cardW + gap);
+      // Tile background
       pdf.setFillColor(20, 20, 20);
       pdf.rect(x, inner.y, cardW, imgH, "F");
       if (a.dataUrl) {
@@ -1608,13 +1609,23 @@ async function buildAbBrandKitPdf(d: {
           const fmt: "PNG" | "JPEG" = a.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
           pdf.addImage(a.dataUrl, fmt, x + (cardW - w) / 2, inner.y + (imgH - h) / 2, w, h);
         } catch { /* skip */ }
+      } else {
+        // Placeholder: red number badge centered
+        pdf.setTextColor(rr, rg, rb);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(28);
+        pdf.text(`${i + 1}`, x + cardW / 2, inner.y + imgH / 2 + 8, { align: "center" });
       }
+      // Caption under tile
       pdf.setTextColor(rr, rg, rb);
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(7);
-      pdf.text(`${i + 1}.`, x, inner.y + imgH + 14);
-      pdf.setTextColor(20, 20, 20);
-      pdf.text(pdf.splitTextToSize((a.title || "").toUpperCase(), cardW - 12).slice(0, 2), x + 12, inner.y + imgH + 14);
+      pdf.setFontSize(6.5);
+      pdf.text(`${i + 1}.`, x + 2, inner.y + imgH + 14);
+      pdf.setTextColor(25, 25, 25);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(6.5);
+      const tLines = pdf.splitTextToSize((a.title || "").toUpperCase(), cardW - 14);
+      pdf.text(tLines.slice(0, 2), x + 12, inner.y + imgH + 14, { charSpace: 0.3 });
     }
   }
 
@@ -1830,27 +1841,28 @@ function drawBrandingImpactPage(opts: {
   onBeforePage();
   drawBg();
 
-  // Header strip
+  // Header strip — AB logo on the left, text aligned vertically next to it.
   let y = margin;
+  const logoH = 44;
   let textX = margin;
+  let logoW = 0;
   if (abLogo) {
     try {
       const props = pdf.getImageProperties(abLogo.dataUrl);
-      const h = 40;
-      const w = (props.width / props.height) * h;
-      pdf.addImage(abLogo.dataUrl, abLogo.format, margin, y, w, h);
-      textX = margin + w + 16;
+      logoW = (props.width / props.height) * logoH;
+      pdf.addImage(abLogo.dataUrl, abLogo.format, margin, y, logoW, logoH);
+      textX = margin + logoW + 20;
     } catch { /* skip */ }
   }
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(11);
-  pdf.text("ANAGLYPH BRANDING", textX, y + 16, { charSpace: 1 });
+  pdf.setFontSize(12);
+  pdf.text("ANAGLYPH BRANDING", textX, y + 18, { charSpace: 1 });
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(8);
+  pdf.setFontSize(8.5);
   pdf.setTextColor(200, 200, 200);
-  pdf.text("The measurable impact of strong, consistent branding.", textX, y + 32);
-  y += 54;
+  pdf.text("The measurable impact of strong, consistent branding.", textX, y + 34);
+  y += Math.max(logoH, 44) + 18;
 
   sectionHeader("9", "Why Branding Works", margin, y, contentW);
   y += 30;
@@ -1978,25 +1990,48 @@ function drawBrandingImpactPage(opts: {
       pdf.text(s.pct, brandX + blockW / 2, floorY - brandH - 6, { align: "center" });
     }
 
-    // Right: text block
-    const txX = cx + 14 + visW + 12;
-    const txW = cardW - (txX - cx) - 14;
+    // Right: text block (with safe internal padding)
+    const padX = 14;
+    const padY = 14;
+    const txX = cx + padX + visW + 12;
+    const txW = cardW - (txX - cx) - padX;
+    // Title
     pdf.setTextColor(rr, rg, rb);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(8);
-    const titleLines = pdf.splitTextToSize(s.title, txW);
-    pdf.text(titleLines, txX, cy + 22, { charSpace: 0.4 });
+    const titleLines = pdf.splitTextToSize(s.title, txW).slice(0, 2);
+    const titleY = cy + padY + 8;
+    pdf.setLineHeightFactor(1.25);
+    pdf.text(titleLines, txX, titleY, { charSpace: 0.4 });
+    // Source line baseline (bottom-anchored)
+    pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(6.5);
+    const srcLines = pdf.splitTextToSize(`Source: ${s.source}`, txW).slice(0, 2);
+    const srcLineH = 8;
+    const srcTop = cy + cardH - padY - srcLines.length * srcLineH + srcLineH - 2;
+    // Body fills the space between title and source
     pdf.setTextColor(30, 30, 30);
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(8.5);
-    pdf.setLineHeightFactor(1.4);
-    const bodyLines = pdf.splitTextToSize(s.body, txW);
-    pdf.text(bodyLines, txX, cy + 22 + titleLines.length * 10 + 6);
+    pdf.setFontSize(8);
+    pdf.setLineHeightFactor(1.35);
+    const bodyTop = titleY + titleLines.length * 10 + 8;
+    const bodyBottom = srcTop - 8;
+    const bodyLineH = 10;
+    const maxBodyLines = Math.max(1, Math.floor((bodyBottom - bodyTop) / bodyLineH));
+    let bodyLines = pdf.splitTextToSize(s.body, txW);
+    let fs = 8;
+    while (bodyLines.length > maxBodyLines && fs > 6.5) {
+      fs -= 0.25;
+      pdf.setFontSize(fs);
+      bodyLines = pdf.splitTextToSize(s.body, txW);
+    }
+    pdf.text(bodyLines.slice(0, maxBodyLines), txX, bodyTop);
+    // Source
     pdf.setTextColor(120, 120, 120);
     pdf.setFont("helvetica", "italic");
     pdf.setFontSize(6.5);
-    const srcLines = pdf.splitTextToSize(`Source: ${s.source}`, txW);
-    pdf.text(srcLines, txX, cy + cardH - 12);
+    pdf.setLineHeightFactor(1.2);
+    pdf.text(srcLines, txX, srcTop);
   }
 
   // Takeaway strip
