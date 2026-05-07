@@ -1832,25 +1832,27 @@ function drawBrandingImpactPage(opts: {
 
   // Header strip
   let y = margin;
+  let textX = margin;
   if (abLogo) {
     try {
       const props = pdf.getImageProperties(abLogo.dataUrl);
-      const h = 36;
+      const h = 40;
       const w = (props.width / props.height) * h;
       pdf.addImage(abLogo.dataUrl, abLogo.format, margin, y, w, h);
+      textX = margin + w + 16;
     } catch { /* skip */ }
   }
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(11);
-  pdf.text("ANAGLYPH BRANDING", margin + 46, y + 16, { charSpace: 1 });
+  pdf.text("ANAGLYPH BRANDING", textX, y + 16, { charSpace: 1 });
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(8);
   pdf.setTextColor(200, 200, 200);
-  pdf.text("The measurable impact of strong, consistent branding.", margin + 46, y + 30);
-  y += 50;
+  pdf.text("The measurable impact of strong, consistent branding.", textX, y + 32);
+  y += 54;
 
-  sectionHeader("9", "Why Branding Works — Proof in Numbers", margin, y, contentW);
+  sectionHeader("9", "Why Branding Works", margin, y, contentW);
   y += 30;
 
   // 2x2 grid of stat cards
@@ -2001,9 +2003,14 @@ function drawBrandingImpactPage(opts: {
   pdf.rect(margin, ty, contentW, 28, "F");
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(9);
-  pdf.text(
-    "STRONG BRANDING IMPROVES RECOGNITION  ·  CONSISTENCY DRIVES VISIBILITY  ·  TRUST DRIVES BUYING DECISIONS",
-    pageW / 2, ty + 18, { align: "center", charSpace: 0.6 },
-  );
+  pdf.setFontSize(8);
+  const takeaway = "STRONG BRANDING IMPROVES RECOGNITION  ·  CONSISTENCY DRIVES VISIBILITY  ·  TRUST DRIVES BUYING DECISIONS";
+  // Auto-shrink to fit inside the bar with internal padding.
+  const maxTW = contentW - 24;
+  let fs = 8;
+  while (fs > 5.5 && pdf.getTextWidth(takeaway) > maxTW) {
+    fs -= 0.25;
+    pdf.setFontSize(fs);
+  }
+  pdf.text(takeaway, pageW / 2, ty + 18, { align: "center", charSpace: 0.4 });
 }
