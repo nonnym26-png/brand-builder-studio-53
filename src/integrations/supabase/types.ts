@@ -41,6 +41,7 @@ export type Database = {
           client_name: string | null
           client_nice_to_have_elements: string | null
           client_original_ideas: string | null
+          client_proof_status: string | null
           color_mood: string[] | null
           color_notes: string | null
           colors_to_avoid: string | null
@@ -169,6 +170,7 @@ export type Database = {
           client_name?: string | null
           client_nice_to_have_elements?: string | null
           client_original_ideas?: string | null
+          client_proof_status?: string | null
           color_mood?: string[] | null
           color_notes?: string | null
           colors_to_avoid?: string | null
@@ -297,6 +299,7 @@ export type Database = {
           client_name?: string | null
           client_nice_to_have_elements?: string | null
           client_original_ideas?: string | null
+          client_proof_status?: string | null
           color_mood?: string[] | null
           color_notes?: string | null
           colors_to_avoid?: string | null
