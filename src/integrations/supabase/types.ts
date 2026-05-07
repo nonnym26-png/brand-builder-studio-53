@@ -26,6 +26,7 @@ export type Database = {
           brand_feeling: string | null
           brand_goals: string[] | null
           brand_kit_exported_at: string | null
+          brand_packages: Json | null
           brand_personality: string[] | null
           brand_profile_summary: string | null
           branding_kit_needs: string[] | null
@@ -162,6 +163,7 @@ export type Database = {
           brand_feeling?: string | null
           brand_goals?: string[] | null
           brand_kit_exported_at?: string | null
+          brand_packages?: Json | null
           brand_personality?: string[] | null
           brand_profile_summary?: string | null
           branding_kit_needs?: string[] | null
@@ -298,6 +300,7 @@ export type Database = {
           brand_feeling?: string | null
           brand_goals?: string[] | null
           brand_kit_exported_at?: string | null
+          brand_packages?: Json | null
           brand_personality?: string[] | null
           brand_profile_summary?: string | null
           branding_kit_needs?: string[] | null
