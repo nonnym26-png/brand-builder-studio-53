@@ -499,6 +499,78 @@ function FontField({
   );
 }
 
+function LogoSlot({
+  slot, dark, onLabelChange, onFileChange, onClear,
+}: {
+  slot: { label: string; dataUrl: string | null; isPrimary?: boolean };
+  dark?: boolean;
+  onLabelChange: (label: string) => void;
+  onFileChange: (file: File | null) => void;
+  onClear: () => void;
+}) {
+  const inputId = `logo-slot-${slot.label.replace(/\s+/g, "-")}`;
+  return (
+    <div className="rounded-lg border overflow-hidden" style={{ borderColor: "#2A2A2A", background: "#111" }}>
+      <div
+        className="aspect-square grid place-items-center relative"
+        style={{ background: dark ? "#000" : "#FFFFFF" }}
+      >
+        {slot.dataUrl ? (
+          <img src={slot.dataUrl} alt={slot.label} className="max-h-full max-w-full object-contain p-4" />
+        ) : (
+          <label htmlFor={inputId} className="cursor-pointer text-center px-3 text-[11px]" style={{ color: dark ? "#888" : "#999" }}>
+            <div className="font-semibold mb-1" style={{ color: dark ? "#bbb" : "#666" }}>Upload</div>
+            <div>Click to add {slot.label.toLowerCase()}</div>
+          </label>
+        )}
+        {slot.isPrimary && (
+          <div className="absolute top-2 left-2 text-[9px] px-1.5 py-0.5 rounded" style={{ background: GOLD, color: "#000" }}>
+            FROM PHASE 2
+          </div>
+        )}
+      </div>
+      <div className="p-2 space-y-1.5">
+        <DarkInput value={slot.label} onChange={onLabelChange} />
+        <div className="flex gap-1.5">
+          <label
+            htmlFor={inputId}
+            className="flex-1 text-center text-[10px] tracking-wider py-1 rounded cursor-pointer border"
+            style={{ borderColor: "#2A2A2A", color: GOLD }}
+          >
+            {slot.dataUrl ? "REPLACE" : "UPLOAD"}
+          </label>
+          {slot.dataUrl && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-[10px] tracking-wider py-1 px-2 rounded border"
+              style={{ borderColor: "#2A2A2A", color: "#bbb" }}
+            >
+              CLEAR
+            </button>
+          )}
+        </div>
+        <input
+          id={inputId}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
 /* --------------------------------- PDF --------------------------------- */
 
 async function fetchAsDataUrl(url: string): Promise<{ dataUrl: string; format: "PNG" | "JPEG" } | null> {
