@@ -540,6 +540,8 @@ function Phase2() {
           />
 
           <ClientProofQueue onOpenProject={(id) => setSelectedId(id)} />
+
+          <FinalDeliveryTracker onOpenProject={(id) => setSelectedId(id)} />
         </section>
       </main>
     </div>
