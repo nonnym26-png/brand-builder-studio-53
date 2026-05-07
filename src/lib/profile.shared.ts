@@ -3,7 +3,7 @@ export const PHASE_2_REQUIRED_FIELDS = [
   { key: "business_name", label: "Business Name", kind: "text" as const },
   { key: "industry", label: "Industry", kind: "text" as const },
   { key: "business_description", label: "Business Description", kind: "text" as const },
-  { key: "current_business_setup", label: "Current Business Setup", kind: "text" as const },
+  { key: "business_stage", label: "Current Business Setup", kind: "text" as const },
   { key: "main_products_services", label: "Services / Products Offered", kind: "text" as const },
   { key: "target_customer", label: "Target Customer", kind: "text" as const },
   { key: "brand_goals", label: "Brand Goal", kind: "array" as const },
