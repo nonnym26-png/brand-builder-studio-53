@@ -12,10 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as Phase3RouteImport } from './routes/phase-3'
 import { Route as Phase2RouteImport } from './routes/phase-2'
 import { Route as Phase1RouteImport } from './routes/phase-1'
-import { Route as LogoStudioRouteImport } from './routes/logo-studio'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProofTokenRouteImport } from './routes/proof.$token'
-import { Route as OrderTokenRouteImport } from './routes/order.$token'
 
 const Phase3Route = Phase3RouteImport.update({
   id: '/phase-3',
@@ -32,93 +29,44 @@ const Phase1Route = Phase1RouteImport.update({
   path: '/phase-1',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LogoStudioRoute = LogoStudioRouteImport.update({
-  id: '/logo-studio',
-  path: '/logo-studio',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProofTokenRoute = ProofTokenRouteImport.update({
-  id: '/proof/$token',
-  path: '/proof/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrderTokenRoute = OrderTokenRouteImport.update({
-  id: '/order/$token',
-  path: '/order/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/logo-studio': typeof LogoStudioRoute
   '/phase-1': typeof Phase1Route
   '/phase-2': typeof Phase2Route
   '/phase-3': typeof Phase3Route
-  '/order/$token': typeof OrderTokenRoute
-  '/proof/$token': typeof ProofTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/logo-studio': typeof LogoStudioRoute
   '/phase-1': typeof Phase1Route
   '/phase-2': typeof Phase2Route
   '/phase-3': typeof Phase3Route
-  '/order/$token': typeof OrderTokenRoute
-  '/proof/$token': typeof ProofTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/logo-studio': typeof LogoStudioRoute
   '/phase-1': typeof Phase1Route
   '/phase-2': typeof Phase2Route
   '/phase-3': typeof Phase3Route
-  '/order/$token': typeof OrderTokenRoute
-  '/proof/$token': typeof ProofTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/logo-studio'
-    | '/phase-1'
-    | '/phase-2'
-    | '/phase-3'
-    | '/order/$token'
-    | '/proof/$token'
+  fullPaths: '/' | '/phase-1' | '/phase-2' | '/phase-3'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/logo-studio'
-    | '/phase-1'
-    | '/phase-2'
-    | '/phase-3'
-    | '/order/$token'
-    | '/proof/$token'
-  id:
-    | '__root__'
-    | '/'
-    | '/logo-studio'
-    | '/phase-1'
-    | '/phase-2'
-    | '/phase-3'
-    | '/order/$token'
-    | '/proof/$token'
+  to: '/' | '/phase-1' | '/phase-2' | '/phase-3'
+  id: '__root__' | '/' | '/phase-1' | '/phase-2' | '/phase-3'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  LogoStudioRoute: typeof LogoStudioRoute
   Phase1Route: typeof Phase1Route
   Phase2Route: typeof Phase2Route
   Phase3Route: typeof Phase3Route
-  OrderTokenRoute: typeof OrderTokenRoute
-  ProofTokenRoute: typeof ProofTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -144,13 +92,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Phase1RouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/logo-studio': {
-      id: '/logo-studio'
-      path: '/logo-studio'
-      fullPath: '/logo-studio'
-      preLoaderRoute: typeof LogoStudioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -158,42 +99,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/proof/$token': {
-      id: '/proof/$token'
-      path: '/proof/$token'
-      fullPath: '/proof/$token'
-      preLoaderRoute: typeof ProofTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/order/$token': {
-      id: '/order/$token'
-      path: '/order/$token'
-      fullPath: '/order/$token'
-      preLoaderRoute: typeof OrderTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  LogoStudioRoute: LogoStudioRoute,
   Phase1Route: Phase1Route,
   Phase2Route: Phase2Route,
   Phase3Route: Phase3Route,
-  OrderTokenRoute: OrderTokenRoute,
-  ProofTokenRoute: ProofTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
