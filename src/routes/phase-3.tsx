@@ -33,9 +33,7 @@ type KitDoc = {
   paletteNotes: string;
   colors: Array<{ name: string; hex: string; usage: string }>;
   // 3. Font Selection
-  headingFont: string;
-  bodyFont: string;
-  accentFont: string;
+  fonts: Array<{ label: string; name: string; sample: string; usage: string; style?: "normal" | "italic"; big?: boolean }>;
   fontNotes: string;
   // 4. Brand Icons / Visual Elements
   iconNotes: string;
@@ -130,9 +128,28 @@ function Phase3() {
               { name: "Accent", hex: "#C9A24B", usage: "Highlights and CTAs." },
               { name: "Neutral", hex: "#F5F5F5", usage: "Backgrounds and body text." },
             ],
-        headingFont: v.typography?.heading || "Montserrat Bold",
-        bodyFont: v.typography?.body || "Inter Regular",
-        accentFont: v.typography?.accent || "Playfair Display Italic",
+        fonts: [
+          {
+            label: "Headline Font",
+            name: v.typography?.heading || "Montserrat Bold",
+            sample: "Aa Bb Cc 123",
+            usage: "Use for titles, hero statements, and the logo lockup.",
+            big: true,
+          },
+          {
+            label: "Support Font",
+            name: v.typography?.body || "Inter Regular",
+            sample: "The quick brown fox jumps over the lazy dog.",
+            usage: "Use for body copy, paragraphs, captions, and UI.",
+          },
+          {
+            label: "Accent / Script Font",
+            name: v.typography?.accent || "Playfair Display Italic",
+            sample: "Editorial Accent",
+            usage: "Use sparingly for editorial moments and quotes.",
+            style: "italic",
+          },
+        ],
         fontNotes:
           "Use Heading font for titles and the logo lockup. Body font for paragraphs, captions, and UI. Accent font sparingly for editorial moments.",
         iconNotes:
@@ -381,9 +398,17 @@ function BrandKitEditor({
       {/* 3. Font Selection */}
       <Section title="03 · Font Selection">
         <div className="grid gap-4 md:grid-cols-3">
-          <FontField label="Heading" value={doc.headingFont} onChange={(v) => update({ headingFont: v })} preview="Aa Bb Cc" big />
-          <FontField label="Body" value={doc.bodyFont} onChange={(v) => update({ bodyFont: v })} preview="The quick brown fox jumps." />
-          <FontField label="Accent" value={doc.accentFont} onChange={(v) => update({ accentFont: v })} preview="Editorial Italic" italic />
+          {doc.fonts.map((f, i) => (
+            <FontSlot
+              key={i}
+              font={f}
+              onChange={(patch) => {
+                const next = doc.fonts.slice();
+                next[i] = { ...next[i], ...patch };
+                update({ fonts: next });
+              }}
+            />
+          ))}
         </div>
         <DarkTextarea className="mt-4" rows={3} value={doc.fontNotes} onChange={(v) => update({ fontNotes: v })} />
       </Section>
@@ -478,23 +503,31 @@ function DarkTextarea({
   );
 }
 
-function FontField({
-  label, value, onChange, preview, big, italic,
-}: { label: string; value: string; onChange: (v: string) => void; preview: string; big?: boolean; italic?: boolean }) {
+type FontSlotData = KitDoc["fonts"][number];
+
+function FontSlot({
+  font, onChange,
+}: { font: FontSlotData; onChange: (patch: Partial<FontSlotData>) => void }) {
+  const italic = font.style === "italic";
+  const big = !!font.big;
   return (
-    <div className="rounded-lg border p-4" style={{ borderColor: "#2A2A2A", background: "#111" }}>
-      <Lbl>{label}</Lbl>
-      <DarkInput value={value} onChange={onChange} />
+    <div className="rounded-lg border p-4 space-y-2" style={{ borderColor: "#2A2A2A", background: "#111" }}>
+      <DarkInput value={font.label} onChange={(v) => onChange({ label: v })} />
+      <DarkInput value={font.name} onChange={(v) => onChange({ name: v })} />
       <div
-        className="mt-3 text-white"
+        className="mt-2 text-white border-y py-3"
         style={{
+          borderColor: "#1F1F1F",
           fontSize: big ? 28 : 18,
           fontStyle: italic ? "italic" : "normal",
           fontWeight: big ? 700 : 400,
+          minHeight: big ? 56 : 36,
         }}
       >
-        {preview}
+        {font.sample || "Sample"}
       </div>
+      <DarkInput value={font.sample} onChange={(v) => onChange({ sample: v })} placeholder="Sample text" />
+      <DarkTextarea rows={2} value={font.usage} onChange={(v) => onChange({ usage: v })} small />
     </div>
   );
 }
@@ -874,8 +907,8 @@ async function buildAbBrandKitPdf(d: {
 
   /* Section 3 — Fonts */
   sectionHeader("03 · Font Selection");
-  const fontBlock = (label: string, name: string, sample: string, italic = false, big = false) => {
-    ensure(46);
+  const fontBlock = (label: string, name: string, sample: string, usage: string, italic = false, big = false) => {
+    ensure(60);
     pdf.setTextColor(gr, gg, gb);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(8);
@@ -889,10 +922,18 @@ async function buildAbBrandKitPdf(d: {
     pdf.setTextColor(220, 220, 220);
     pdf.text(sample, margin + 70, y + 18);
     y += 36;
+    if (usage) {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(170, 170, 170);
+      const lines = pdf.splitTextToSize(usage, contentW - 70);
+      pdf.text(lines, margin + 70, y);
+      y += lines.length * 10 + 6;
+    }
   };
-  fontBlock("Heading", d.doc.headingFont, "Aa Bb Cc 123", false, true);
-  fontBlock("Body", d.doc.bodyFont, "The quick brown fox jumps over the lazy dog.");
-  fontBlock("Accent", d.doc.accentFont, "Editorial Accent", true);
+  for (const f of d.doc.fonts) {
+    fontBlock(f.label, f.name, f.sample, f.usage, f.style === "italic", !!f.big);
+  }
   paragraph(d.doc.fontNotes);
 
   /* Section 4 — Icons */
