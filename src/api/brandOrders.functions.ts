@@ -30,7 +30,7 @@ export type BrandOrder = {
   package_id: string | null;
   package_name: string | null;
   client_proof_id: string | null;
-  selected_concept: unknown;
+  selected_concept: Record<string, unknown> | null;
   business_name: string | null;
   client_name: string | null;
   status: OrderStatus;
