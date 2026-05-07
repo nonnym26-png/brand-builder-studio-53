@@ -803,20 +803,41 @@ async function buildAbBrandKitPdf(d: {
   /* Section 1 — Core Logo System */
   startPage();
   sectionHeader("01 · Core Logo System");
-  if (d.logoDataUrl) {
-    try {
-      const props = pdf.getImageProperties(d.logoDataUrl.dataUrl);
-      const boxW = 200;
-      const boxH = 160;
-      const ratio = Math.min(boxW / props.width, boxH / props.height);
-      const w = props.width * ratio;
-      const h = props.height * ratio;
-      ensure(boxH + 12);
-      pdf.setFillColor(255, 255, 255);
-      pdf.rect(margin, y, boxW, boxH, "F");
-      pdf.addImage(d.logoDataUrl.dataUrl, d.logoDataUrl.format, margin + (boxW - w) / 2, y + (boxH - h) / 2, w, h);
-      y += boxH + 14;
-    } catch { /* */ }
+  {
+    const slots = d.doc.logoSlots;
+    const cols = 5;
+    const gap = 10;
+    const slotW = (contentW - gap * (cols - 1)) / cols;
+    const slotH = slotW;
+    ensure(slotH + 30);
+    for (let i = 0; i < slots.length; i++) {
+      const s = slots[i];
+      const x = margin + i * (slotW + gap);
+      const dark = s.label === "White Version";
+      pdf.setFillColor(dark ? 0 : 255, dark ? 0 : 255, dark ? 0 : 255);
+      pdf.rect(x, y, slotW, slotH, "F");
+      if (s.dataUrl) {
+        try {
+          const props = pdf.getImageProperties(s.dataUrl);
+          const pad = 8;
+          const ratio = Math.min((slotW - pad * 2) / props.width, (slotH - pad * 2) / props.height);
+          const w = props.width * ratio;
+          const h = props.height * ratio;
+          const fmt: "PNG" | "JPEG" = s.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+          pdf.addImage(s.dataUrl, fmt, x + (slotW - w) / 2, y + (slotH - h) / 2, w, h);
+        } catch { /* skip */ }
+      } else {
+        pdf.setTextColor(160, 160, 160);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7);
+        pdf.text("[ placeholder ]", x + slotW / 2, y + slotH / 2, { align: "center" });
+      }
+      pdf.setTextColor(gr, gg, gb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7);
+      pdf.text(s.label.toUpperCase(), x, y + slotH + 12);
+    }
+    y += slotH + 26;
   }
   paragraph(d.doc.coreLogoNotes);
 
