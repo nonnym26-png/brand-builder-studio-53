@@ -182,7 +182,7 @@ function Phase2() {
           )}
 
           <section className="space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Override fields</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Logo Design Details</h2>
             <p className="text-[11px] text-muted-foreground -mt-1">
               Live overrides for this generation. The Phase 1 profile loaded above is the source of truth — anything you change here is fed straight into the AI prompt without saving to the profile.
             </p>
@@ -246,7 +246,7 @@ function Phase2() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Internal notes</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Designer Notes</h2>
             <p className="text-[11px] text-muted-foreground -mt-1">
               Designer-only notes for AB. Saved to the brand profile alongside any selected concept. Not sent to AI.
             </p>
