@@ -2,17 +2,29 @@ import { createServerFn } from "@tanstack/react-start";
 
 type MarkType = "wordmark" | "lettermark" | "monogram" | "emblem" | "combination" | "abstract" | "mascot";
 
+const DESIGN_DNA = `ANAGLYPH BRANDING — PROFESSIONAL LOGO ENGINE (must follow on EVERY render):
+MUST HAVE: clear readability · balanced composition · limited color palette · strong contrast · clean typography · memorable icon or mascot · real-world usability · vector-friendly shapes.
+AVOID: generic clipart · busy backgrounds · thin lines · unreadable fonts · too many colors · too many symbols · overly detailed illustrations · mockup scenes · distorted text · misspelled words · aggressive mascot · scary teeth · messy shadows · photo-realistic rendering · watermarks · random shapes · unbalanced spacing · childish clipart.
+QUALITY BAR (every metric ≥ 8/10): readability · originality · color balance · professional polish · print readiness · brand fit.
+FORMULA: strong symbol + clean typography + limited color palette + balanced layout + real-world usability.
+OUTPUT: pure white background · centered composition · generous margins · crisp vector look · bold confident outlines · flat color or simple cel shading only · suitable for signage, shirts, embroidery, business cards, website, decals, social media.`;
+
 function buildComposition(markType: MarkType | undefined, brandName: string, initial: string, descriptor: string, primary: string, accent: string, neutral: string) {
   const upper = brandName.toUpperCase();
+  const words = brandName.trim().split(/\s+/);
+  const w1 = (words[0] || brandName).toUpperCase();
+  const w2 = (words.slice(1).join(" ") || "").toUpperCase();
   switch (markType) {
     case "mascot":
-      return `COMPOSITION (mascot lockup, top to bottom):
-1. A friendly, approachable cartoon-style MASCOT illustration that fits the brand category — expressive face, confident stance, polished vector look (think professional sports / pet brand / family-business mascot quality). Use ${primary} and ${accent} as the dominant fills with ${neutral} for shading and outlines. Crisp black outlines, flat shading, NO photorealism, NO 3D, NO airbrush.
-2. A bold, slightly condensed display wordmark "${upper}" set on TWO LINES if the name has two strong words — first word in ${primary}, second word in ${accent} — with a thick dark outline and subtle highlight for that classic mascot-logo "sticker" feel. Tight letter spacing, strong serif or chunky slab.
-3. ${descriptor ? `A small ALL-CAPS descriptor "${descriptor}" in ${neutral} centered below the wordmark, flanked by short hairline rules in ${accent}.` : ""}
-4. Optional supporting accent (paw, star, heart, shield, ribbon) in ${accent} that complements but does NOT crowd the mascot.
+      return `COMPOSITION (professional mascot lockup, top → bottom):
+1. CONTAINER FRAME — a single bold simple architectural shape behind the mascot in ${primary} (e.g. peaked house roof, shield, arch, banner) that frames the character and communicates the brand category. Thick clean outline, flat fill or open silhouette. Must NOT crowd the mascot.
+2. MASCOT — a friendly, expressive, vector-style cartoon character that fits the brand industry. Approachable, confident, trustworthy — NEVER aggressive, NO bared teeth, NO scary expression. Soft rounded forms with bold confident black outlines (~3–5px equivalent). Simple cel shading only — flat base color + ONE shadow tone + ONE highlight. Use ${neutral} and white for the character body, ${primary}/${accent} for accessories (collar, tag, scarf, hat, jersey, etc.). Eyes friendly and large. Mouth subtle smile.
+3. ACCENT ELEMENT — exactly ONE small supporting pet/category icon in ${accent} (paw print, heart with paw, bone tag, star, leaf, etc.) floating beside the mascot for personality. Never more than one.
+4. WORDMARK — set "${w1}"${w2 ? ` and "${w2}"` : ""} in a LARGE BOLD ROUNDED slab-serif or chunky display face with thick black outlines and a subtle white inner highlight (classic mascot "sticker" feel). ${w2 ? `Color split: "${w1}" in ${primary}, "${w2}" in ${accent}.` : `Color: ${primary} with ${accent} accent on one letter.`} Tight kerning, optical balance, NOTHING distorted, NO misspellings.
+5. ${descriptor ? `DESCRIPTOR ROW — small ALL-CAPS sans-serif "${descriptor}" in ${neutral} below the wordmark, wide tracking, flanked by short hairline rules in ${primary}, with a tiny ${primary} accent dot or paw centered below.` : `Skip the descriptor row.`}
 
-REFERENCE FEEL: high-quality vector mascot logos used by pet daycares, youth sports teams, craft breweries, family restaurants — playful, trustworthy, instantly recognizable.`;
+TYPE PLACEMENT: every glyph perfectly aligned, correctly spelled, no overlap with the mascot, generous breathing room.
+REFERENCE FEEL: agency-grade vector mascot logos used by pet daycares, youth sports teams, craft breweries, family restaurants — playful, trustworthy, instantly recognizable, print-ready at any size.`;
     case "emblem":
       return `COMPOSITION (heritage emblem):
 1. A circular or shield emblem badge with concentric rings of typography. Outer ring: "${upper}" in ALL CAPS curved along the top arc, ${descriptor ? `"${descriptor}" curved along the bottom arc,` : ""} small star/dot separators on the sides.
