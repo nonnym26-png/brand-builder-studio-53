@@ -39,7 +39,13 @@ type KitDoc = {
   iconNotes: string;
   visualElements: Array<{ title: string; explanation: string; dataUrl: string | null }>;
   // 5. Brand Application Recommendations
-  applications: string;
+  applications: Array<{
+    title: string;
+    explanation: string;
+    usage: string;
+    dataUrl: string | null;
+    selected: boolean;
+  }>;
   // 6. Strategic Branding Process
   process: string;
   // 7. Slogan / Brand Message
