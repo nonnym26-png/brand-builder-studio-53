@@ -217,7 +217,7 @@ function Phase3() {
       const logoData = primaryLogo ? await fetchAsDataUrl(primaryLogo.image_url).catch(() => null) : null;
       await buildAbBrandKitPdf({ businessName, industry, doc, logoDataUrl: logoData });
       await markBrandKitExported({ data: { brandProfileId: kit.profileId } });
-      toast.success("AB Brand Kit PDF downloaded");
+      toast.success("Brand Kit PDF downloaded.");
       await refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Export failed");
@@ -293,7 +293,7 @@ function Phase3() {
             <section className="space-y-2">
               <Button className="w-full" onClick={exportPdf} disabled={exporting === "pdf"}>
                 {exporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
-                Export AB Brand Kit PDF
+                Save Brand Kit as PDF
               </Button>
               <Button variant="outline" className="w-full" onClick={exportZip} disabled={exporting === "zip" || !primaryLogo}>
                 {exporting === "zip" ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
@@ -1079,7 +1079,7 @@ async function buildAbBrandKitPdf(d: {
   doc: KitDoc;
   logoDataUrl: { dataUrl: string; format: "PNG" | "JPEG" } | null;
 }) {
-  const pdf = new jsPDF({ unit: "pt", format: "letter" });
+  const pdf = new jsPDF({ unit: "pt", format: "letter", compress: true });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
   const margin = 48;
@@ -1538,5 +1538,5 @@ async function buildAbBrandKitPdf(d: {
   }
 
   const safe = (d.businessName || "Brand").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "Brand";
-  pdf.save(`${safe}-AB-Brand-Kit.pdf`);
+  pdf.save(`${safe}-Brand-Kit.pdf`);
 }
