@@ -35,6 +35,13 @@ const ARRAY_FIELDS: Array<{ key: string; label: string; placeholder: string }> =
   { key: "brand_goals", label: "Business goals", placeholder: "grow membership, premium positioning, expand to second location" },
 ];
 
+const COLOR_SLOTS: Array<{ label: string; nameKey: string; hexKey: string; noteKey: string; placeholderName: string; placeholderHex: string; placeholderNote: string }> = [
+  { label: "Primary Color",            nameKey: "primary_color_name",   hexKey: "primary_hex",   noteKey: "primary_color_note",   placeholderName: "Construction Gold", placeholderHex: "#C79A2B", placeholderNote: "Must use" },
+  { label: "Secondary Color",          nameKey: "secondary_color_name", hexKey: "secondary_hex", noteKey: "secondary_color_note", placeholderName: "Deep Black",        placeholderHex: "#111111", placeholderNote: "Must use" },
+  { label: "Accent Color",             nameKey: "accent_color_name",    hexKey: "accent_hex",    noteKey: "accent_color_note",    placeholderName: "Strong Red",        placeholderHex: "#C92222", placeholderNote: "Open to variation" },
+  { label: "Neutral / Support Color",  nameKey: "neutral_color_name",   hexKey: "neutral_hex",   noteKey: "neutral_color_note",   placeholderName: "Warm Gray",         placeholderHex: "#9D9D9D", placeholderNote: "Optional" },
+];
+
 function Phase1() {
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
@@ -199,6 +206,48 @@ function Phase1() {
                     <div className="text-sm font-semibold">{label}</div>
                     <div className="text-xs text-muted-foreground">{desc}</div>
                   </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h2 className="mb-1 text-sm font-semibold tracking-tight">Preferred Brand Colors</h2>
+            <p className="mb-4 text-xs text-muted-foreground">Up to 4 colors. These guide Phase 2 logo generation and auto-fill the Phase 3 Brand Kit palette. Leave blank to skip.</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              {COLOR_SLOTS.map((c) => {
+                const hexValue = getStr(c.hexKey);
+                const validHex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hexValue) ? hexValue : "#ffffff";
+                return (
+                  <div key={c.nameKey} className="rounded-lg border border-border bg-background p-3">
+                    <div className="mb-2 flex items-center gap-3">
+                      <div className="h-10 w-10 shrink-0 rounded-md border border-border" style={{ background: validHex }} />
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{c.label}</div>
+                    </div>
+                    <div className="grid gap-2">
+                      <div>
+                        <Label className="text-[11px]">Color name</Label>
+                        <Input className="mt-1 h-8" placeholder={c.placeholderName} value={getStr(c.nameKey)} onChange={(e) => setText(c.nameKey, e.target.value)} />
+                      </div>
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <Label className="text-[11px]">HEX code</Label>
+                          <Input className="mt-1 h-8 font-mono uppercase" placeholder={c.placeholderHex} value={hexValue} onChange={(e) => setText(c.hexKey, e.target.value)} />
+                        </div>
+                        <input
+                          type="color"
+                          aria-label={`${c.label} picker`}
+                          className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent p-0"
+                          value={validHex}
+                          onChange={(e) => setText(c.hexKey, e.target.value.toUpperCase())}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[11px]">Note <span className="text-muted-foreground">(optional)</span></Label>
+                        <Input className="mt-1 h-8" placeholder={c.placeholderNote} value={getStr(c.noteKey)} onChange={(e) => setText(c.noteKey, e.target.value)} />
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>
