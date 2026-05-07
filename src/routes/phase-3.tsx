@@ -1228,7 +1228,8 @@ async function buildAbBrandKitPdf(d: {
   };
 
   const sectionHeader = (title: string) => {
-    ensure(50);
+    // Each major section starts on a fresh page so the kit reads as a cohesive story.
+    startPage();
     pdf.setTextColor(gr, gg, gb);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(11);
@@ -1303,7 +1304,6 @@ async function buildAbBrandKitPdf(d: {
   pdf.text("Prepared by Anaglyph Branding", pageW / 2, pageH - 60, { align: "center" });
 
   /* Section 1 — Core Logo System */
-  startPage();
   sectionHeader("01 · Core Logo System");
   {
     const slots = d.doc.logoSlots;
@@ -1409,6 +1409,10 @@ async function buildAbBrandKitPdf(d: {
   sectionHeader("04 · Brand Icons / Visual Elements");
   paragraph(d.doc.iconNotes);
   {
+    const visEls = d.doc.visualElements.filter((e) => !!e.dataUrl);
+    if (visEls.length === 0) {
+      paragraph("No additional visual elements were included in this kit.", { italic: true, color: [160, 160, 160] });
+    } else {
     const cols = 5;
     const gap = 10;
     const slotW = (contentW - gap * (cols - 1)) / cols;
@@ -1416,8 +1420,8 @@ async function buildAbBrandKitPdf(d: {
     const blockH = slotH + 70;
     ensure(blockH);
     const rowY = y;
-    for (let i = 0; i < d.doc.visualElements.length; i++) {
-      const el = d.doc.visualElements[i];
+    for (let i = 0; i < visEls.length; i++) {
+      const el = visEls[i];
       const x = margin + i * (slotW + gap);
       pdf.setFillColor(255, 255, 255);
       pdf.rect(x, rowY, slotW, slotH, "F");
@@ -1431,11 +1435,6 @@ async function buildAbBrandKitPdf(d: {
           const fmt: "PNG" | "JPEG" = el.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
           pdf.addImage(el.dataUrl, fmt, x + (slotW - w) / 2, rowY + (slotH - h) / 2, w, h);
         } catch { /* skip */ }
-      } else {
-        pdf.setTextColor(160, 160, 160);
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(7);
-        pdf.text("[ placeholder ]", x + slotW / 2, rowY + slotH / 2, { align: "center" });
       }
       pdf.setTextColor(gr, gg, gb);
       pdf.setFont("helvetica", "bold");
@@ -1448,6 +1447,7 @@ async function buildAbBrandKitPdf(d: {
       pdf.text(lines.slice(0, 4), x, rowY + slotH + 22);
     }
     y = rowY + blockH;
+    }
   }
 
   /* Section 5 — Applications */
