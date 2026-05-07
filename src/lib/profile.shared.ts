@@ -1,17 +1,13 @@
 /** Required intake fields that gate moving a profile to Phase 2. */
 export const PHASE_2_REQUIRED_FIELDS = [
   { key: "business_name", label: "Business Name", kind: "text" as const },
-  { key: "client_name", label: "Client Name", kind: "text" as const },
   { key: "industry", label: "Industry", kind: "text" as const },
   { key: "business_description", label: "Business Description", kind: "text" as const },
+  { key: "current_business_setup", label: "Current Business Setup", kind: "text" as const },
+  { key: "main_products_services", label: "Services / Products Offered", kind: "text" as const },
   { key: "target_customer", label: "Target Customer", kind: "text" as const },
   { key: "brand_goals", label: "Brand Goal", kind: "array" as const },
-  { key: "brand_personality", label: "Brand Personality", kind: "array" as const },
-  { key: "client_brand_vision", label: "Client Brand Vision", kind: "text" as const },
-  { key: "avoidance_checklist", label: "What to Avoid", kind: "array" as const },
-  { key: "logo_type_preferences", label: "Logo Type Preferences", kind: "array" as const },
-  { key: "color_mood", label: "Color Direction", kind: "array" as const },
-  { key: "digital_usage", label: "Logo Usage Needs", kind: "array" as const },
+  { key: "logo_direction", label: "Logo Direction", kind: "text" as const },
 ];
 
 export type ProfileLike = Record<string, unknown> | null | undefined;
