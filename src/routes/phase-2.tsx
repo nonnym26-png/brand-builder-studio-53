@@ -96,25 +96,6 @@ function Phase2() {
     setSelectedConceptId(null);
   };
 
-  const aiEnhance = async () => {
-    setAiBusy(true);
-    try {
-      const base = generateConcepts(profile);
-      const directions = await generateAIDirections({
-        data: {
-          profile: profile as unknown as Record<string, unknown>,
-          baseConcepts: base.map((c) => ({ id: c.id, name: c.name, markType: c.markType, moodWords: c.moodWords })),
-        },
-      });
-      setConcepts(mergeAIDirections(base, directions));
-      toast.success("AI directions generated");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "AI failed");
-    } finally {
-      setAiBusy(false);
-    }
-  };
-
   const saveBack = async () => {
     if (!selectedId) { toast.error("Pick a saved profile first"); return; }
     setSavingId(selectedId);
@@ -221,9 +202,6 @@ function Phase2() {
 
             <div className="flex flex-wrap gap-2 pt-2">
               <Button size="sm" onClick={regenerate} variant="outline"><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Regenerate</Button>
-              <Button size="sm" onClick={aiEnhance} disabled={aiBusy}>
-                <Wand2 className="mr-1.5 h-3.5 w-3.5" /> {aiBusy ? "Thinking…" : "AI strategy"}
-              </Button>
             </div>
           </section>
 
