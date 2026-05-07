@@ -22,6 +22,7 @@ import { ClientProofQueue } from "@/components/brand-kit/ClientProofQueue";
 import { FinalDeliveryTracker } from "@/components/brand-kit/FinalDeliveryTracker";
 import { AbStudioDashboard, type DashboardFocus } from "@/components/brand-kit/AbStudioDashboard";
 import { BrandPackageBuilder } from "@/components/brand-kit/BrandPackageBuilder";
+import { ProductionBoard } from "@/components/brand-kit/ProductionBoard";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -557,6 +558,8 @@ function Phase2() {
           />
 
           <BrandPackageBuilder brandProfileId={selectedId || null} />
+
+          <ProductionBoard onOpenProject={(id) => setSelectedId(id)} />
 
           <div id="client-proof-queue">
             <ClientProofQueue onOpenProject={(id) => setSelectedId(id)} externalFilter={proofFilter} />

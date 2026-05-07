@@ -115,6 +115,16 @@ export const listOrdersForProfile = createServerFn({ method: "GET" })
     return { orders: (rows || []) as BrandOrder[] };
   });
 
+export const listAllOrders = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { data: rows, error } = await supabaseAdmin
+      .from("brand_orders")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return { orders: (rows || []) as BrandOrder[] };
+  });
+
 export const updateOrder = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; patch: Partial<Pick<BrandOrder, "status" | "items" | "estimated_total" | "due_date" | "fulfillment" | "production_notes" | "internal_notes" | "package_name">> }) => d)
   .handler(async ({ data }) => {
