@@ -205,10 +205,12 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
                       <div className="font-semibold truncate">{d.design_type || "Design"}</div>
                       <div className="text-muted-foreground">
                         {d.revision_number > 0 ? `Revision ${d.revision_number}` : "Original"}
+                        {typeof d.concept_index === "number" && d.concept_index > 0 ? ` · #${d.concept_index + 1}` : ""}
                       </div>
                     </div>
                     {d.is_approved && <Badge variant="default" className="bg-emerald-600">Approved</Badge>}
                   </div>
+                  <QualityRow design={d} onOpen={() => setQualityDrawer(d)} />
                   <div className="flex flex-wrap gap-1">
                     <Button size="sm" variant="outline" onClick={() => setDrawer(d)}>
                       <FileText className="h-3 w-3" /> Brief
