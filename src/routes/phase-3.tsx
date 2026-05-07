@@ -470,6 +470,87 @@ function FontField({
 /* --------------------------------- PDF --------------------------------- */
 
 async function fetchAsDataUrl(url: string): Promise<{ dataUrl: string; format: "PNG" | "JPEG" } | null> {
+  return _fetchAsDataUrl(url);
+}
+
+/* ---------------------------- Autofill helpers --------------------------- */
+
+type PV = BrandKit["publicView"];
+
+function buildCoreLogoNotes(v: PV): string {
+  const dir = v.brand.logoDirection
+    ? v.brand.logoDirection === "rework"
+      ? "This logo was developed by reworking the client's existing mark."
+      : "This logo was designed as a brand-new concept for the business."
+    : "";
+  const concept = v.phase2?.conceptNotes ? ` Concept direction: ${v.phase2.conceptNotes}.` : "";
+  return [
+    "The approved logo is the official mark of the brand. Maintain clear space equal to the height of the mark on all sides. Never recolor, distort, rotate, or recreate in unapproved typefaces.",
+    [dir, concept].filter(Boolean).join(" ").trim(),
+  ].filter(Boolean).join("\n\n");
+}
+
+function buildIconNotes(v: PV): string {
+  const elements = v.phase2?.elements;
+  let extra = "";
+  if (elements && typeof elements === "object") {
+    try {
+      const list = Array.isArray(elements) ? elements : Object.values(elements as Record<string, unknown>);
+      const names = list
+        .map((e) => (typeof e === "string" ? e : (e && typeof e === "object" && "name" in e ? String((e as { name: unknown }).name) : "")))
+        .filter(Boolean);
+      if (names.length) extra = `\n\nGenerated visual elements: ${names.join(", ")}.`;
+    } catch { /* ignore */ }
+  }
+  return (
+    "Custom brand icons follow the same line weight and corner radius as the logo. Use sparingly — icons support the message, they do not replace it. Maintain monochrome usage on busy backgrounds." +
+    extra
+  );
+}
+
+function buildApplications(v: PV): string {
+  const lines = [
+    "Apparel & Uniforms — embroidered or printed primary logo, ≥ 1.5 in.",
+    "Business Cards — primary logo front, one-color reverse on back.",
+    "Signage — high-contrast primary logo on approved background.",
+    "Vehicle Decals — bold, single-color version for distance readability.",
+    "Social Media — favicon mark for avatars, primary for posts.",
+    "Website — primary logo in header, favicon mark for browser tab.",
+  ];
+  if (v.brand.productsServices) {
+    lines.push(`Service-specific collateral — apply the brand consistently across: ${v.brand.productsServices}.`);
+  }
+  return lines.join("\n");
+}
+
+function pickSlogan(v: PV): string {
+  const s = v.phase2?.slogans as unknown;
+  if (typeof s === "string" && s.trim()) return s.trim();
+  if (Array.isArray(s) && s.length) {
+    const first = s[0];
+    if (typeof first === "string") return first;
+    if (first && typeof first === "object" && "text" in first) return String((first as { text: unknown }).text || "");
+  }
+  return v.brand.selectedDirection || "";
+}
+
+function buildBrandMessage(v: PV): string {
+  const parts: string[] = [];
+  if (v.brand.shortDescription || v.brand.description) {
+    parts.push((v.brand.shortDescription || v.brand.description) as string);
+  }
+  if (v.brand.targetAudience) parts.push(`Built for: ${v.brand.targetAudience}.`);
+  if (Array.isArray(v.brand.businessGoals) && v.brand.businessGoals.length) {
+    parts.push(`Brand goals: ${v.brand.businessGoals.join(", ")}.`);
+  }
+  if (v.brand.currentSetup) parts.push(`Current stage: ${v.brand.currentSetup}.`);
+  if (parts.length === 0) {
+    return `${v.brand.businessName || "This brand"} delivers a distinctive experience built on craft, consistency, and trust.`;
+  }
+  return parts.join(" ");
+}
+
+async function _fetchAsDataUrl(url: string): Promise<{ dataUrl: string; format: "PNG" | "JPEG" } | null> {
   const res = await fetch(url);
   const blob = await res.blob();
   const format: "PNG" | "JPEG" = blob.type.includes("jpeg") || blob.type.includes("jpg") ? "JPEG" : "PNG";
