@@ -40,7 +40,7 @@ function ProofPage() {
   const fonts = (profile?.phase_2_fonts as Record<string, string> | null) || {};
 
   // Pull featured assets by design_type
-  const find = (re: RegExp) => assets.find((a) => re.test(a.design_type || ""));
+  const find = (re: RegExp) => assets.find((a: { design_type: string | null }) => re.test(a.design_type || ""));
   const main = find(/refined|premium|mascot|original|wordmark/i) || assets[0];
   const badge = find(/badge|emblem/i);
   const social = find(/favicon|social|icon/i);
