@@ -139,6 +139,7 @@ export type Database = {
           digital_usage: string[] | null
           digital_usage_notes: string | null
           email_address: string | null
+          existing_logo_url: string | null
           final_approval_date: string | null
           final_file_link: string | null
           font_style_preferences: string[] | null
@@ -277,6 +278,7 @@ export type Database = {
           digital_usage?: string[] | null
           digital_usage_notes?: string | null
           email_address?: string | null
+          existing_logo_url?: string | null
           final_approval_date?: string | null
           final_file_link?: string | null
           font_style_preferences?: string[] | null
@@ -415,6 +417,7 @@ export type Database = {
           digital_usage?: string[] | null
           digital_usage_notes?: string | null
           email_address?: string | null
+          existing_logo_url?: string | null
           final_approval_date?: string | null
           final_file_link?: string | null
           font_style_preferences?: string[] | null
