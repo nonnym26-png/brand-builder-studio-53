@@ -95,6 +95,7 @@ export type Database = {
           ab_professional_recommendation: string | null
           ab_recommendation_notes: string | null
           accent_color_name: string | null
+          accent_color_note: string | null
           accent_hex: string | null
           accent_pantone: string | null
           avoidance_checklist: string[] | null
@@ -176,6 +177,7 @@ export type Database = {
           needs_square_version: string | null
           needs_white_on_dark: string | null
           neutral_color_name: string | null
+          neutral_color_note: string | null
           neutral_hex: string | null
           neutral_pantone: string | null
           orientation_preferences: string[] | null
@@ -196,6 +198,7 @@ export type Database = {
           phone_number: string | null
           preferred_contact_method: string | null
           primary_color_name: string | null
+          primary_color_note: string | null
           primary_hex: string | null
           primary_pantone: string | null
           print_production_notes: string | null
@@ -210,6 +213,7 @@ export type Database = {
           recommended_next_step: string | null
           required_file_formats: string[] | null
           secondary_color_name: string | null
+          secondary_color_note: string | null
           secondary_hex: string | null
           secondary_pantone: string | null
           selected_logo_concept: Json | null
@@ -234,6 +238,7 @@ export type Database = {
           ab_professional_recommendation?: string | null
           ab_recommendation_notes?: string | null
           accent_color_name?: string | null
+          accent_color_note?: string | null
           accent_hex?: string | null
           accent_pantone?: string | null
           avoidance_checklist?: string[] | null
@@ -315,6 +320,7 @@ export type Database = {
           needs_square_version?: string | null
           needs_white_on_dark?: string | null
           neutral_color_name?: string | null
+          neutral_color_note?: string | null
           neutral_hex?: string | null
           neutral_pantone?: string | null
           orientation_preferences?: string[] | null
@@ -335,6 +341,7 @@ export type Database = {
           phone_number?: string | null
           preferred_contact_method?: string | null
           primary_color_name?: string | null
+          primary_color_note?: string | null
           primary_hex?: string | null
           primary_pantone?: string | null
           print_production_notes?: string | null
@@ -349,6 +356,7 @@ export type Database = {
           recommended_next_step?: string | null
           required_file_formats?: string[] | null
           secondary_color_name?: string | null
+          secondary_color_note?: string | null
           secondary_hex?: string | null
           secondary_pantone?: string | null
           selected_logo_concept?: Json | null
@@ -373,6 +381,7 @@ export type Database = {
           ab_professional_recommendation?: string | null
           ab_recommendation_notes?: string | null
           accent_color_name?: string | null
+          accent_color_note?: string | null
           accent_hex?: string | null
           accent_pantone?: string | null
           avoidance_checklist?: string[] | null
@@ -454,6 +463,7 @@ export type Database = {
           needs_square_version?: string | null
           needs_white_on_dark?: string | null
           neutral_color_name?: string | null
+          neutral_color_note?: string | null
           neutral_hex?: string | null
           neutral_pantone?: string | null
           orientation_preferences?: string[] | null
@@ -474,6 +484,7 @@ export type Database = {
           phone_number?: string | null
           preferred_contact_method?: string | null
           primary_color_name?: string | null
+          primary_color_note?: string | null
           primary_hex?: string | null
           primary_pantone?: string | null
           print_production_notes?: string | null
@@ -488,6 +499,7 @@ export type Database = {
           recommended_next_step?: string | null
           required_file_formats?: string[] | null
           secondary_color_name?: string | null
+          secondary_color_note?: string | null
           secondary_hex?: string | null
           secondary_pantone?: string | null
           selected_logo_concept?: Json | null
