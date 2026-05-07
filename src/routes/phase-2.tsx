@@ -18,6 +18,7 @@ import { FONTS, type FontKey } from "@/components/brand-kit/types";
 import { CustomFontUploader, useCustomFonts } from "@/components/brand-kit/CustomFontUploader";
 import { DesignDnaRuleEditor, useDesignDna } from "@/components/brand-kit/DesignDnaRuleEditor";
 import { AbCreativeEngine, type AbCreativeEngineHandle } from "@/components/brand-kit/AbCreativeEngine";
+import { ClientProofQueue } from "@/components/brand-kit/ClientProofQueue";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -536,6 +537,8 @@ function Phase2() {
               mascot: { enabled: mascotEnabled, style: mascotStyle, idea: mascotIdea },
             }}
           />
+
+          <ClientProofQueue onOpenProject={(id) => setSelectedId(id)} />
         </section>
       </main>
     </div>
