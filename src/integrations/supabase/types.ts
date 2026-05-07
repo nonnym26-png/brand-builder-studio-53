@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      brand_orders: {
+        Row: {
+          brand_profile_id: string
+          business_name: string | null
+          client_name: string | null
+          client_proof_id: string | null
+          client_responded_at: string | null
+          client_response_kind: string | null
+          client_response_notes: string | null
+          created_at: string
+          due_date: string | null
+          estimated_total: number | null
+          fulfillment: string | null
+          id: string
+          internal_notes: string | null
+          items: Json
+          package_id: string | null
+          package_name: string | null
+          production_notes: string | null
+          selected_concept: Json | null
+          sent_to_client_at: string | null
+          status: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          brand_profile_id: string
+          business_name?: string | null
+          client_name?: string | null
+          client_proof_id?: string | null
+          client_responded_at?: string | null
+          client_response_kind?: string | null
+          client_response_notes?: string | null
+          created_at?: string
+          due_date?: string | null
+          estimated_total?: number | null
+          fulfillment?: string | null
+          id?: string
+          internal_notes?: string | null
+          items?: Json
+          package_id?: string | null
+          package_name?: string | null
+          production_notes?: string | null
+          selected_concept?: Json | null
+          sent_to_client_at?: string | null
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          brand_profile_id?: string
+          business_name?: string | null
+          client_name?: string | null
+          client_proof_id?: string | null
+          client_responded_at?: string | null
+          client_response_kind?: string | null
+          client_response_notes?: string | null
+          created_at?: string
+          due_date?: string | null
+          estimated_total?: number | null
+          fulfillment?: string | null
+          id?: string
+          internal_notes?: string | null
+          items?: Json
+          package_id?: string | null
+          package_name?: string | null
+          production_notes?: string | null
+          selected_concept?: Json | null
+          sent_to_client_at?: string | null
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       brand_profiles: {
         Row: {
           ab_creative_direction_notes: string | null
