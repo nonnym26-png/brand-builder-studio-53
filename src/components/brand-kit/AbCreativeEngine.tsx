@@ -190,7 +190,7 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
             <Sparkles className="h-4 w-4 text-primary" /> AB Creative Engine
           </h2>
           <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
-            This is the renderer. It pulls <strong>everything</strong> you set above — Phase 1 intake, colors, fonts, slogan, brand elements, mascot, and your Design DNA Rules — sends it to AI in two stages (creative brief → master prompt → image), and saves the result to the gallery. Use <strong>Revise</strong> on a card to iterate without losing direction.
+            Generates official logo concepts from the Phase 1 intake and the selected logo direction. Use <strong>Revise</strong> on any card to iterate, then <strong>Approve</strong> the final mark to lock it in for Phase 3.
           </p>
         </div>
         <div className="flex items-center gap-2">
