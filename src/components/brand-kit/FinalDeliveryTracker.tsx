@@ -93,7 +93,7 @@ export function FinalDeliveryTracker({ onOpenProject }: { onOpenProject?: (id: s
     setBusyId(d.id);
     try {
       const r = await exportBrandKit({ data: { brandProfileId: d.id } });
-      const bin = atob(r.zipBase64);
+      const bin = atob(r.base64);
       const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       const blob = new Blob([bytes], { type: "application/zip" });
