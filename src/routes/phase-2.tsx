@@ -235,6 +235,8 @@ function Phase2() {
 
         {/* Right: concept gallery */}
         <section className="space-y-6">
+          <AbStudioDashboard onFocus={onDashboardFocus} onOpenProject={(id) => setSelectedId(id)} />
+
           <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 text-xs text-foreground/80 leading-relaxed">
             <div className="font-semibold text-sm mb-1">How Phase 2 works</div>
             <ol className="list-decimal pl-4 space-y-0.5">
