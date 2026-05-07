@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Database, Download, Loader2, RefreshCw, Sparkles,
   Search, Compass, Palette, Package, Layers, Eye,
-  Award, ShieldCheck, Briefcase,
+  Award, ShieldCheck, Briefcase, Plus, X,
 } from "lucide-react";
 import JSZip from "jszip";
 import jsPDF from "jspdf";
@@ -464,51 +464,91 @@ function BrandKitEditor({
       {/* 4. Brand Icons / Visual Elements */}
       <Section title="04 · Brand Icons / Visual Elements">
         <DarkTextarea rows={3} value={doc.iconNotes} onChange={(v) => update({ iconNotes: v })} />
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {doc.visualElements.map((el, i) => (
-            <VisualElementSlot
-              key={i}
-              element={el}
-              onChange={(patch) => {
-                const next = doc.visualElements.slice();
-                next[i] = { ...next[i], ...patch };
-                update({ visualElements: next });
-              }}
-              onFile={async (file) => {
-                const dataUrl = file ? await fileToDataUrl(file) : null;
-                const next = doc.visualElements.slice();
-                next[i] = { ...next[i], dataUrl };
-                update({ visualElements: next });
-              }}
-            />
-          ))}
+        {(() => {
+          const shown = doc.visualElements
+            .map((el, i) => ({ el, i }))
+            .filter(({ el }) => !!el.dataUrl);
+          return shown.length > 0 ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {shown.map(({ el, i }) => (
+                <VisualElementSlot
+                  key={i}
+                  element={el}
+                  onChange={(patch) => {
+                    const next = doc.visualElements.slice();
+                    next[i] = { ...next[i], ...patch };
+                    update({ visualElements: next });
+                  }}
+                  onFile={async (file) => {
+                    const dataUrl = file ? await fileToDataUrl(file) : null;
+                    const next = doc.visualElements.slice();
+                    next[i] = { ...next[i], dataUrl };
+                    update({ visualElements: next });
+                  }}
+                  onRemove={() => {
+                    const next = doc.visualElements.slice();
+                    next.splice(i, 1);
+                    update({ visualElements: next });
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4 text-xs italic" style={{ color: "#888" }}>
+              No visual elements added yet. Click below to add one.
+            </div>
+          );
+        })()}
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => {
+              const next = doc.visualElements.slice();
+              next.push({ title: "Visual Element", explanation: "", dataUrl: null });
+              update({ visualElements: next });
+            }}
+            className="inline-flex items-center gap-1.5 text-[11px] tracking-wider py-1.5 px-3 rounded border"
+            style={{ borderColor: GOLD, color: GOLD }}
+          >
+            <Plus className="h-3 w-3" /> ADD VISUAL ELEMENT
+          </button>
         </div>
       </Section>
 
       {/* 5. Brand Application Recommendations */}
       <Section title="05 · Brand Application Recommendations">
         <div className="text-xs mb-3" style={{ color: "#999" }}>
-          Tick the recommendations to include in this kit. Auto-suggestions based on the client's current business setup are pre-selected.
+          Only included recommendations appear here and in the exported PDF. Add or remove items to keep the kit clean.
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {doc.applications.map((app, i) => (
-            <ApplicationCard
-              key={i}
-              app={app}
-              onChange={(patch) => {
-                const next = doc.applications.slice();
-                next[i] = { ...next[i], ...patch };
-                update({ applications: next });
-              }}
-              onFile={async (file) => {
-                const dataUrl = file ? await fileToDataUrl(file) : null;
-                const next = doc.applications.slice();
-                next[i] = { ...next[i], dataUrl };
-                update({ applications: next });
-              }}
-            />
-          ))}
-        </div>
+        {(() => {
+          const shown = doc.applications.map((app, i) => ({ app, i })).filter(({ app }) => app.selected);
+          return shown.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {shown.map(({ app, i }) => (
+                <ApplicationCard
+                  key={i}
+                  app={app}
+                  onChange={(patch) => {
+                    const next = doc.applications.slice();
+                    next[i] = { ...next[i], ...patch };
+                    update({ applications: next });
+                  }}
+                  onFile={async (file) => {
+                    const dataUrl = file ? await fileToDataUrl(file) : null;
+                    const next = doc.applications.slice();
+                    next[i] = { ...next[i], dataUrl };
+                    update({ applications: next });
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs italic" style={{ color: "#888" }}>
+              No recommendations included yet. Add one below.
+            </div>
+          );
+        })()}
+        <ApplicationPicker doc={doc} update={update} />
       </Section>
 
       {/* 6. Strategic Branding Process */}
