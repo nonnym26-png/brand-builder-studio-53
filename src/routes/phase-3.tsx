@@ -1269,7 +1269,10 @@ async function buildAbBrandKitPdf(d: {
   const pageH = pdf.internal.pageSize.getHeight();
   const margin = 28;
   const contentW = pageW - margin * 2;
-  const GOLD_HEX = "#C79A2B";
+  // Per brand update: replace all gold accents with red. We keep the
+  // (gr, gg, gb) variable names so the rest of this builder doesn't need
+  // a wide rename — they now hold the official Anaglyph RED.
+  const GOLD_HEX = RED;
   const [gr, gg, gb] = hexToRgb(GOLD_HEX);
   const [rr, rg, rb] = hexToRgb(RED);
   let pageNum = 0;
