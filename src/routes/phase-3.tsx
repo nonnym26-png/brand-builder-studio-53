@@ -172,12 +172,12 @@ function Phase3() {
         coreLogoNotes:
           buildCoreLogoNotes(v),
         logoSlots: [
-          { label: "Main Logo", dataUrl: mainData ?? primaryDataUrl, isPrimary: true },
-          isIncluded("abbreviated") ? { label: "Abbreviated Logo", dataUrl: abbrData } : null,
-          isIncluded("icon") ? { label: "Icon Logo", dataUrl: iconData } : null,
-          isIncluded("black") ? { label: "Black Logo", dataUrl: blackData } : null,
-          isIncluded("white") ? { label: "White Logo", dataUrl: whiteData } : null,
-          isIncluded("additional") ? { label: "Additional Logo", dataUrl: additionalData } : null,
+          (mainData ?? primaryDataUrl) ? { label: "Main Logo", dataUrl: mainData ?? primaryDataUrl, isPrimary: true } : null,
+          abbrData && isIncluded("abbreviated") ? { label: "Abbreviated Logo", dataUrl: abbrData } : null,
+          iconData && isIncluded("icon") ? { label: "Icon Logo", dataUrl: iconData } : null,
+          blackData && isIncluded("black") ? { label: "Black Logo", dataUrl: blackData } : null,
+          whiteData && isIncluded("white") ? { label: "White Logo", dataUrl: whiteData } : null,
+          additionalData && isIncluded("additional") ? { label: "Additional Logo", dataUrl: additionalData } : null,
         ].filter(Boolean) as Array<{ label: string; dataUrl: string | null; isPrimary?: boolean }>,
         paletteNotes:
           "These colors form the official brand palette. Use HEX values for digital and convert to CMYK / Pantone for print. Always preserve the hierarchy: primary leads, secondary supports, accent highlights.",
@@ -1464,7 +1464,8 @@ async function buildAbBrandKitPdf(d: {
 
   /* ----- Section 3 + 4: Fonts (left) + Visual Elements (right) ----- */
   const fonts = d.doc.fonts.filter((f) => (f.name && f.name.trim()) || (f.sample && f.sample.trim()));
-  const visEls = d.doc.visualElements.filter((e) => !!e.dataUrl || (e.title && e.title.trim()));
+  // Only show visual element cards that have an actual uploaded/generated image.
+  const visEls = d.doc.visualElements.filter((e) => !!e.dataUrl);
 
   const row2H = 220;
   const fw = contentW * 0.40 - 6;
@@ -1555,13 +1556,56 @@ async function buildAbBrandKitPdf(d: {
     }
   }
 
-  /* ============== PAGE 2 — Applications + Process + Slogans + Why ============== */
-  const apps = d.doc.applications.filter((a) => a.selected && (a.title?.trim() || a.dataUrl));
+  // Advance y past the fonts/visual row so Section 5 can sit at the bottom of page 1.
+  y += row2H + 14;
+
+  /* ----- Section 5: Brand Application Recommendations (anchored to bottom of page 1) ----- */
+  const apps = d.doc.applications.filter((a) => a.selected && a.dataUrl);
+  if (apps.length > 0) {
+    const cardsH = 170;
+    const HEADER_H_P1 = 22;
+    // Anchor to bottom of page 1 (leave room for footer).
+    const FOOTER_SAFE_P1 = 70;
+    const bottomY = pageH - FOOTER_SAFE_P1 - cardsH;
+    const py1 = Math.max(y, bottomY);
+    sectionHeader("5", "Brand Application Recommendations", margin, py1, contentW);
+    card(margin, py1 + HEADER_H_P1, contentW, cardsH - HEADER_H_P1);
+    const inner = { x: margin + 12, y: py1 + 32, w: contentW - 24, h: cardsH - 50 };
+    const maxCols = Math.min(apps.length, 5);
+    const gap = 10;
+    const cardW = (inner.w - gap * (maxCols - 1)) / maxCols;
+    const imgH = inner.h - 30;
+    for (let i = 0; i < Math.min(apps.length, 5); i++) {
+      const a = apps[i];
+      const x = inner.x + i * (cardW + gap);
+      pdf.setFillColor(20, 20, 20);
+      pdf.rect(x, inner.y, cardW, imgH, "F");
+      if (a.dataUrl) {
+        try {
+          const props = pdf.getImageProperties(a.dataUrl);
+          const pad = 4;
+          const ratio = Math.min((cardW - pad * 2) / props.width, (imgH - pad * 2) / props.height);
+          const w = props.width * ratio;
+          const h = props.height * ratio;
+          const fmt: "PNG" | "JPEG" = a.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+          pdf.addImage(a.dataUrl, fmt, x + (cardW - w) / 2, inner.y + (imgH - h) / 2, w, h);
+        } catch { /* skip */ }
+      }
+      pdf.setTextColor(rr, rg, rb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7);
+      pdf.text(`${i + 1}.`, x, inner.y + imgH + 14);
+      pdf.setTextColor(20, 20, 20);
+      pdf.text(pdf.splitTextToSize((a.title || "").toUpperCase(), cardW - 12).slice(0, 2), x + 12, inner.y + imgH + 14);
+    }
+  }
+
+  /* ============== PAGE 2 — Process + Slogans + Why ============== */
   const slogans = d.doc.slogans.filter((s) => s.headline && s.headline.trim());
   const why = d.doc.whyBlocks.filter((w) => w.title?.trim() || w.explanation?.trim());
   const process = d.doc.processSteps.filter((p) => p.title?.trim());
 
-  if (apps.length > 0 || slogans.length > 0 || why.length > 0 || process.length > 0) {
+  if (slogans.length > 0 || why.length > 0 || process.length > 0) {
     newPage();
     let py = margin + 6;
 
@@ -1580,43 +1624,6 @@ async function buildAbBrandKitPdf(d: {
         py = margin + 6;
       }
     };
-
-    /* ----- Section 5: Brand Application Recommendations ----- */
-    if (apps.length > 0) {
-      const cardsH = 170;
-      ensureSpace(cardsH);
-      sectionHeader("5", "Brand Application Recommendations", margin, py, contentW);
-      card(margin, py + HEADER_H, contentW, cardsH - HEADER_H);
-      const inner = { x: margin + 12, y: py + 32, w: contentW - 24, h: cardsH - 50 };
-      const maxCols = Math.min(apps.length, 5);
-      const gap = 10;
-      const cardW = (inner.w - gap * (maxCols - 1)) / maxCols;
-      const imgH = inner.h - 30;
-      for (let i = 0; i < Math.min(apps.length, 5); i++) {
-        const a = apps[i];
-        const x = inner.x + i * (cardW + gap);
-        pdf.setFillColor(20, 20, 20);
-        pdf.rect(x, inner.y, cardW, imgH, "F");
-        if (a.dataUrl) {
-          try {
-            const props = pdf.getImageProperties(a.dataUrl);
-            const pad = 4;
-            const ratio = Math.min((cardW - pad * 2) / props.width, (imgH - pad * 2) / props.height);
-            const w = props.width * ratio;
-            const h = props.height * ratio;
-            const fmt: "PNG" | "JPEG" = a.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
-            pdf.addImage(a.dataUrl, fmt, x + (cardW - w) / 2, inner.y + (imgH - h) / 2, w, h);
-          } catch { /* skip */ }
-        }
-        pdf.setTextColor(rr, rg, rb);
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(7);
-        pdf.text(`${i + 1}.`, x, inner.y + imgH + 14);
-        pdf.setTextColor(20, 20, 20);
-        pdf.text(pdf.splitTextToSize((a.title || "").toUpperCase(), cardW - 12).slice(0, 2), x + 12, inner.y + imgH + 14);
-      }
-      py += cardsH + SECTION_GAP;
-    }
 
     /* ----- Section 6: Strategic Branding Process ----- */
     if (process.length > 0) {
