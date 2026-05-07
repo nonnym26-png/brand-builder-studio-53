@@ -1841,27 +1841,28 @@ function drawBrandingImpactPage(opts: {
   onBeforePage();
   drawBg();
 
-  // Header strip
+  // Header strip — AB logo on the left, text aligned vertically next to it.
   let y = margin;
+  const logoH = 44;
   let textX = margin;
+  let logoW = 0;
   if (abLogo) {
     try {
       const props = pdf.getImageProperties(abLogo.dataUrl);
-      const h = 40;
-      const w = (props.width / props.height) * h;
-      pdf.addImage(abLogo.dataUrl, abLogo.format, margin, y, w, h);
-      textX = margin + w + 16;
+      logoW = (props.width / props.height) * logoH;
+      pdf.addImage(abLogo.dataUrl, abLogo.format, margin, y, logoW, logoH);
+      textX = margin + logoW + 20;
     } catch { /* skip */ }
   }
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(11);
-  pdf.text("ANAGLYPH BRANDING", textX, y + 16, { charSpace: 1 });
+  pdf.setFontSize(12);
+  pdf.text("ANAGLYPH BRANDING", textX, y + 18, { charSpace: 1 });
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(8);
+  pdf.setFontSize(8.5);
   pdf.setTextColor(200, 200, 200);
-  pdf.text("The measurable impact of strong, consistent branding.", textX, y + 32);
-  y += 54;
+  pdf.text("The measurable impact of strong, consistent branding.", textX, y + 34);
+  y += Math.max(logoH, 44) + 18;
 
   sectionHeader("9", "Why Branding Works", margin, y, contentW);
   y += 30;
