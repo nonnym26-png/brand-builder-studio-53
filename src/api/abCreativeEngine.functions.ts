@@ -189,16 +189,6 @@ export const generateAbDesign = createServerFn({ method: "POST" })
     // which: builds DNA strategy → compiles prompt → renders premium image →
     // runs the quality gatekeeper → regenerates failed concepts up to 2× →
     // persists each concept to generated_designs (with quality fields).
-    type DesignRow = {
-      id: string;
-      brand_profile_id: string;
-      creative_brief_id: string | null;
-      image_url: string;
-      prompt_used: string | null;
-      design_type: string | null;
-      output_mode: string | null;
-      [k: string]: unknown;
-    };
     const result = await runLogoPipeline({
       brandProfileId: data.brandProfileId,
       outputCount: data.outputCount ?? 1,
@@ -208,18 +198,19 @@ export const generateAbDesign = createServerFn({ method: "POST" })
     // Maintain the legacy { design, brief } return shape so the existing
     // Phase-2 UI keeps working. We hand back the FIRST persisted row (the
     // primary concept) plus the brief stub the pipeline wrote.
-    const primary = (result.designRows[0] || {}) as DesignRow;
-    const briefRow = primary.creative_brief_id
+    const primary = (result.designRows[0] || {}) as Record<string, unknown>;
+    const briefId = typeof primary.creative_brief_id === "string" ? primary.creative_brief_id : null;
+    const briefRow = briefId
       ? (
           await supabaseAdmin
             .from("creative_briefs")
             .select("*")
-            .eq("id", primary.creative_brief_id)
+            .eq("id", briefId)
             .maybeSingle()
         ).data
       : null;
     return {
-      design: primary,
+      design: JSON.parse(JSON.stringify(primary)) as Record<string, string | number | boolean | null>,
       brief: briefRow,
       conceptGroupId: result.conceptGroupId,
     };
@@ -228,15 +219,6 @@ export const generateAbDesign = createServerFn({ method: "POST" })
 export const reviseAbDesign = createServerFn({ method: "POST" })
   .inputValidator((d: { generatedDesignId: string; userRequest: string }) => d)
   .handler(async ({ data }) => {
-    type DesignRow = {
-      id: string;
-      brand_profile_id: string;
-      image_url: string;
-      prompt_used: string | null;
-      output_mode: string | null;
-      design_dna_snapshot: unknown;
-      [k: string]: unknown;
-    };
     // NEW PIPELINE — delegates to revisionEngine + runLogoPipeline.
     const { data: parent, error } = await supabaseAdmin
       .from("generated_designs")
@@ -244,7 +226,7 @@ export const reviseAbDesign = createServerFn({ method: "POST" })
       .eq("id", data.generatedDesignId)
       .single();
     if (error || !parent) throw new Error("Design not found");
-    const parentRow = parent as unknown as DesignRow;
+    const parentRow = parent as unknown as Record<string, unknown>;
 
     const lockedDna = (parentRow.design_dna_snapshot as DesignDnaStrategy | null) || undefined;
     if (!lockedDna) {
@@ -253,23 +235,23 @@ export const reviseAbDesign = createServerFn({ method: "POST" })
         brandProfileId: parentRow.brand_profile_id as string,
         outputCount: 1,
       });
-      const primary = fresh.designRows[0] as DesignRow;
+      const primary = fresh.designRows[0] as Record<string, unknown>;
       await supabaseAdmin.from("revision_requests").insert({
-        brand_profile_id: parentRow.brand_profile_id,
+        brand_profile_id: parentRow.brand_profile_id as string,
         generated_design_id: data.generatedDesignId,
         user_request: data.userRequest,
-        revised_prompt: primary.prompt_used ?? "",
-        revised_image_url: primary.image_url,
-        new_design_id: primary.id,
+        revised_prompt: (primary.prompt_used as string) ?? "",
+        revised_image_url: primary.image_url as string,
+        new_design_id: primary.id as string,
       });
-      return { design: primary, brief: null };
+      return { design: JSON.parse(JSON.stringify(primary)) as Record<string, string | number | boolean | null>, brief: null };
     }
 
     const classified = classifyRevision({
       userRequest: data.userRequest,
       parentDna: lockedDna,
-      parentPrompt: parentRow.prompt_used ?? "",
-      parentConceptId: parentRow.id,
+      parentPrompt: (parentRow.prompt_used as string) ?? "",
+      parentConceptId: parentRow.id as string,
     });
 
     const result = await runLogoPipeline({
@@ -280,18 +262,18 @@ export const reviseAbDesign = createServerFn({ method: "POST" })
       lockedDna: classified.isFullRedesign ? undefined : lockedDna,
       revisionContext: classified.context,
     });
-    const primary = result.designRows[0] as DesignRow;
+    const primary = result.designRows[0] as Record<string, unknown>;
 
     await supabaseAdmin.from("revision_requests").insert({
-      brand_profile_id: parentRow.brand_profile_id,
+      brand_profile_id: parentRow.brand_profile_id as string,
       generated_design_id: data.generatedDesignId,
       user_request: data.userRequest,
-      revised_prompt: primary.prompt_used ?? "",
-      revised_image_url: primary.image_url,
-      new_design_id: primary.id,
+      revised_prompt: (primary.prompt_used as string) ?? "",
+      revised_image_url: primary.image_url as string,
+      new_design_id: primary.id as string,
     });
 
-    return { design: primary, brief: null };
+    return { design: JSON.parse(JSON.stringify(primary)) as Record<string, string | number | boolean | null>, brief: null };
   });
 
 export const listAbDesigns = createServerFn({ method: "GET" })
