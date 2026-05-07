@@ -14,6 +14,7 @@ import { saveBrandProfileDraft } from "@/api/profile.functions";
 import { getMissingRequiredFields } from "@/lib/profile.shared";
 import { PhaseChecklist, buildPhase1Checklist, derivePhase1Message, deriveBadge, deriveProjectStatus } from "@/components/brand-kit/PhaseChecklist";
 import abLogo from "@/assets/ab-logo.png";
+import { getStoredProjectId, storeProjectId } from "@/lib/selected-project";
 
 export const Route = createFileRoute("/phase-1")({
   head: () => ({ meta: [{ title: "Phase 1 — Complete Intake | AB Brand Kit" }] }),
@@ -51,10 +52,14 @@ function Phase1() {
 
   useEffect(() => {
     listBrandProfiles().then((rows) => setProfiles(rows as ProfileRow[])).catch(() => {});
+    const stored = getStoredProjectId();
+    if (stored) load(stored).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const load = async (id: string) => {
     setSelectedId(id);
+    storeProjectId(id);
     if (!id) { setProfile({}); return; }
     const row = await loadBrandProfile({ data: { id } });
     setProfile((row as Record<string, unknown>) || {});
@@ -86,7 +91,7 @@ function Phase1() {
     try {
       const result = await saveBrandProfileDraft({ data: { id: selectedId || undefined, patch: profile } });
       const newId = (result.profile as { id?: string } | null)?.id;
-      if (newId && newId !== selectedId) setSelectedId(newId);
+      if (newId && newId !== selectedId) { setSelectedId(newId); storeProjectId(newId); }
       toast.success("Intake saved");
       if (advance) {
         if (!ready) { toast.error(`Still missing: ${missing.join(", ")}`); return; }

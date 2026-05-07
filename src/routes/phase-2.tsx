@@ -8,6 +8,7 @@ import { listBrandProfiles, loadBrandProfile, markPhaseComplete } from "@/api/ph
 import { uploadPhase2Logo, removePhase2Logo, setPhase2LogoInclusions } from "@/api/profile.functions";
 import abLogo from "@/assets/ab-logo.png";
 import { PhaseStepper } from "@/components/PhaseStepper";
+import { getStoredProjectId, storeProjectId } from "@/lib/selected-project";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -45,10 +46,14 @@ function Phase2() {
 
   useEffect(() => {
     listBrandProfiles().then((rows) => setProfiles(rows as ProfileRow[])).catch(() => {});
+    const stored = getStoredProjectId();
+    if (stored) loadProfile(stored).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadProfile = async (id: string) => {
     setSelectedId(id);
+    storeProjectId(id);
     try {
       const row = (await loadBrandProfile({ data: { id } })) as Record<string, unknown> | null;
       if (row) {
