@@ -154,18 +154,71 @@ const PROMPT_SCHEMA = {
 };
 
 export const generateAbDesign = createServerFn({ method: "POST" })
-  .inputValidator((d: { brandProfileId: string; backgroundChoice?: string; outputCount?: number }) => d)
+  .inputValidator((d: {
+    brandProfileId: string;
+    backgroundChoice?: string;
+    outputCount?: number;
+    designDna?: { mustHave?: string; avoid?: string; qualityBar?: string; formula?: string };
+    extras?: {
+      fonts?: { heading?: string; body?: string; accent?: string };
+      chosenSlogan?: string | null;
+      elements?: string[];
+      mascot?: { enabled?: boolean; style?: string; idea?: string };
+    };
+  }) => d)
   .handler(async ({ data }) => {
     const { data: profile, error } = await supabaseAdmin.from("brand_profiles").select("*").eq("id", data.brandProfileId).single();
     if (error || !profile) throw new Error("Brand profile not found");
     const summary = summarizeProfile(profile as Record<string, unknown>);
     const background = data.backgroundChoice || "white";
 
+    // Pull the saved Design DNA row (Phase 2 designer notes) for richer direction
+    const { data: dnaRow } = await supabaseAdmin
+      .from("design_dna")
+      .select("*")
+      .eq("brand_profile_id", data.brandProfileId)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const dna = data.designDna || {};
+    const extras = data.extras || {};
+    const dnaBlock = `DESIGN DNA RULES (must follow on every render):
+- MUST HAVE: ${dna.mustHave || "clear readability · balanced composition · limited palette · strong contrast"}.
+- AVOID: ${dna.avoid || "generic clipart · busy backgrounds · misspelled words · mockup scenes"}.
+- QUALITY BAR: ${dna.qualityBar || "every metric ≥ 8/10"}.
+- FORMULA: ${dna.formula || "strong symbol + clean typography + limited palette + balanced layout"}.`;
+
+    const extrasBlock = `PHASE 2 SELECTIONS:
+- Fonts: heading=${extras.fonts?.heading || "—"}, body=${extras.fonts?.body || "—"}, accent=${extras.fonts?.accent || "—"}.
+- Tagline (if used): ${extras.chosenSlogan || "—"}.
+- Brand elements to consider: ${(extras.elements || []).join(", ") || "—"}.
+- Mascot: ${extras.mascot?.enabled ? `${extras.mascot?.style || ""} — ${extras.mascot?.idea || ""}` : "none"}.`;
+
+    const dbDnaBlock = dnaRow
+      ? `SAVED DESIGN DNA (designer-authored):
+- Style: ${dnaRow.design_style || "—"}
+- Personality: ${dnaRow.brand_personality_summary || "—"}
+- Visual tone: ${dnaRow.visual_tone || "—"}
+- Typography: ${dnaRow.typography_direction || "—"} | primary ${dnaRow.primary_font_style || "—"} / secondary ${dnaRow.secondary_font_style || "—"} / spacing ${dnaRow.letter_spacing_style || "—"}
+- Monogram: ${dnaRow.monogram_direction || "—"}
+- Symbol: ${dnaRow.symbol_direction || "—"}
+- Shape language: ${dnaRow.shape_language || "—"} | line ${dnaRow.line_style || "—"}
+- Spacing: ${dnaRow.spacing_rules || "—"}
+- Color hierarchy: ${dnaRow.color_hierarchy || "—"} | accent usage: ${dnaRow.accent_color_usage || "—"}
+- Layout: ${dnaRow.layout_system || "—"} | composition: ${dnaRow.composition_notes || "—"}
+- Premium rules: ${dnaRow.premium_design_rules || "—"}
+- Production rules: ${dnaRow.production_rules || "—"}
+- Logo variations: ${dnaRow.logo_variation_rules || "—"}
+- Avoidance: ${dnaRow.avoidance_rules || "—"}
+- Designer notes: ${dnaRow.designer_notes || "—"}`
+      : "";
+
     // Step A — creative brief
     const brief = await callGatewayJson(
       [
-        { role: "system", content: `You are the Anaglyph Branding senior creative director. Produce a tight, agency-grade creative brief that a designer could execute from. ${QUALITY_RULES}` },
-        { role: "user", content: `Build a creative brief for this brand. Background must be: ${background}. Intake JSON:\n${JSON.stringify(summary, null, 2)}` },
+        { role: "system", content: `You are the Anaglyph Branding senior creative director. Produce a tight, agency-grade creative brief that a designer could execute from. ${QUALITY_RULES}\n\n${dnaBlock}` },
+        { role: "user", content: `Build a creative brief for this brand. Background must be: ${background}.\n\nFULL INTAKE JSON:\n${JSON.stringify(summary, null, 2)}\n\n${extrasBlock}\n\n${dbDnaBlock}` },
       ],
       { name: "creative_brief", schema: BRIEF_SCHEMA },
     );
@@ -173,8 +226,8 @@ export const generateAbDesign = createServerFn({ method: "POST" })
     // Step B — image prompt
     const promptObj = await callGatewayJson(
       [
-        { role: "system", content: `You are a master prompt engineer for premium logo image generation. Convert a creative brief into ONE highly detailed image prompt that will produce an agency-grade logo. ${QUALITY_RULES}\nAlways: include the EXACT business name "${summary.business_name}", explicit layout, explicit typography style, explicit colors (use hex when provided), explicit background, and a strong negative prompt. The output background MUST be: ${background}.` },
-        { role: "user", content: `Brief:\n${JSON.stringify(brief, null, 2)}\n\nBrand colors hex (use these unless brief overrides): primary ${summary.primary_hex || "(none)"}, accent ${summary.accent_hex || "(none)"}, neutral ${summary.neutral_hex || "(none)"}.\n\nReturn the final_prompt, negative_prompt, and a short design_type label.` },
+        { role: "system", content: `You are a master prompt engineer for premium logo image generation. Convert a creative brief into ONE highly detailed image prompt that will produce an agency-grade logo. ${QUALITY_RULES}\n\n${dnaBlock}\n\nAlways: include the EXACT business name "${summary.business_name}", explicit layout, explicit typography style (respect Phase 2 font choices), explicit colors (use hex when provided), explicit background, and a strong negative prompt. The output background MUST be: ${background}.` },
+        { role: "user", content: `Brief:\n${JSON.stringify(brief, null, 2)}\n\nBrand colors hex (use these unless brief overrides): primary ${summary.primary_hex || "(none)"}, accent ${summary.accent_hex || "(none)"}, neutral ${summary.neutral_hex || "(none)"}.\n\n${extrasBlock}\n\n${dbDnaBlock}\n\nReturn the final_prompt, negative_prompt, and a short design_type label.` },
       ],
       { name: "image_prompt", schema: PROMPT_SCHEMA },
     );
