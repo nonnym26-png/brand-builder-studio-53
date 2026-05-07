@@ -300,3 +300,142 @@ export const approveAbDesign = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+function safeName(s: string): string {
+  return (s || "asset").replace(/[^a-z0-9-_]+/gi, "_").slice(0, 60);
+}
+
+function escapeHtml(s: unknown): string {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
+
+export const exportBrandKit = createServerFn({ method: "POST" })
+  .inputValidator((d: { brandProfileId: string }) => d)
+  .handler(async ({ data }) => {
+    const { default: JSZip } = await import("jszip");
+
+    const [{ data: profile, error: pErr }, { data: designs, error: dErr }, { data: dna }] = await Promise.all([
+      supabaseAdmin.from("brand_profiles").select("*").eq("id", data.brandProfileId).single(),
+      supabaseAdmin
+        .from("generated_designs")
+        .select("*, creative_briefs(brief_json, final_prompt, negative_prompt)")
+        .eq("brand_profile_id", data.brandProfileId)
+        .eq("is_approved", true)
+        .order("created_at", { ascending: true }),
+      supabaseAdmin.from("design_dna").select("*").eq("brand_profile_id", data.brandProfileId).maybeSingle(),
+    ]);
+    if (pErr) throw new Error(pErr.message);
+    if (dErr) throw new Error(dErr.message);
+    if (!profile) throw new Error("Brand profile not found");
+    const approved = designs || [];
+    if (approved.length === 0) throw new Error("No approved assets to export. Approve at least one design first.");
+
+    const zip = new JSZip();
+    const assetsFolder = zip.folder("assets")!;
+    const manifest: Array<Record<string, unknown>> = [];
+
+    for (let i = 0; i < approved.length; i++) {
+      const d = approved[i] as Record<string, any>;
+      try {
+        const res = await fetch(d.image_url);
+        if (!res.ok) continue;
+        const buf = new Uint8Array(await res.arrayBuffer());
+        const ext = (d.image_url.split(".").pop() || "png").split("?")[0];
+        const filename = `${String(i + 1).padStart(2, "0")}_${safeName(d.design_type || "asset")}.${ext}`;
+        assetsFolder.file(filename, buf);
+        manifest.push({
+          file: `assets/${filename}`,
+          design_type: d.design_type,
+          revision_number: d.revision_number,
+          quality_score: d.quality_score,
+          quality_decision: d.quality_decision,
+          model_used: d.model_used,
+          prompt: d.creative_briefs?.final_prompt || d.prompt_used || null,
+          created_at: d.created_at,
+        });
+      } catch (e) {
+        console.error("Failed to fetch asset", d.image_url, e);
+      }
+    }
+
+    // Prompt history
+    const promptHistory = approved
+      .map((d: any, i: number) => `--- ${i + 1}. ${d.design_type || "Asset"} (rev ${d.revision_number || 0}) ---\n${d.creative_briefs?.final_prompt || d.prompt_used || "(no prompt recorded)"}\n`)
+      .join("\n");
+    zip.file("prompt-history.txt", promptHistory);
+
+    // Design DNA snapshot
+    zip.file("design-dna.json", JSON.stringify(dna || profile.design_dna || {}, null, 2));
+
+    // Manifest
+    zip.file("manifest.json", JSON.stringify({ business: profile.business_name, generated_at: new Date().toISOString(), assets: manifest }, null, 2));
+
+    // Brand Kit Summary HTML
+    const palette = [
+      { name: profile.primary_color_name || "Primary", hex: profile.primary_hex },
+      { name: profile.secondary_color_name || "Secondary", hex: profile.secondary_hex },
+      { name: profile.accent_color_name || "Accent", hex: profile.accent_hex },
+      { name: profile.neutral_color_name || "Neutral", hex: profile.neutral_hex },
+    ].filter((c) => c.hex);
+    const fonts = (profile as any).phase_2_fonts || {};
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Brand Kit — ${escapeHtml(profile.business_name)}</title>
+<style>
+:root{--bg:#fafafa;--fg:#0a0a0a;--muted:#6b7280;--card:#fff;--bd:#e5e7eb}
+*{box-sizing:border-box}body{font:14px/1.55 -apple-system,Segoe UI,Inter,sans-serif;background:var(--bg);color:var(--fg);margin:0;padding:40px}
+.wrap{max-width:960px;margin:0 auto}
+h1{font-size:34px;margin:0 0 4px}h2{font-size:18px;margin:32px 0 12px;border-bottom:1px solid var(--bd);padding-bottom:6px}
+.muted{color:var(--muted)}.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px}
+.swatch{height:80px;border-radius:8px;border:1px solid var(--bd);margin-bottom:8px}
+img{max-width:100%;height:180px;object-fit:contain;background:#f3f4f6;border-radius:6px}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:8px;border-bottom:1px solid var(--bd)}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#ecfdf5;color:#065f46;font-size:11px;font-weight:600}
+</style></head><body><div class="wrap">
+<header><div class="muted">Brand Kit</div><h1>${escapeHtml(profile.business_name || "Untitled")}</h1>
+<div class="muted">${escapeHtml(profile.industry || "")} · Generated ${new Date().toLocaleDateString()}</div></header>
+
+<h2>Selected Logo Direction</h2>
+<p>${escapeHtml(profile.phase_2_concept_notes || profile.ab_creative_direction_notes || profile.brand_profile_summary || "Approved Premium Refined direction.")}</p>
+
+<h2>Color Palette</h2>
+<div class="grid">${palette.map((c) => `<div class="card"><div class="swatch" style="background:${escapeHtml(c.hex)}"></div><div><strong>${escapeHtml(c.name)}</strong></div><div class="muted">${escapeHtml(c.hex)}</div></div>`).join("")}</div>
+
+<h2>Typography</h2>
+<div class="card"><div><strong>Heading:</strong> ${escapeHtml(fonts.heading || (dna as any)?.primary_font_style || "—")}</div>
+<div><strong>Body:</strong> ${escapeHtml(fonts.body || (dna as any)?.secondary_font_style || "—")}</div>
+<div><strong>Direction:</strong> ${escapeHtml((dna as any)?.typography_direction || "—")}</div></div>
+
+<h2>Usage Notes</h2>
+<div class="card">${escapeHtml(profile.digital_usage_notes || profile.print_production_notes || "Use approved palette and typography across all touchpoints. Maintain clear space around the mark equal to the cap-height of the wordmark.")}</div>
+
+<h2>Production Notes</h2>
+<div class="card">${escapeHtml(profile.print_production_notes || (dna as any)?.production_rules || "Logo is production-ready for shirts, signage, decals, embroidery, web, and social.")}</div>
+
+<h2>Approved Assets (${approved.length})</h2>
+<div class="grid">${approved.map((d: any, i: number) => `<div class="card"><img src="assets/${String(i + 1).padStart(2, "0")}_${safeName(d.design_type || "asset")}.${(d.image_url.split(".").pop() || "png").split("?")[0]}"/><div style="margin-top:8px"><strong>${escapeHtml(d.design_type || "Asset")}</strong> ${d.is_approved ? '<span class="badge">Approved</span>' : ""}</div><div class="muted">Revision ${d.revision_number || 0} · Quality ${d.quality_score ?? "—"}/10</div></div>`).join("")}</div>
+
+<h2>Quality Report Summary</h2>
+<table><thead><tr><th>Asset</th><th>Score</th><th>Decision</th><th>Model</th></tr></thead><tbody>
+${approved.map((d: any) => `<tr><td>${escapeHtml(d.design_type || "—")}</td><td>${d.quality_score ?? "—"}</td><td>${escapeHtml(d.quality_decision || "—")}</td><td>${escapeHtml(d.model_used || "—")}</td></tr>`).join("")}
+</tbody></table>
+
+<h2>Revision History</h2>
+<table><thead><tr><th>#</th><th>Asset</th><th>Revision</th><th>Created</th></tr></thead><tbody>
+${approved.map((d: any, i: number) => `<tr><td>${i + 1}</td><td>${escapeHtml(d.design_type || "—")}</td><td>${d.revision_number || 0}</td><td>${new Date(d.created_at).toLocaleString()}</td></tr>`).join("")}
+</tbody></table>
+
+<footer style="margin-top:48px;color:var(--muted);font-size:12px">© ${new Date().getFullYear()} ${escapeHtml(profile.business_name || "")} · Brand Kit generated by AB Branding</footer>
+</div></body></html>`;
+    zip.file("Brand-Kit-Summary.html", html);
+
+    const blob = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
+    // base64 encode
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < blob.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, Array.from(blob.subarray(i, i + chunk)));
+    }
+    const base64 = btoa(binary);
+    const filename = `${safeName(profile.business_name || "brand")}-brand-kit.zip`;
+    return { filename, base64, count: approved.length };
+  });

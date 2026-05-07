@@ -1,12 +1,12 @@
 import { useEffect, useImperativeHandle, useState, forwardRef } from "react";
-import { Loader2, Sparkles, RefreshCw, Download, Check, FileText, Wand2, ShieldCheck, AlertTriangle, XCircle, Cpu, Layers } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, Download, Check, FileText, Wand2, ShieldCheck, AlertTriangle, XCircle, Cpu, Layers, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { generateAbDesign, reviseAbDesign, listAbDesigns, approveAbDesign } from "@/api/abCreativeEngine.functions";
+import { generateAbDesign, reviseAbDesign, listAbDesigns, approveAbDesign, exportBrandKit } from "@/api/abCreativeEngine.functions";
 
 type Design = {
   id: string;
@@ -75,6 +75,7 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
   const [qualityDrawer, setQualityDrawer] = useState<Design | null>(null);
   const [reviseTarget, setReviseTarget] = useState<Design | null>(null);
   const [reviseText, setReviseText] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const refresh = async () => {
     if (!brandProfileId) return;
@@ -143,6 +144,29 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
     }
   };
 
+  const onExport = async () => {
+    if (!brandProfileId) { toast.error("Select a brand profile first"); return; }
+    setExporting(true);
+    try {
+      const res = await exportBrandKit({ data: { brandProfileId } });
+      const bytes = Uint8Array.from(atob(res.base64), (c) => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "application/zip" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`Brand kit exported (${res.count} assets)`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <section className="rounded-2xl border border-border bg-card p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -172,6 +196,10 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
               Generate Design
             </Button>
           )}
+          <Button variant="outline" onClick={onExport} disabled={exporting || !brandProfileId || designs.filter((d) => d.is_approved).length === 0}>
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
+            Export Brand Kit
+          </Button>
         </div>
       </div>
 
