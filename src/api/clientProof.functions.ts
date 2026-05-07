@@ -125,6 +125,44 @@ export const listClientProofs = createServerFn({ method: "GET" })
     return { proofs: enriched };
   });
 
+export const getLatestProofForProfile = createServerFn({ method: "GET" })
+  .inputValidator((d: { brandProfileId: string }) => d)
+  .handler(async ({ data }) => {
+    const { data: proofs, error } = await supabaseAdmin
+      .from("client_proofs")
+      .select("*")
+      .eq("brand_profile_id", data.brandProfileId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error) throw new Error(error.message);
+    return proofs?.[0] ?? null;
+  });
+
+export const adminApproveProof = createServerFn({ method: "POST" })
+  .inputValidator((d: { proofId: string; notes?: string }) => d)
+  .handler(async ({ data }) => {
+    const { data: proof, error } = await supabaseAdmin
+      .from("client_proofs")
+      .select("id, brand_profile_id")
+      .eq("id", data.proofId)
+      .single();
+    if (error || !proof) throw new Error("Proof not found");
+    await supabaseAdmin
+      .from("client_proofs")
+      .update({
+        status: "approve_final",
+        response_kind: "approve_final",
+        response_notes: data.notes || "Approved by AB on client behalf",
+        submitted_at: new Date().toISOString(),
+      })
+      .eq("id", proof.id);
+    await supabaseAdmin
+      .from("brand_profiles")
+      .update({ client_proof_status: "approve_final", final_approval_date: new Date().toISOString() })
+      .eq("id", proof.brand_profile_id);
+    return { ok: true };
+  });
+
 export const markProofDelivered = createServerFn({ method: "POST" })
   .inputValidator((d: { proofId: string }) => d)
   .handler(async ({ data }) => {

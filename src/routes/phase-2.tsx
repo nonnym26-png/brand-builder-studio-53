@@ -21,9 +21,6 @@ import { AbCreativeEngine, type AbCreativeEngineHandle } from "@/components/bran
 import { ClientProofQueue } from "@/components/brand-kit/ClientProofQueue";
 import { FinalDeliveryTracker } from "@/components/brand-kit/FinalDeliveryTracker";
 import { AbStudioDashboard, type DashboardFocus } from "@/components/brand-kit/AbStudioDashboard";
-import { BrandPackageBuilder } from "@/components/brand-kit/BrandPackageBuilder";
-import { ProductionBoard } from "@/components/brand-kit/ProductionBoard";
-
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
 type ProfileRow = { id: string; business_name: string | null; client_name: string | null; industry: string | null; project_status: string | null; updated_at: string | null };
@@ -556,10 +553,6 @@ function Phase2() {
               mascot: { enabled: mascotEnabled, style: mascotStyle, idea: mascotIdea },
             }}
           />
-
-          <BrandPackageBuilder brandProfileId={selectedId || null} />
-
-          <ProductionBoard onOpenProject={(id) => setSelectedId(id)} />
 
           <div id="client-proof-queue">
             <ClientProofQueue onOpenProject={(id) => setSelectedId(id)} externalFilter={proofFilter} />
