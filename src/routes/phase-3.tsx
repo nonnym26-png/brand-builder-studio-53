@@ -1990,25 +1990,48 @@ function drawBrandingImpactPage(opts: {
       pdf.text(s.pct, brandX + blockW / 2, floorY - brandH - 6, { align: "center" });
     }
 
-    // Right: text block
-    const txX = cx + 14 + visW + 12;
-    const txW = cardW - (txX - cx) - 14;
+    // Right: text block (with safe internal padding)
+    const padX = 14;
+    const padY = 14;
+    const txX = cx + padX + visW + 12;
+    const txW = cardW - (txX - cx) - padX;
+    // Title
     pdf.setTextColor(rr, rg, rb);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(8);
-    const titleLines = pdf.splitTextToSize(s.title, txW);
-    pdf.text(titleLines, txX, cy + 22, { charSpace: 0.4 });
+    const titleLines = pdf.splitTextToSize(s.title, txW).slice(0, 2);
+    const titleY = cy + padY + 8;
+    pdf.setLineHeightFactor(1.25);
+    pdf.text(titleLines, txX, titleY, { charSpace: 0.4 });
+    // Source line baseline (bottom-anchored)
+    pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(6.5);
+    const srcLines = pdf.splitTextToSize(`Source: ${s.source}`, txW).slice(0, 2);
+    const srcLineH = 8;
+    const srcTop = cy + cardH - padY - srcLines.length * srcLineH + srcLineH - 2;
+    // Body fills the space between title and source
     pdf.setTextColor(30, 30, 30);
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(8.5);
-    pdf.setLineHeightFactor(1.4);
-    const bodyLines = pdf.splitTextToSize(s.body, txW);
-    pdf.text(bodyLines, txX, cy + 22 + titleLines.length * 10 + 6);
+    pdf.setFontSize(8);
+    pdf.setLineHeightFactor(1.35);
+    const bodyTop = titleY + titleLines.length * 10 + 8;
+    const bodyBottom = srcTop - 8;
+    const bodyLineH = 10;
+    const maxBodyLines = Math.max(1, Math.floor((bodyBottom - bodyTop) / bodyLineH));
+    let bodyLines = pdf.splitTextToSize(s.body, txW);
+    let fs = 8;
+    while (bodyLines.length > maxBodyLines && fs > 6.5) {
+      fs -= 0.25;
+      pdf.setFontSize(fs);
+      bodyLines = pdf.splitTextToSize(s.body, txW);
+    }
+    pdf.text(bodyLines.slice(0, maxBodyLines), txX, bodyTop);
+    // Source
     pdf.setTextColor(120, 120, 120);
     pdf.setFont("helvetica", "italic");
     pdf.setFontSize(6.5);
-    const srcLines = pdf.splitTextToSize(`Source: ${s.source}`, txW);
-    pdf.text(srcLines, txX, cy + cardH - 12);
+    pdf.setLineHeightFactor(1.2);
+    pdf.text(srcLines, txX, srcTop);
   }
 
   // Takeaway strip
