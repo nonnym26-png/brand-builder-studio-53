@@ -11,6 +11,7 @@ import { PhaseStepper } from "@/components/PhaseStepper";
 import { listBrandProfiles, loadBrandProfile, markPhaseComplete } from "@/api/phase2.functions";
 import { saveBrandProfileDraft } from "@/api/profile.functions";
 import { PHASE_2_REQUIRED_FIELDS, getMissingRequiredFields } from "@/lib/profile.shared";
+import { PhaseChecklist, buildPhase1Checklist, derivePhase1Message, deriveBadge, deriveProjectStatus } from "@/components/brand-kit/PhaseChecklist";
 import abLogo from "@/assets/ab-logo.png";
 
 export const Route = createFileRoute("/phase-1")({
@@ -67,6 +68,19 @@ function Phase1() {
   const missing = getMissingRequiredFields(profile);
   const ready = missing.length === 0;
 
+  const phase1Items = buildPhase1Checklist(profile);
+  const phase1Msg = derivePhase1Message(phase1Items);
+  const phase1Badge = deriveBadge({ approvalStatus: null, exportedAt: null, reviewLinkSent: false, phaseReady: ready });
+  const projectStatus = deriveProjectStatus({
+    phase1Done: ready,
+    phase2ConceptsCount: 0,
+    phase2Selected: false,
+    phase3Ready: false,
+    reviewLinkSent: false,
+    approvalStatus: null,
+    exportedAt: null,
+  });
+
   const save = async (advance = false) => {
     setSaving(true);
     try {
@@ -120,22 +134,13 @@ function Phase1() {
             <Button variant="outline" size="sm" className="mt-2 w-full" onClick={() => { setSelectedId(""); setProfile({}); }}>+ New intake</Button>
           </section>
 
-          <section className="rounded-lg border border-border bg-card p-4">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Required checklist</h3>
-            <ul className="mt-3 space-y-1.5 text-xs">
-              {PHASE_2_REQUIRED_FIELDS.map((f) => {
-                const done = !missing.includes(f.label);
-                return (
-                  <li key={f.key} className={`flex items-center gap-2 ${done ? "text-foreground" : "text-muted-foreground"}`}>
-                    <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${done ? "border-emerald-500 bg-emerald-500/15" : "border-border"}`}>
-                      {done && <Check className="h-2.5 w-2.5" />}
-                    </span>
-                    {f.label}
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+          <PhaseChecklist
+            title="Phase 1 — Business Intake"
+            items={phase1Items}
+            message={phase1Msg}
+            badge={phase1Badge}
+            projectStatus={projectStatus}
+          />
 
           <div className="space-y-2">
             <Button onClick={() => save(false)} disabled={saving} variant="outline" className="w-full">
