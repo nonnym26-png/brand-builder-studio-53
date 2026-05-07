@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getAdminClient } from "@/server/phase2.server";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   buildBrandProfileSummary,
   getMissingRequiredFields,
@@ -113,4 +114,29 @@ export const markReadyForPhase2 = createServerFn({ method: "POST" })
       .maybeSingle();
     if (upErr) throw new Error(upErr.message);
     return { ok: true as const, profile: updated };
+  });
+
+/** Upload an existing logo (data URL) for a brand profile and persist its public URL. */
+export const uploadExistingLogo = createServerFn({ method: "POST" })
+  .inputValidator((input: { brandProfileId: string; dataUrl: string; filename?: string }) => input)
+  .handler(async ({ data }) => {
+    const m = data.dataUrl.match(/^data:(image\/[\w+.-]+);base64,(.+)$/);
+    if (!m) throw new Error("Invalid image data");
+    const mime = m[1];
+    const ext = mime.split("/")[1].split("+")[0] || "png";
+    const bytes = Uint8Array.from(atob(m[2]), (c) => c.charCodeAt(0));
+    const path = `${data.brandProfileId}/existing/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabaseAdmin.storage
+      .from("ab-designs")
+      .upload(path, bytes, { contentType: mime, upsert: true });
+    if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+    const { data: pub } = supabaseAdmin.storage.from("ab-designs").getPublicUrl(path);
+    const url = pub.publicUrl;
+    const sb = getAdminClient();
+    const { error: dbErr } = await sb
+      .from("brand_profiles")
+      .update({ existing_logo_url: url, updated_at: new Date().toISOString() } as never)
+      .eq("id", data.brandProfileId);
+    if (dbErr) throw new Error(dbErr.message);
+    return { ok: true as const, url };
   });
