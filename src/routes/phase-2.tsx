@@ -9,10 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ConceptMark } from "@/components/brand-kit/ConceptRenderer";
-import { generateConcepts, mergeAIDirections } from "@/components/brand-kit/conceptEngine";
+import { generateConcepts } from "@/components/brand-kit/conceptEngine";
 import type { LogoConcept, ProfileLite } from "@/components/brand-kit/conceptTypes";
 import { exportConceptPDF } from "@/components/brand-kit/exportConceptPdf";
-import { listBrandProfiles, loadBrandProfile, saveConcepts, generateAIDirections, generateSlogans, savePhase2Selections, markPhaseComplete } from "@/api/phase2.functions";
+import { listBrandProfiles, loadBrandProfile, saveConcepts, generateSlogans, savePhase2Selections, markPhaseComplete } from "@/api/phase2.functions";
 import { generatePremiumLogoImage } from "@/api/premiumLogoImage.functions";
 import { toPng } from "html-to-image";
 import abLogo from "@/assets/ab-logo.png";
@@ -44,7 +44,6 @@ function Phase2() {
     initials_abbreviation: "AU",
   });
   const [concepts, setConcepts] = useState<LogoConcept[]>([]);
-  const [aiBusy, setAiBusy] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
@@ -95,25 +94,6 @@ function Phase2() {
   const regenerate = () => {
     setConcepts(generateConcepts(profile));
     setSelectedConceptId(null);
-  };
-
-  const aiEnhance = async () => {
-    setAiBusy(true);
-    try {
-      const base = generateConcepts(profile);
-      const directions = await generateAIDirections({
-        data: {
-          profile: profile as unknown as Record<string, unknown>,
-          baseConcepts: base.map((c) => ({ id: c.id, name: c.name, markType: c.markType, moodWords: c.moodWords })),
-        },
-      });
-      setConcepts(mergeAIDirections(base, directions));
-      toast.success("AI directions generated");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "AI failed");
-    } finally {
-      setAiBusy(false);
-    }
   };
 
   const saveBack = async () => {
@@ -222,9 +202,6 @@ function Phase2() {
 
             <div className="flex flex-wrap gap-2 pt-2">
               <Button size="sm" onClick={regenerate} variant="outline"><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Regenerate</Button>
-              <Button size="sm" onClick={aiEnhance} disabled={aiBusy}>
-                <Wand2 className="mr-1.5 h-3.5 w-3.5" /> {aiBusy ? "Thinking…" : "AI strategy"}
-              </Button>
             </div>
           </section>
 
