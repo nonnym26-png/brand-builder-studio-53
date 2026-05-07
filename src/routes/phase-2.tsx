@@ -57,6 +57,7 @@ function Phase2() {
   const [mascotIdea, setMascotIdea] = useState("");
   const [renderBackground, setRenderBackground] = useState<"white" | "transparent" | "dark" | "mockup-free">("white");
   const [generating, setGenerating] = useState(false);
+  const [outputCount, setOutputCount] = useState<number>(1);
   const engineRef = useRef<AbCreativeEngineHandle | null>(null);
 
   // Initial deterministic generation
@@ -460,6 +461,17 @@ function Phase2() {
                   <option value="dark">Dark</option>
                   <option value="mockup-free">Mockup-free</option>
                 </select>
+                <Label className="text-xs text-muted-foreground ml-2">Concepts</Label>
+                <select
+                  className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+                  value={outputCount}
+                  onChange={(e) => setOutputCount(Number(e.target.value))}
+                >
+                  <option value={1}>1 concept</option>
+                  <option value={2}>2 concepts</option>
+                  <option value={3}>3 concepts</option>
+                  <option value={4}>4 concepts</option>
+                </select>
               </div>
             </div>
 
@@ -500,14 +512,14 @@ function Phase2() {
                   if (!engineRef.current) return;
                   setGenerating(true);
                   try {
-                    await engineRef.current.generate(renderBackground);
+                    await engineRef.current.generate(renderBackground, outputCount);
                   } finally {
                     setGenerating(false);
                   }
                 }}
               >
                 {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Generate Logo Design
+                {outputCount > 1 ? `Generate ${outputCount} Logo Concepts` : "Generate Logo Design"}
               </Button>
             </div>
           </section>
