@@ -398,9 +398,17 @@ function BrandKitEditor({
       {/* 3. Font Selection */}
       <Section title="03 · Font Selection">
         <div className="grid gap-4 md:grid-cols-3">
-          <FontField label="Heading" value={doc.headingFont} onChange={(v) => update({ headingFont: v })} preview="Aa Bb Cc" big />
-          <FontField label="Body" value={doc.bodyFont} onChange={(v) => update({ bodyFont: v })} preview="The quick brown fox jumps." />
-          <FontField label="Accent" value={doc.accentFont} onChange={(v) => update({ accentFont: v })} preview="Editorial Italic" italic />
+          {doc.fonts.map((f, i) => (
+            <FontSlot
+              key={i}
+              font={f}
+              onChange={(patch) => {
+                const next = doc.fonts.slice();
+                next[i] = { ...next[i], ...patch };
+                update({ fonts: next });
+              }}
+            />
+          ))}
         </div>
         <DarkTextarea className="mt-4" rows={3} value={doc.fontNotes} onChange={(v) => update({ fontNotes: v })} />
       </Section>
