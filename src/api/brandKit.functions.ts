@@ -53,10 +53,10 @@ export const loadBrandKit = createServerFn({ method: "GET" })
     const social = find(pool, /favicon|social|icon/i);
 
     const palette = [
-      { role: "primary", name: profile.primary_color_name, hex: profile.primary_hex },
-      { role: "secondary", name: profile.secondary_color_name, hex: profile.secondary_hex },
-      { role: "accent", name: profile.accent_color_name, hex: profile.accent_hex },
-      { role: "neutral", name: profile.neutral_color_name, hex: profile.neutral_hex },
+      { role: "primary", name: profile.primary_color_name, hex: profile.primary_hex, note: profile.primary_color_note },
+      { role: "secondary", name: profile.secondary_color_name, hex: profile.secondary_hex, note: profile.secondary_color_note },
+      { role: "accent", name: profile.accent_color_name, hex: profile.accent_hex, note: profile.accent_color_note },
+      { role: "neutral", name: profile.neutral_color_name, hex: profile.neutral_hex, note: profile.neutral_color_note },
     ].filter((c) => c.hex);
 
     const fonts = (profile.phase_2_fonts as Record<string, string> | null) || {};
