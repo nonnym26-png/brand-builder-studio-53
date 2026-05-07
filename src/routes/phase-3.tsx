@@ -1399,7 +1399,7 @@ async function buildAbBrandKitPdf(d: {
   const colors = d.doc.colors.filter((c) => c.hex && /^#[0-9a-f]{3,6}$/i.test(c.hex.trim()));
 
   // Two-column row: logos card (left, ~62%) + palette card (right)
-  const row1H = 200;
+  const row1H = 180;
   const lw = contentW * 0.62 - 6;
   const rw = contentW - lw - 12;
 
@@ -1486,7 +1486,7 @@ async function buildAbBrandKitPdf(d: {
   // Only show visual element cards that have an actual uploaded/generated image.
   const visEls = d.doc.visualElements.filter((e) => !!e.dataUrl);
 
-  const row2H = 220;
+  const row2H = 190;
   const fw = contentW * 0.40 - 6;
   const vw = contentW - fw - 12;
 
@@ -1581,12 +1581,11 @@ async function buildAbBrandKitPdf(d: {
   /* ----- Section 5: Brand Application Recommendations (anchored to bottom of page 1) ----- */
   const apps = d.doc.applications.filter((a) => a.selected && a.dataUrl);
   if (apps.length > 0) {
-    const cardsH = 170;
+    const cardsH = 150;
     const HEADER_H_P1 = 22;
     // Anchor to bottom of page 1 (leave room for footer).
     const FOOTER_SAFE_P1 = 70;
-    const bottomY = pageH - FOOTER_SAFE_P1 - cardsH;
-    const py1 = Math.max(y, bottomY);
+    const py1 = pageH - FOOTER_SAFE_P1 - cardsH - HEADER_H_P1;
     sectionHeader("5", "Brand Application Recommendations", margin, py1, contentW);
     card(margin, py1 + HEADER_H_P1, contentW, cardsH - HEADER_H_P1);
     const inner = { x: margin + 12, y: py1 + 32, w: contentW - 24, h: cardsH - 50 };
@@ -1833,25 +1832,27 @@ function drawBrandingImpactPage(opts: {
 
   // Header strip
   let y = margin;
+  let textX = margin;
   if (abLogo) {
     try {
       const props = pdf.getImageProperties(abLogo.dataUrl);
-      const h = 36;
+      const h = 40;
       const w = (props.width / props.height) * h;
       pdf.addImage(abLogo.dataUrl, abLogo.format, margin, y, w, h);
+      textX = margin + w + 16;
     } catch { /* skip */ }
   }
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(11);
-  pdf.text("ANAGLYPH BRANDING", margin + 46, y + 16, { charSpace: 1 });
+  pdf.text("ANAGLYPH BRANDING", textX, y + 16, { charSpace: 1 });
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(8);
   pdf.setTextColor(200, 200, 200);
-  pdf.text("The measurable impact of strong, consistent branding.", margin + 46, y + 30);
-  y += 50;
+  pdf.text("The measurable impact of strong, consistent branding.", textX, y + 32);
+  y += 54;
 
-  sectionHeader("9", "Why Branding Works — Proof in Numbers", margin, y, contentW);
+  sectionHeader("9", "Why Branding Works", margin, y, contentW);
   y += 30;
 
   // 2x2 grid of stat cards
@@ -1983,17 +1984,19 @@ function drawBrandingImpactPage(opts: {
     pdf.setTextColor(rr, rg, rb);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(8);
-    pdf.text(s.title, txX, cy + 22, { charSpace: 0.6 });
+    const titleLines = pdf.splitTextToSize(s.title, txW);
+    pdf.text(titleLines, txX, cy + 22, { charSpace: 0.4 });
     pdf.setTextColor(30, 30, 30);
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(9);
+    pdf.setFontSize(8.5);
+    pdf.setLineHeightFactor(1.4);
     const bodyLines = pdf.splitTextToSize(s.body, txW);
-    pdf.setLineHeightFactor(1.5);
-    pdf.text(bodyLines, txX, cy + 38);
+    pdf.text(bodyLines, txX, cy + 22 + titleLines.length * 10 + 6);
     pdf.setTextColor(120, 120, 120);
     pdf.setFont("helvetica", "italic");
     pdf.setFontSize(6.5);
-    pdf.text(`Source: ${s.source}`, txX, cy + cardH - 14);
+    const srcLines = pdf.splitTextToSize(`Source: ${s.source}`, txW);
+    pdf.text(srcLines, txX, cy + cardH - 12);
   }
 
   // Takeaway strip
@@ -2002,9 +2005,14 @@ function drawBrandingImpactPage(opts: {
   pdf.rect(margin, ty, contentW, 28, "F");
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(9);
-  pdf.text(
-    "STRONG BRANDING IMPROVES RECOGNITION  ·  CONSISTENCY DRIVES VISIBILITY  ·  TRUST DRIVES BUYING DECISIONS",
-    pageW / 2, ty + 18, { align: "center", charSpace: 0.6 },
-  );
+  pdf.setFontSize(8);
+  const takeaway = "STRONG BRANDING IMPROVES RECOGNITION  ·  CONSISTENCY DRIVES VISIBILITY  ·  TRUST DRIVES BUYING DECISIONS";
+  // Auto-shrink to fit inside the bar with internal padding.
+  const maxTW = contentW - 24;
+  let fs = 8;
+  while (fs > 5.5 && pdf.getTextWidth(takeaway) > maxTW) {
+    fs -= 0.25;
+    pdf.setFontSize(fs);
+  }
+  pdf.text(takeaway, pageW / 2, ty + 18, { align: "center", charSpace: 0.4 });
 }
