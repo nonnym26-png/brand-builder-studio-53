@@ -548,40 +548,67 @@ export type Database = {
       generated_designs: {
         Row: {
           brand_profile_id: string
+          concept_group_id: string | null
+          concept_index: number | null
           created_at: string
           creative_brief_id: string | null
+          design_dna_snapshot: Json | null
           design_type: string | null
           id: string
           image_url: string
           is_approved: boolean
+          model_used: string | null
+          output_mode: string | null
           parent_design_id: string | null
           prompt_used: string | null
+          quality_breakdown: Json | null
+          quality_decision: string | null
+          quality_notes: string | null
+          quality_score: number | null
           revision_number: number
           user_id: string | null
         }
         Insert: {
           brand_profile_id: string
+          concept_group_id?: string | null
+          concept_index?: number | null
           created_at?: string
           creative_brief_id?: string | null
+          design_dna_snapshot?: Json | null
           design_type?: string | null
           id?: string
           image_url: string
           is_approved?: boolean
+          model_used?: string | null
+          output_mode?: string | null
           parent_design_id?: string | null
           prompt_used?: string | null
+          quality_breakdown?: Json | null
+          quality_decision?: string | null
+          quality_notes?: string | null
+          quality_score?: number | null
           revision_number?: number
           user_id?: string | null
         }
         Update: {
           brand_profile_id?: string
+          concept_group_id?: string | null
+          concept_index?: number | null
           created_at?: string
           creative_brief_id?: string | null
+          design_dna_snapshot?: Json | null
           design_type?: string | null
           id?: string
           image_url?: string
           is_approved?: boolean
+          model_used?: string | null
+          output_mode?: string | null
           parent_design_id?: string | null
           prompt_used?: string | null
+          quality_breakdown?: Json | null
+          quality_decision?: string | null
+          quality_notes?: string | null
+          quality_score?: number | null
           revision_number?: number
           user_id?: string | null
         }
