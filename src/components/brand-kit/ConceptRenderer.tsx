@@ -179,69 +179,45 @@ export function ConceptMark({
     const boxSize = size * 0.58;
     const container = concept.containerShape && concept.containerShape !== "none" ? concept.containerShape : "circle";
     const onContainerColor = stroke ? mark : bg;
-    const letters = initials.slice(0, 3).split("");
+    const letters = initials.slice(0, 2).split("");
+    // Tuned font sizes so glyphs sit comfortably inside the 200x200 viewBox
+    const oneFs = 96;
+    const twoFs = 86;
     return (
       <div style={{ ...frame, display: "flex", flexDirection: "column", alignItems: "center", gap: size * 0.07 }}>
         <svg width={boxSize} height={boxSize} viewBox="0 0 200 200">
           <ContainerPath shape={container} color={mark} stroke={stroke} strokeWidth={3} />
-          {/* hairline inner ring */}
-          {(container === "circle" || container === "square") && (
-            <g opacity={0.35}>
-              {container === "circle" ? (
-                <circle cx="100" cy="100" r="84" fill="none" stroke={onContainerColor} strokeWidth="1" />
-              ) : (
-                <rect x="16" y="16" width="168" height="168" rx="6" fill="none" stroke={onContainerColor} strokeWidth="1" />
-              )}
-            </g>
+          {/* Hairline inner ring (circles only) for refined depth */}
+          {container === "circle" && (
+            <circle cx="100" cy="100" r="86" fill="none" stroke={onContainerColor} strokeWidth="1" opacity="0.4" />
           )}
-          {/* Interlocked initials, optically centered */}
+          {/* Initials — optically centered (no overflowing divider) */}
           {letters.length === 1 ? (
             <text
               x="100"
-              y="108"
+              y="100"
               textAnchor="middle"
-              dominantBaseline="middle"
+              dominantBaseline="central"
               fill={duotone ? accent : onContainerColor}
-              style={{ fontFamily: concept.headingFont, fontWeight: 800, fontSize: 130, letterSpacing: -4 }}
+              style={{ fontFamily: concept.headingFont, fontWeight: 800, fontSize: oneFs, letterSpacing: "-0.02em" }}
             >
               {letters[0]}
             </text>
-          ) : letters.length === 2 ? (
-            <g>
-              <text
-                x="78"
-                y="108"
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fill={onContainerColor}
-                style={{ fontFamily: concept.headingFont, fontWeight: 800, fontSize: 110, letterSpacing: -6 }}
-              >
-                {letters[0]}
-              </text>
-              <text
-                x="122"
-                y="108"
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fill={duotone ? accent : onContainerColor}
-                style={{ fontFamily: concept.headingFont, fontWeight: 800, fontSize: 110, letterSpacing: -6 }}
-              >
-                {letters[1]}
-              </text>
-              <line x1="100" y1="44" x2="100" y2="156" stroke={onContainerColor} strokeWidth="1" opacity="0.35" />
-            </g>
           ) : (
             <text
               x="100"
-              y="108"
+              y="100"
               textAnchor="middle"
-              dominantBaseline="middle"
+              dominantBaseline="central"
               fill={onContainerColor}
-              style={{ fontFamily: concept.headingFont, fontWeight: 800, fontSize: 76, letterSpacing: -2 }}
+              style={{ fontFamily: concept.headingFont, fontWeight: 800, fontSize: twoFs, letterSpacing: "-0.06em" }}
             >
-              {letters.join("")}
+              <tspan fill={onContainerColor}>{letters[0]}</tspan>
+              <tspan fill={duotone ? accent : onContainerColor}>{letters[1]}</tspan>
             </text>
           )}
+          {/* Subtle accent dot under monogram for editorial polish */}
+          <circle cx="100" cy="160" r="2" fill={duotone ? accent : onContainerColor} opacity="0.7" />
         </svg>
         {showName && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: size * 0.018 }}>
@@ -285,81 +261,80 @@ export function ConceptMark({
     const isCircle = container === "circle";
     const onContainerColor = stroke ? mark : bg;
     const symbolBoxColor = duotone ? accent : onContainerColor;
+    const topText = display.toUpperCase();
+    const bottomText = (concept.tagline || "EST.").toUpperCase();
     return (
       <div style={{ ...frame, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <svg width={boxSize} height={boxSize} viewBox="0 0 200 200">
           <ContainerPath shape={container} color={mark} stroke={stroke} strokeWidth={4} />
-          {/* inner hairline frame */}
+          {/* Inner hairline frame */}
           {isCircle ? (
-            <circle cx="100" cy="100" r="84" fill="none" stroke={onContainerColor} strokeWidth="1" opacity="0.5" />
+            <circle cx="100" cy="100" r="84" fill="none" stroke={onContainerColor} strokeWidth="1" opacity="0.45" />
           ) : (
             <path
               d="M100 18 L 174 42 L 168 116 C 162 152, 136 174, 100 182 C 64 174, 38 152, 32 116 L 26 42 Z"
               fill="none"
               stroke={onContainerColor}
               strokeWidth="1"
-              opacity="0.5"
+              opacity="0.45"
             />
           )}
-          {/* curved top text */}
+          {/* Curved top wordmark on circles, straight on shields */}
           {isCircle && (
             <CircularText
-              text={display}
-              radius={70}
+              text={topText}
+              radius={66}
               color={onContainerColor}
               fontFamily={concept.headingFont}
-              fontSize={14}
+              fontSize={11}
               fontWeight={concept.headingWeight}
-              letterSpacing={0.32}
+              letterSpacing={0.18}
               position="top"
             />
           )}
           {!isCircle && (
             <text
               x="100"
-              y="44"
+              y="48"
               textAnchor="middle"
               fill={onContainerColor}
-              style={{ fontFamily: concept.headingFont, fontSize: 12, fontWeight: concept.headingWeight, letterSpacing: 4 }}
+              style={{ fontFamily: concept.headingFont, fontSize: 11, fontWeight: concept.headingWeight, letterSpacing: "0.22em" }}
             >
-              {display.toUpperCase()}
+              {topText}
             </text>
           )}
-          {/* central symbol */}
-          <g transform="translate(65 70) scale(0.7)">
+          {/* Central symbol — properly sized & centered */}
+          <g transform="translate(70 78) scale(0.6)">
             <Symbol symbol={concept.symbol} color={symbolBoxColor} accent={accent} stroke={stroke} duotone={duotone} />
           </g>
-          {/* divider ticks */}
-          <line x1="60" y1="142" x2="80" y2="142" stroke={onContainerColor} strokeWidth="1" opacity="0.6" />
-          <line x1="120" y1="142" x2="140" y2="142" stroke={onContainerColor} strokeWidth="1" opacity="0.6" />
-          <circle cx="100" cy="142" r="1.5" fill={onContainerColor} opacity="0.8" />
-          {/* est. / tagline label */}
-          <text
-            x="100"
-            y="160"
-            textAnchor="middle"
-            fill={onContainerColor}
-            style={{
-              fontFamily: concept.subFont,
-              fontSize: 8,
-              fontWeight: concept.subWeight,
-              letterSpacing: 4,
-            }}
-          >
-            {(concept.tagline || "EST.").toUpperCase().slice(0, 28)}
-          </text>
-          {/* curved bottom text mirrors top in circles */}
-          {isCircle && concept.tagline && (
+          {/* Divider band — ticks + center dot, sits ABOVE the bottom label */}
+          <g opacity="0.7">
+            <line x1="56" y1="148" x2="86" y2="148" stroke={onContainerColor} strokeWidth="1" />
+            <line x1="114" y1="148" x2="144" y2="148" stroke={onContainerColor} strokeWidth="1" />
+            <circle cx="100" cy="148" r="1.5" fill={onContainerColor} />
+          </g>
+          {/* Bottom label — curved on circles (no straight overlap), straight on shields */}
+          {isCircle ? (
             <CircularText
-              text={concept.tagline}
-              radius={78}
+              text={bottomText.slice(0, 28)}
+              radius={74}
               color={onContainerColor}
               fontFamily={concept.subFont}
-              fontSize={9}
+              fontSize={8}
               fontWeight={concept.subWeight}
-              letterSpacing={0.36}
+              letterSpacing={0.22}
               position="bottom"
             />
+          ) : (
+            <text
+              x="100"
+              y="166"
+              textAnchor="middle"
+              fill={onContainerColor}
+              style={{ fontFamily: concept.subFont, fontSize: 8, fontWeight: concept.subWeight, letterSpacing: "0.28em" }}
+            >
+              {bottomText.slice(0, 28)}
+            </text>
           )}
         </svg>
       </div>
