@@ -87,7 +87,7 @@ export const updateDelivery = createServerFn({ method: "POST" })
     final_approval_date?: string | null;
   }) => d)
   .handler(async ({ data }) => {
-    const patch: Record<string, unknown> = {};
+    const patch: Partial<Record<string, string | null>> = {};
     for (const k of [
       "delivery_status",
       "delivery_notes",
@@ -102,7 +102,7 @@ export const updateDelivery = createServerFn({ method: "POST" })
     if (Object.keys(patch).length === 0) return { ok: true };
     const { error } = await supabaseAdmin
       .from("brand_profiles")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.brandProfileId);
     if (error) throw new Error(error.message);
     return { ok: true };
