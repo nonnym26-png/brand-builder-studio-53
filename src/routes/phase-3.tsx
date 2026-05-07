@@ -39,7 +39,13 @@ type KitDoc = {
   iconNotes: string;
   visualElements: Array<{ title: string; explanation: string; dataUrl: string | null }>;
   // 5. Brand Application Recommendations
-  applications: string;
+  applications: Array<{
+    title: string;
+    explanation: string;
+    usage: string;
+    dataUrl: string | null;
+    selected: boolean;
+  }>;
   // 6. Strategic Branding Process
   process: string;
   // 7. Slogan / Brand Message
@@ -156,8 +162,7 @@ function Phase3() {
         iconNotes:
           buildIconNotes(v),
         visualElements: buildVisualElements(v),
-        applications:
-          buildApplications(v),
+        applications: buildApplications(v),
         process: DEFAULT_PROCESS,
         slogan: pickSlogan(v),
         brandMessage:
@@ -441,7 +446,28 @@ function BrandKitEditor({
 
       {/* 5. Brand Application Recommendations */}
       <Section title="05 · Brand Application Recommendations">
-        <DarkTextarea rows={8} value={doc.applications} onChange={(v) => update({ applications: v })} />
+        <div className="text-xs mb-3" style={{ color: "#999" }}>
+          Tick the recommendations to include in this kit. Auto-suggestions based on the client's current business setup are pre-selected.
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {doc.applications.map((app, i) => (
+            <ApplicationCard
+              key={i}
+              app={app}
+              onChange={(patch) => {
+                const next = doc.applications.slice();
+                next[i] = { ...next[i], ...patch };
+                update({ applications: next });
+              }}
+              onFile={async (file) => {
+                const dataUrl = file ? await fileToDataUrl(file) : null;
+                const next = doc.applications.slice();
+                next[i] = { ...next[i], dataUrl };
+                update({ applications: next });
+              }}
+            />
+          ))}
+        </div>
       </Section>
 
       {/* 6. Strategic Branding Process */}
@@ -681,6 +707,87 @@ function VisualElementSlot({
   );
 }
 
+type AppCardData = KitDoc["applications"][number];
+
+function ApplicationCard({
+  app, onChange, onFile,
+}: {
+  app: AppCardData;
+  onChange: (patch: Partial<AppCardData>) => void;
+  onFile: (file: File | null) => void;
+}) {
+  const inputId = `app-${app.title.replace(/[^a-z0-9]+/gi, "-")}`;
+  return (
+    <div
+      className="rounded-lg border overflow-hidden flex flex-col"
+      style={{
+        borderColor: app.selected ? GOLD : "#2A2A2A",
+        background: app.selected ? "#141008" : "#0F0F0F",
+        opacity: app.selected ? 1 : 0.7,
+      }}
+    >
+      <label className="flex items-center justify-between gap-2 px-3 py-2 border-b cursor-pointer" style={{ borderColor: "#1F1F1F" }}>
+        <div className="flex items-center gap-2 text-[11px] tracking-widest uppercase" style={{ color: app.selected ? GOLD : "#888" }}>
+          <input
+            type="checkbox"
+            checked={app.selected}
+            onChange={(e) => onChange({ selected: e.target.checked })}
+            className="accent-current"
+          />
+          {app.selected ? "Included" : "Excluded"}
+        </div>
+      </label>
+      <div className="aspect-[4/3] grid place-items-center" style={{ background: "#FFFFFF" }}>
+        {app.dataUrl ? (
+          <img src={app.dataUrl} alt={app.title} className="max-h-full max-w-full object-contain p-3" />
+        ) : (
+          <label htmlFor={inputId} className="cursor-pointer text-center px-3 text-[11px]" style={{ color: "#999" }}>
+            <div className="font-semibold mb-1" style={{ color: "#666" }}>Mockup</div>
+            <div>Click to upload image</div>
+          </label>
+        )}
+      </div>
+      <div className="p-3 space-y-2 flex-1">
+        <DarkInput value={app.title} onChange={(v) => onChange({ title: v })} />
+        <div>
+          <Lbl>Explanation</Lbl>
+          <DarkTextarea rows={2} value={app.explanation} onChange={(v) => onChange({ explanation: v })} small />
+        </div>
+        <div>
+          <Lbl>Usage note</Lbl>
+          <DarkTextarea rows={2} value={app.usage} onChange={(v) => onChange({ usage: v })} small />
+        </div>
+        <div className="flex gap-1.5">
+          <label
+            htmlFor={inputId}
+            className="flex-1 text-center text-[10px] tracking-wider py-1 rounded cursor-pointer border"
+            style={{ borderColor: "#2A2A2A", color: GOLD }}
+          >
+            {app.dataUrl ? "REPLACE" : "UPLOAD MOCKUP"}
+          </label>
+          {app.dataUrl && (
+            <button
+              type="button"
+              onClick={() => onFile(null)}
+              className="text-[10px] tracking-wider py-1 px-2 rounded border"
+              style={{ borderColor: "#2A2A2A", color: "#bbb" }}
+            >
+              CLEAR
+            </button>
+          )}
+        </div>
+        <input
+          id={inputId}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+        />
+      </div>
+    </div>
+  );
+}
+
 /* --------------------------------- PDF --------------------------------- */
 
 async function fetchAsDataUrl(url: string): Promise<{ dataUrl: string; format: "PNG" | "JPEG" } | null> {
@@ -761,19 +868,56 @@ function buildVisualElements(v: PV): KitDoc["visualElements"] {
   return slots;
 }
 
-function buildApplications(v: PV): string {
-  const lines = [
-    "Apparel & Uniforms — embroidered or printed primary logo, ≥ 1.5 in.",
-    "Business Cards — primary logo front, one-color reverse on back.",
-    "Signage — high-contrast primary logo on approved background.",
-    "Vehicle Decals — bold, single-color version for distance readability.",
-    "Social Media — favicon mark for avatars, primary for posts.",
-    "Website — primary logo in header, favicon mark for browser tab.",
-  ];
-  if (v.brand.productsServices) {
-    lines.push(`Service-specific collateral — apply the brand consistently across: ${v.brand.productsServices}.`);
+const APPLICATION_CATALOG: Array<{ title: string; explanation: string; usage: string }> = [
+  { title: "Business Cards", explanation: "Compact, premium-feeling print piece used for in-person introductions.", usage: "Primary logo on the front; one-color or reversed mark on the back." },
+  { title: "Car Magnets", explanation: "Removable branded magnets that turn personal vehicles into mobile signage.", usage: "Bold one-color logo with phone number and service area." },
+  { title: "Vehicle Decals", explanation: "Permanent vinyl graphics for trucks, vans, and trailers.", usage: "Use high-contrast logo and large legible type for distance readability." },
+  { title: "Embroidered Polo Shirts", explanation: "Stitched logo apparel for staff and owner-operators.", usage: "Use the embroidery-safe logo at 3–4 inches over the chest." },
+  { title: "T-Shirts / Uniform Tops", explanation: "Printed brand apparel for crews, events, and giveaways.", usage: "Primary logo centered on chest or back; preserve clear space." },
+  { title: "Signage", explanation: "Exterior and interior signage that anchors the brand to a location.", usage: "Use the primary logo with high contrast against the surface." },
+  { title: "Social Media Presence", explanation: "Profile, cover, and post templates that present the brand consistently online.", usage: "Use the icon-only mark for avatars and primary logo for posts." },
+  { title: "Website", explanation: "Information site or landing page that builds trust and captures leads.", usage: "Primary logo in the header; favicon mark in the browser tab." },
+  { title: "Brochures / Flyers", explanation: "Take-away print pieces explaining services or promotions.", usage: "Lead with primary logo and brand colors; keep typography hierarchy clear." },
+  { title: "Product Labels", explanation: "Branded labels applied directly to retail products.", usage: "Use the primary logo with required regulatory copy in body font." },
+  { title: "Window Graphics", explanation: "Vinyl applied to storefront glass to attract walk-by traffic.", usage: "Bold one-color logo with hours and core services." },
+  { title: "Menus / Service Sheets", explanation: "Customer-facing menus or service price lists.", usage: "Primary logo at top, accent color for section dividers." },
+  { title: "Custom Recommendation", explanation: "An additional recommendation specific to this client.", usage: "Edit this card with a custom recommendation." },
+];
+
+function suggestApplicationTitles(v: PV): string[] {
+  const setup = (v.brand.currentSetup || "").toLowerCase();
+  const products = (v.brand.productsServices || "").toLowerCase();
+  const text = `${setup} ${products}`;
+
+  const isMobile = /(mobile|referral|service|no storefront|home[- ]based|on[- ]site|field)/.test(text);
+  const isStorefront = /(storefront|retail|walk[- ]?in|brick|shop|boutique|salon|cafe|restaurant|store)/.test(text);
+  const isProduct = /(product|packag|merch|retail item|goods|food|drink|cosmetic|bottle|label)/.test(text);
+
+  const set = new Set<string>(["Business Cards", "Social Media Presence", "Website"]);
+
+  if (isMobile) {
+    ["Car Magnets", "Vehicle Decals", "Embroidered Polo Shirts"].forEach((t) => set.add(t));
   }
-  return lines.join("\n");
+  if (isStorefront) {
+    ["Signage", "Window Graphics", "Embroidered Polo Shirts", "Brochures / Flyers"].forEach((t) => set.add(t));
+  }
+  if (isProduct) {
+    ["Product Labels", "Brochures / Flyers"].forEach((t) => set.add(t));
+  }
+  // Sensible default if nothing matched
+  if (!isMobile && !isStorefront && !isProduct) {
+    ["Embroidered Polo Shirts", "Signage", "Brochures / Flyers"].forEach((t) => set.add(t));
+  }
+  return Array.from(set);
+}
+
+function buildApplications(v: PV): KitDoc["applications"] {
+  const suggested = new Set(suggestApplicationTitles(v));
+  return APPLICATION_CATALOG.map((a) => ({
+    ...a,
+    dataUrl: null,
+    selected: suggested.has(a.title),
+  }));
 }
 
 function pickSlogan(v: PV): string {
@@ -1099,18 +1243,65 @@ async function buildAbBrandKitPdf(d: {
 
   /* Section 5 — Applications */
   sectionHeader("05 · Brand Application Recommendations");
-  for (const line of d.doc.applications.split("\n").map((s) => s.trim()).filter(Boolean)) {
-    ensure(16);
-    pdf.setTextColor(rr, rg, rb);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(11);
-    pdf.text("•", margin, y);
-    pdf.setTextColor(230, 230, 230);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
-    const lines = pdf.splitTextToSize(line, contentW - 14);
-    pdf.text(lines, margin + 12, y);
-    y += lines.length * 13 + 4;
+  {
+    const selected = d.doc.applications.filter((a) => a.selected);
+    const cols = 3;
+    const gap = 12;
+    const cardW = (contentW - gap * (cols - 1)) / cols;
+    const imgH = cardW * 0.6;
+    const cardH = imgH + 90;
+    for (let i = 0; i < selected.length; i++) {
+      const col = i % cols;
+      if (col === 0) ensure(cardH + 10);
+      const rowY = y;
+      const x = margin + col * (cardW + gap);
+      const app = selected[i];
+      // Card background
+      pdf.setFillColor(20, 20, 20);
+      pdf.rect(x, rowY, cardW, cardH, "F");
+      // Image area
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(x, rowY, cardW, imgH, "F");
+      if (app.dataUrl) {
+        try {
+          const props = pdf.getImageProperties(app.dataUrl);
+          const pad = 6;
+          const ratio = Math.min((cardW - pad * 2) / props.width, (imgH - pad * 2) / props.height);
+          const w = props.width * ratio;
+          const h = props.height * ratio;
+          const fmt: "PNG" | "JPEG" = app.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+          pdf.addImage(app.dataUrl, fmt, x + (cardW - w) / 2, rowY + (imgH - h) / 2, w, h);
+        } catch { /* skip */ }
+      } else {
+        pdf.setTextColor(160, 160, 160);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7);
+        pdf.text("[ mockup ]", x + cardW / 2, rowY + imgH / 2, { align: "center" });
+      }
+      // Title
+      pdf.setTextColor(gr, gg, gb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.text(app.title.toUpperCase(), x + 6, rowY + imgH + 14, { maxWidth: cardW - 12 });
+      // Explanation
+      pdf.setTextColor(220, 220, 220);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7.5);
+      const exp = pdf.splitTextToSize(app.explanation || "", cardW - 12);
+      pdf.text(exp.slice(0, 3), x + 6, rowY + imgH + 26);
+      // Usage
+      pdf.setTextColor(rr, rg, rb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7);
+      pdf.text("USAGE", x + 6, rowY + imgH + 56);
+      pdf.setTextColor(200, 200, 200);
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(7);
+      const us = pdf.splitTextToSize(app.usage || "", cardW - 12);
+      pdf.text(us.slice(0, 3), x + 6, rowY + imgH + 66);
+
+      if (col === cols - 1 || i === selected.length - 1) y = rowY + cardH + 10;
+    }
   }
 
   /* Section 6 — Process */
