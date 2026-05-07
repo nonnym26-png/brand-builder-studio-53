@@ -707,6 +707,87 @@ function VisualElementSlot({
   );
 }
 
+type AppCardData = KitDoc["applications"][number];
+
+function ApplicationCard({
+  app, onChange, onFile,
+}: {
+  app: AppCardData;
+  onChange: (patch: Partial<AppCardData>) => void;
+  onFile: (file: File | null) => void;
+}) {
+  const inputId = `app-${app.title.replace(/[^a-z0-9]+/gi, "-")}`;
+  return (
+    <div
+      className="rounded-lg border overflow-hidden flex flex-col"
+      style={{
+        borderColor: app.selected ? GOLD : "#2A2A2A",
+        background: app.selected ? "#141008" : "#0F0F0F",
+        opacity: app.selected ? 1 : 0.7,
+      }}
+    >
+      <label className="flex items-center justify-between gap-2 px-3 py-2 border-b cursor-pointer" style={{ borderColor: "#1F1F1F" }}>
+        <div className="flex items-center gap-2 text-[11px] tracking-widest uppercase" style={{ color: app.selected ? GOLD : "#888" }}>
+          <input
+            type="checkbox"
+            checked={app.selected}
+            onChange={(e) => onChange({ selected: e.target.checked })}
+            className="accent-current"
+          />
+          {app.selected ? "Included" : "Excluded"}
+        </div>
+      </label>
+      <div className="aspect-[4/3] grid place-items-center" style={{ background: "#FFFFFF" }}>
+        {app.dataUrl ? (
+          <img src={app.dataUrl} alt={app.title} className="max-h-full max-w-full object-contain p-3" />
+        ) : (
+          <label htmlFor={inputId} className="cursor-pointer text-center px-3 text-[11px]" style={{ color: "#999" }}>
+            <div className="font-semibold mb-1" style={{ color: "#666" }}>Mockup</div>
+            <div>Click to upload image</div>
+          </label>
+        )}
+      </div>
+      <div className="p-3 space-y-2 flex-1">
+        <DarkInput value={app.title} onChange={(v) => onChange({ title: v })} />
+        <div>
+          <Lbl>Explanation</Lbl>
+          <DarkTextarea rows={2} value={app.explanation} onChange={(v) => onChange({ explanation: v })} small />
+        </div>
+        <div>
+          <Lbl>Usage note</Lbl>
+          <DarkTextarea rows={2} value={app.usage} onChange={(v) => onChange({ usage: v })} small />
+        </div>
+        <div className="flex gap-1.5">
+          <label
+            htmlFor={inputId}
+            className="flex-1 text-center text-[10px] tracking-wider py-1 rounded cursor-pointer border"
+            style={{ borderColor: "#2A2A2A", color: GOLD }}
+          >
+            {app.dataUrl ? "REPLACE" : "UPLOAD MOCKUP"}
+          </label>
+          {app.dataUrl && (
+            <button
+              type="button"
+              onClick={() => onFile(null)}
+              className="text-[10px] tracking-wider py-1 px-2 rounded border"
+              style={{ borderColor: "#2A2A2A", color: "#bbb" }}
+            >
+              CLEAR
+            </button>
+          )}
+        </div>
+        <input
+          id={inputId}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+        />
+      </div>
+    </div>
+  );
+}
+
 /* --------------------------------- PDF --------------------------------- */
 
 async function fetchAsDataUrl(url: string): Promise<{ dataUrl: string; format: "PNG" | "JPEG" } | null> {
