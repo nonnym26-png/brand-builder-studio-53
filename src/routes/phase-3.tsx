@@ -325,16 +325,36 @@ function BrandKitEditor({
 
       {/* 1. Core Logo System */}
       <Section title="01 · Core Logo System">
-        <div className="grid gap-4 md:grid-cols-[260px_1fr]">
-          <div className="rounded-lg grid place-items-center aspect-square" style={{ background: "#FFFFFF" }}>
-            {primaryLogo ? (
-              <img src={primaryLogo.image_url} alt="Primary logo" className="max-h-full max-w-full object-contain p-6" />
-            ) : (
-              <div className="text-xs" style={{ color: "#666" }}>No approved logo</div>
-            )}
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {doc.logoSlots.map((slot, i) => (
+            <LogoSlot
+              key={i}
+              slot={slot}
+              dark={slot.label === "White Version"}
+              onLabelChange={(label) => {
+                const next = doc.logoSlots.slice();
+                next[i] = { ...next[i], label };
+                update({ logoSlots: next });
+              }}
+              onFileChange={async (file) => {
+                const dataUrl = file ? await fileToDataUrl(file) : null;
+                const next = doc.logoSlots.slice();
+                next[i] = { ...next[i], dataUrl };
+                update({ logoSlots: next });
+              }}
+              onClear={() => {
+                const next = doc.logoSlots.slice();
+                // Re-fill primary slot from approved logo if cleared
+                next[i] = { ...next[i], dataUrl: null };
+                update({ logoSlots: next });
+              }}
+            />
+          ))}
+        </div>
+        <div className="mt-4">
+          <Lbl>Logo usage note</Lbl>
           <DarkTextarea
-            rows={8}
+            rows={4}
             value={doc.coreLogoNotes}
             onChange={(v) => update({ coreLogoNotes: v })}
           />
