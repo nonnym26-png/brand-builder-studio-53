@@ -242,7 +242,8 @@ function Phase3() {
     setExporting("pdf");
     try {
       const logoData = primaryLogo ? await fetchAsDataUrl(primaryLogo.image_url).catch(() => null) : null;
-      await buildAbBrandKitPdf({ businessName, industry, doc, logoDataUrl: logoData });
+      const abLogoData = await fetchAsDataUrl(abLogo).catch(() => null);
+      await buildAbBrandKitPdf({ businessName, industry, doc, logoDataUrl: logoData, abLogoDataUrl: abLogoData });
       await markBrandKitExported({ data: { brandProfileId: kit.profileId } });
       toast.success("Brand Kit PDF downloaded.");
       await refresh();
