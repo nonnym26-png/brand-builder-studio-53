@@ -503,23 +503,31 @@ function DarkTextarea({
   );
 }
 
-function FontField({
-  label, value, onChange, preview, big, italic,
-}: { label: string; value: string; onChange: (v: string) => void; preview: string; big?: boolean; italic?: boolean }) {
+type FontSlotData = KitDoc["fonts"][number];
+
+function FontSlot({
+  font, onChange,
+}: { font: FontSlotData; onChange: (patch: Partial<FontSlotData>) => void }) {
+  const italic = font.style === "italic";
+  const big = !!font.big;
   return (
-    <div className="rounded-lg border p-4" style={{ borderColor: "#2A2A2A", background: "#111" }}>
-      <Lbl>{label}</Lbl>
-      <DarkInput value={value} onChange={onChange} />
+    <div className="rounded-lg border p-4 space-y-2" style={{ borderColor: "#2A2A2A", background: "#111" }}>
+      <DarkInput value={font.label} onChange={(v) => onChange({ label: v })} />
+      <DarkInput value={font.name} onChange={(v) => onChange({ name: v })} />
       <div
-        className="mt-3 text-white"
+        className="mt-2 text-white border-y py-3"
         style={{
+          borderColor: "#1F1F1F",
           fontSize: big ? 28 : 18,
           fontStyle: italic ? "italic" : "normal",
           fontWeight: big ? 700 : 400,
+          minHeight: big ? 56 : 36,
         }}
       >
-        {preview}
+        {font.sample || "Sample"}
       </div>
+      <DarkInput value={font.sample} onChange={(v) => onChange({ sample: v })} placeholder="Sample text" />
+      <DarkTextarea rows={2} value={font.usage} onChange={(v) => onChange({ usage: v })} small />
     </div>
   );
 }
