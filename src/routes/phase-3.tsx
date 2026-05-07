@@ -1006,6 +1006,35 @@ function pickSlogan(v: PV): string {
   return v.brand.selectedDirection || "";
 }
 
+function buildSlogans(v: PV): KitDoc["slogans"] {
+  const list: string[] = [];
+  const s = v.phase2?.slogans as unknown;
+  if (typeof s === "string" && s.trim()) list.push(s.trim());
+  else if (Array.isArray(s)) {
+    for (const item of s) {
+      if (typeof item === "string" && item.trim()) list.push(item.trim());
+      else if (item && typeof item === "object" && "text" in item) {
+        const t = String((item as { text: unknown }).text || "").trim();
+        if (t) list.push(t);
+      }
+    }
+  }
+  if (v.brand.selectedDirection && !list.includes(v.brand.selectedDirection)) {
+    list.push(v.brand.selectedDirection);
+  }
+  const business = v.brand.businessName || "Your Brand";
+  const fallback = [
+    { headline: `${business}. Built to be remembered.`, explanation: "Anchors the brand around recognition and longevity — speaks to customers who value quality and consistency." },
+    { headline: `${business}. Designed for trust.`,     explanation: "Positions the brand as a credible, professional choice — supports premium pricing and repeat business." },
+  ];
+  const out: KitDoc["slogans"] = [];
+  for (let i = 0; i < 2; i++) {
+    if (list[i]) out.push({ headline: list[i], explanation: fallback[i].explanation });
+    else out.push(fallback[i]);
+  }
+  return out;
+}
+
 function buildBrandMessage(v: PV): string {
   const parts: string[] = [];
   if (v.brand.shortDescription || v.brand.description) {
