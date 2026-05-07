@@ -9,9 +9,9 @@ type Phase = {
 };
 
 const PHASES: Phase[] = [
-  { to: "/phase-1", label: "Phase 1", sub: "Complete Intake", icon: FileText },
-  { to: "/phase-2", label: "Phase 2", sub: "Design Concepts", icon: Palette },
-  { to: "/phase-3", label: "Phase 3", sub: "Brand Kit", icon: Package },
+  { to: "/phase-1", label: "Phase 1", sub: "Business Information", icon: FileText },
+  { to: "/phase-2", label: "Phase 2", sub: "AI Logo Builder", icon: Palette },
+  { to: "/phase-3", label: "Phase 3", sub: "Brand Kit PDF", icon: Package },
 ];
 
 export function PhaseStepper({
