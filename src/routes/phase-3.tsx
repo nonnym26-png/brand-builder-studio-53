@@ -4,10 +4,8 @@ import { Database, Download, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import JSZip from "jszip";
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { PhaseStepper } from "@/components/PhaseStepper";
@@ -16,7 +14,7 @@ import { loadBrandKit, markBrandKitExported } from "@/api/brandKit.functions";
 import abLogo from "@/assets/ab-logo.png";
 
 export const Route = createFileRoute("/phase-3")({
-  head: () => ({ meta: [{ title: "Phase 3 — Brand Kit Builder | Anaglyph Branding" }] }),
+  head: () => ({ meta: [{ title: "Phase 3 — AB Brand Kit Builder | Anaglyph Branding" }] }),
   component: Phase3,
 });
 
@@ -24,14 +22,47 @@ type ProfileRow = { id: string; business_name: string | null; client_name: strin
 type BrandKit = Awaited<ReturnType<typeof loadBrandKit>>;
 type LogoAsset = { id: string; image_url: string; design_type: string | null };
 
-const MAX_KITS = 3;
+const GOLD = "#C9A24B";
+const RED = "#C8323C";
 
-type KitEdits = {
-  brandSummary: string;
+type KitDoc = {
+  // 1. Core Logo System
+  coreLogoNotes: string;
+  // 2. Color Palette
+  paletteNotes: string;
+  colors: Array<{ name: string; hex: string; usage: string }>;
+  // 3. Font Selection
+  headingFont: string;
+  bodyFont: string;
+  accentFont: string;
+  fontNotes: string;
+  // 4. Brand Icons / Visual Elements
+  iconNotes: string;
+  // 5. Brand Application Recommendations
+  applications: string;
+  // 6. Strategic Branding Process
+  process: string;
+  // 7. Slogan / Brand Message
   slogan: string;
-  usageNotes: string;
-  productionRecs: string;
+  brandMessage: string;
+  // 8. Why Branding Matters
+  whyBranding: string;
+  // 9. Final AB Brand Statement Footer
+  footerStatement: string;
 };
+
+const DEFAULT_PROCESS =
+  "Phase 1 — Discovery & Intake: We capture the business story, audience, and visual direction.\n" +
+  "Phase 2 — Logo Generation & Refinement: We design, revise, and approve a signature mark.\n" +
+  "Phase 3 — Brand Kit Delivery: We assemble the complete brand system for production-ready use.";
+
+const DEFAULT_WHY =
+  "Branding is more than a logo — it is the visual promise your business makes every time a customer sees you. " +
+  "A consistent, professional brand builds trust, commands premium pricing, and turns first-time buyers into loyal advocates.";
+
+const DEFAULT_FOOTER =
+  "This Brand Kit is the official Anaglyph Branding identity system for your business. " +
+  "Every element has been crafted for print, digital, signage, and apparel. Use it consistently — and your brand will speak before you do.";
 
 function Phase3() {
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
@@ -39,7 +70,8 @@ function Phase3() {
   const [kit, setKit] = useState<BrandKit | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
-  const [edits, setEdits] = useState<Record<string, KitEdits>>({});
+  const [doc, setDoc] = useState<KitDoc | null>(null);
+  const [primaryLogo, setPrimaryLogo] = useState<LogoAsset | null>(null);
 
   useEffect(() => {
     listBrandProfiles().then((rows) => setProfiles(rows as ProfileRow[])).catch(() => {});
@@ -48,12 +80,68 @@ function Phase3() {
   const load = async (id: string) => {
     setSelectedId(id);
     setKit(null);
-    setEdits({});
+    setDoc(null);
+    setPrimaryLogo(null);
     if (!id) return;
     setLoading(true);
     try {
       const data = await loadBrandKit({ data: { brandProfileId: id, admin: true } });
       setKit(data);
+      const v = data.publicView;
+      const logo = v.primary
+        ? { id: v.primary.id, image_url: v.primary.image_url, design_type: v.primary.design_type ?? null }
+        : (data.adminView?.allApprovedAssets?.[0] ?? null);
+      setPrimaryLogo(logo as LogoAsset | null);
+
+      const colors = (v.palette || []).map((c) => ({
+        name: c.name || c.role || "Color",
+        hex: (c.hex || "#000000").toUpperCase(),
+        usage: c.role === "primary"
+          ? "Primary brand color — logo, headlines, hero areas."
+          : c.role === "secondary"
+          ? "Secondary — supporting blocks, alt logo lockups."
+          : c.role === "accent"
+          ? "Accent — highlights, CTAs, callouts."
+          : "Neutral — backgrounds, body text, surfaces.",
+      }));
+
+      setDoc({
+        coreLogoNotes:
+          "The primary logo is the official mark of the brand. Maintain clear space equal to the height of the mark on all sides. Never recolor, distort, rotate, or recreate in unapproved typefaces.",
+        paletteNotes:
+          "These colors form the official brand palette. Use HEX values for digital and convert to CMYK / Pantone for print. Always preserve the hierarchy: primary leads, secondary supports, accent highlights.",
+        colors: colors.length
+          ? colors
+          : [
+              { name: "Primary", hex: "#C8323C", usage: "Primary brand color." },
+              { name: "Secondary", hex: "#1A1A1A", usage: "Supporting tone." },
+              { name: "Accent", hex: "#C9A24B", usage: "Highlights and CTAs." },
+              { name: "Neutral", hex: "#F5F5F5", usage: "Backgrounds and body text." },
+            ],
+        headingFont: v.typography?.heading || "Montserrat Bold",
+        bodyFont: v.typography?.body || "Inter Regular",
+        accentFont: v.typography?.accent || "Playfair Display Italic",
+        fontNotes:
+          "Use Heading font for titles and the logo lockup. Body font for paragraphs, captions, and UI. Accent font sparingly for editorial moments.",
+        iconNotes:
+          "Custom brand icons follow the same line weight and corner radius as the logo. Use sparingly — icons support the message, they do not replace it. Maintain monochrome usage on busy backgrounds.",
+        applications:
+          [
+            "Apparel & Uniforms — embroidered or printed primary logo, ≥ 1.5 in.",
+            "Business Cards — primary logo front, one-color reverse on back.",
+            "Signage — high-contrast primary logo or transparent variant.",
+            "Vehicle Decals — bold, single-color version for distance readability.",
+            "Social Media — favicon mark for avatars, primary for posts.",
+            "Website — primary logo in header, favicon mark for browser tab.",
+          ].join("\n"),
+        process: DEFAULT_PROCESS,
+        slogan: v.brand.selectedDirection || "",
+        brandMessage:
+          v.brand.description ||
+          `${v.brand.businessName || "This brand"} delivers a distinctive experience built on craft, consistency, and trust.`,
+        whyBranding: DEFAULT_WHY,
+        footerStatement: DEFAULT_FOOTER,
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load");
     } finally {
@@ -63,65 +151,26 @@ function Phase3() {
 
   const refresh = async () => { if (selectedId) await load(selectedId); };
 
-  // Build up to MAX_KITS approved logos to turn into kits
-  const approvedLogos = useMemo<LogoAsset[]>(() => {
-    if (!kit?.adminView) return [];
-    const all = kit.adminView.allApprovedAssets || [];
-    const seen = new Set<string>();
-    const list: LogoAsset[] = [];
-    if (kit.publicView.primary) {
-      list.push({
-        id: kit.publicView.primary.id,
-        image_url: kit.publicView.primary.image_url,
-        design_type: kit.publicView.primary.design_type ?? null,
-      });
-      seen.add(kit.publicView.primary.id);
-    }
-    for (const a of all) {
-      if (seen.has(a.id)) continue;
-      list.push({ id: a.id, image_url: a.image_url, design_type: a.design_type });
-      seen.add(a.id);
-      if (list.length >= MAX_KITS) break;
-    }
-    return list.slice(0, MAX_KITS);
-  }, [kit]);
+  const update = (patch: Partial<KitDoc>) => setDoc((d) => (d ? { ...d, ...patch } : d));
+  const updateColor = (i: number, patch: Partial<KitDoc["colors"][number]>) =>
+    setDoc((d) => {
+      if (!d) return d;
+      const colors = d.colors.slice();
+      colors[i] = { ...colors[i], ...patch };
+      return { ...d, colors };
+    });
 
-  const getEdits = (logoId: string): KitEdits => {
-    if (edits[logoId]) return edits[logoId];
-    const v = kit?.publicView;
-    return {
-      brandSummary: v?.brand.description || "",
-      slogan: v?.brand.selectedDirection || "",
-      usageNotes: v?.usageGuide?.primary || "",
-      productionRecs: (v?.productionRecommendations || []).map((r) => `${r.surface}: ${r.note}`).join("\n"),
-    };
-  };
+  const businessName = kit?.publicView.brand.businessName || "Brand";
+  const industry = kit?.publicView.brand.industry || "";
 
-  const setEdit = (logoId: string, patch: Partial<KitEdits>) => {
-    setEdits((e) => ({ ...e, [logoId]: { ...getEdits(logoId), ...patch } }));
-  };
-
-  const exportKit = async (logo: LogoAsset, index: number) => {
-    if (!kit) return;
-    setExporting(logo.id);
+  const exportPdf = async () => {
+    if (!kit || !doc) return;
+    setExporting("pdf");
     try {
-      const v = kit.publicView;
-      const e = getEdits(logo.id);
-      const logoData = await fetchAsDataUrl(logo.image_url).catch(() => null);
-      await buildBrandKitPdf({
-        businessName: v.brand.businessName || "Brand",
-        industry: v.brand.industry || "",
-        slogan: e.slogan,
-        brandSummary: e.brandSummary,
-        usageNotes: e.usageNotes,
-        productionRecs: e.productionRecs,
-        palette: v.palette,
-        typography: v.typography,
-        logoDataUrl: logoData,
-        index,
-      });
+      const logoData = primaryLogo ? await fetchAsDataUrl(primaryLogo.image_url).catch(() => null) : null;
+      await buildAbBrandKitPdf({ businessName, industry, doc, logoDataUrl: logoData });
       await markBrandKitExported({ data: { brandProfileId: kit.profileId } });
-      toast.success("Brand kit PDF downloaded");
+      toast.success("AB Brand Kit PDF downloaded");
       await refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Export failed");
@@ -130,25 +179,24 @@ function Phase3() {
     }
   };
 
-  const exportAssetZip = async (logo: LogoAsset, index: number) => {
-    if (!kit) return;
-    setExporting(logo.id + ":zip");
+  const exportZip = async () => {
+    if (!kit || !primaryLogo) return;
+    setExporting("zip");
     try {
-      const v = kit.publicView;
       const zip = new JSZip();
-      const slug = (v.brand.businessName || "brand").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      const root = zip.folder(`${slug}-assets-${index + 1}`)!;
+      const slug = (businessName || "brand").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const root = zip.folder(`${slug}-brand-kit`)!;
       try {
-        const blob = await (await fetch(logo.image_url)).blob();
-        const ext = (logo.image_url.split("?")[0].split(".").pop() || "png").slice(0, 4);
+        const blob = await (await fetch(primaryLogo.image_url)).blob();
+        const ext = (primaryLogo.image_url.split("?")[0].split(".").pop() || "png").slice(0, 4);
         root.file(`logo.${ext}`, blob);
       } catch { /* skip */ }
-      root.file("README.txt", `${v.brand.businessName || "Brand"} — logo asset bundle.\nGenerated by Anaglyph Branding.`);
+      root.file("README.txt", `${businessName} — Anaglyph Branding Brand Kit assets.`);
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${(v.brand.businessName || "brand").replace(/\s+/g, "-")}-Assets-${index + 1}.zip`;
+      a.download = `${businessName.replace(/\s+/g, "-")}-Brand-Kit.zip`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -165,8 +213,8 @@ function Phase3() {
           <div className="flex items-center gap-3">
             <img src={abLogo} alt="Anaglyph" className="h-9 w-auto" />
             <div className="leading-tight">
-              <div className="text-sm font-semibold tracking-tight">Phase 3 — Brand Kit Builder</div>
-              <div className="text-xs text-muted-foreground">Build and export a brand kit for each approved logo (max {MAX_KITS}).</div>
+              <div className="text-sm font-semibold tracking-tight">Phase 3 — AB Brand Kit Builder</div>
+              <div className="text-xs text-muted-foreground">Build the official Anaglyph Branding Brand Kit. All sections editable.</div>
             </div>
           </div>
           <PhaseStepper current="/phase-3" completed={{ "/phase-3": Boolean(kit?.adminView?.brandKitExportedAt) }} />
@@ -194,57 +242,43 @@ function Phase3() {
             )}
           </section>
 
+          {kit && doc && (
+            <section className="space-y-2">
+              <Button className="w-full" onClick={exportPdf} disabled={exporting === "pdf"}>
+                {exporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
+                Export AB Brand Kit PDF
+              </Button>
+              <Button variant="outline" className="w-full" onClick={exportZip} disabled={exporting === "zip" || !primaryLogo}>
+                {exporting === "zip" ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
+                Download Asset ZIP
+              </Button>
+            </section>
+          )}
+
           <section className="rounded-lg border border-border bg-card p-4 text-xs space-y-2">
-            <div className="font-semibold">How Phase 3 works</div>
+            <div className="font-semibold">About this Brand Kit</div>
             <p className="text-muted-foreground leading-relaxed">
-              One brand kit per approved logo, up to {MAX_KITS}. Each kit auto-fills the business name, logo, colors, fonts, and slogan from Phase 2. Edit the brand summary, usage notes, and production recommendations, then save a clean client-ready PDF.
+              Preset AB Brand Kit template. Phase 1 + Phase 2 data auto-fill each section. Edit anything before export — the PDF mirrors the on-screen layout in the official AB style.
             </p>
           </section>
         </aside>
 
-        <section className="space-y-6">
-          {!kit ? (
+        <section>
+          {!kit || !doc ? (
             <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground">
               <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-40" />
-              <p className="text-sm">Pick a project with approved logos to build its brand kit.</p>
-              <p className="text-xs mt-2">Need to approve logos? Head to <Link to="/phase-2" className="underline">Phase 2</Link>.</p>
-            </div>
-          ) : approvedLogos.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground">
-              <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-40" />
-              <p className="text-sm">No approved logos yet for this project.</p>
-              <p className="text-xs mt-2">Approve up to 3 logos in <Link to="/phase-2" className="underline">Phase 2</Link>.</p>
+              <p className="text-sm">Pick a project with an approved logo to build its AB Brand Kit.</p>
+              <p className="text-xs mt-2">Need to approve a logo? Head to <Link to="/phase-2" className="underline">Phase 2</Link>.</p>
             </div>
           ) : (
-            <>
-              <div className="rounded-xl border border-border bg-card p-5">
-                <div className="text-xs uppercase tracking-widest text-muted-foreground">Brand Overview</div>
-                <h1 className="text-2xl font-semibold mt-1">{kit.publicView.brand.businessName}</h1>
-                {kit.publicView.brand.industry && <div className="text-sm text-muted-foreground">{kit.publicView.brand.industry}</div>}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge variant="outline">{approvedLogos.length} approved logo{approvedLogos.length === 1 ? "" : "s"}</Badge>
-                  <Badge variant="outline">{kit.publicView.palette.length} colors</Badge>
-                  {kit.adminView?.brandKitExportedAt && (
-                    <Badge variant="outline"><Download className="h-3 w-3 mr-1" />Exported</Badge>
-                  )}
-                </div>
-              </div>
-
-              {approvedLogos.map((logo, i) => (
-                <BrandKitCard
-                  key={logo.id}
-                  index={i}
-                  logo={logo}
-                  kit={kit}
-                  edits={getEdits(logo.id)}
-                  onChange={(p) => setEdit(logo.id, p)}
-                  onExport={() => exportKit(logo, i)}
-                  onExportZip={() => exportAssetZip(logo, i)}
-                  exporting={exporting === logo.id}
-                  exportingZip={exporting === logo.id + ":zip"}
-                />
-              ))}
-            </>
+            <BrandKitEditor
+              businessName={businessName}
+              industry={industry}
+              doc={doc}
+              update={update}
+              updateColor={updateColor}
+              primaryLogo={primaryLogo}
+            />
           )}
         </section>
       </main>
@@ -252,96 +286,196 @@ function Phase3() {
   );
 }
 
-function BrandKitCard({
-  index, logo, kit, edits, onChange, onExport, onExportZip, exporting, exportingZip,
+/* ------------------------------- Editor UI ------------------------------- */
+
+function BrandKitEditor({
+  businessName, industry, doc, update, updateColor, primaryLogo,
 }: {
-  index: number;
-  logo: LogoAsset;
-  kit: BrandKit;
-  edits: KitEdits;
-  onChange: (p: Partial<KitEdits>) => void;
-  onExport: () => void;
-  onExportZip: () => void;
-  exporting: boolean;
-  exportingZip: boolean;
+  businessName: string;
+  industry: string;
+  doc: KitDoc;
+  update: (p: Partial<KitDoc>) => void;
+  updateColor: (i: number, p: Partial<KitDoc["colors"][number]>) => void;
+  primaryLogo: LogoAsset | null;
 }) {
-  const v = kit.publicView;
   return (
-    <div className="rounded-xl border border-border bg-card p-6 space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-xs uppercase tracking-widest text-muted-foreground">Brand Kit {index + 1}</div>
-          <div className="text-lg font-semibold">{v.brand.businessName}</div>
+    <div
+      className="rounded-2xl overflow-hidden shadow-2xl"
+      style={{ background: "#0A0A0A", color: "#FFFFFF" }}
+    >
+      {/* Cover */}
+      <div className="px-10 py-12 text-center border-b" style={{ borderColor: "#1F1F1F" }}>
+        <div className="text-xs tracking-[0.4em]" style={{ color: GOLD }}>ANAGLYPH BRANDING</div>
+        <div className="mt-6 text-4xl font-bold tracking-tight">
+          <Input
+            value={businessName}
+            readOnly
+            className="bg-transparent border-0 text-center text-4xl font-bold text-white focus-visible:ring-0"
+          />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={onExport} disabled={exporting}>
-            {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
-            Save Brand Kit as PDF
-          </Button>
-          <Button variant="outline" onClick={onExportZip} disabled={exportingZip}>
-            {exportingZip ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
-            Download Asset ZIP
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
-        <div className="rounded-lg bg-muted/40 grid place-items-center aspect-square overflow-hidden">
-          <img src={logo.image_url} alt={`Approved logo ${index + 1}`} className="max-h-full max-w-full object-contain p-6" />
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <Label>Slogan</Label>
-            <Input className="mt-1.5" value={edits.slogan} onChange={(e) => onChange({ slogan: e.target.value })} placeholder="Optional tagline for this kit" />
-          </div>
-          <div>
-            <Label>Brand summary</Label>
-            <Textarea className="mt-1.5" rows={3} value={edits.brandSummary} onChange={(e) => onChange({ brandSummary: e.target.value })} />
-          </div>
+        {industry && <div className="text-sm mt-1" style={{ color: "#999" }}>{industry}</div>}
+        <div className="mt-4 inline-block px-4 py-1 text-[10px] tracking-[0.3em]" style={{ background: RED }}>
+          OFFICIAL BRAND KIT
         </div>
       </div>
 
-      {v.palette.length > 0 && (
-        <div>
-          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Color palette</div>
-          <div className="grid gap-2 sm:grid-cols-4">
-            {v.palette.map((c) => (
-              <div key={c.hex!} className="rounded-lg border border-border overflow-hidden">
-                <div className="h-16" style={{ background: c.hex! }} />
-                <div className="p-2">
-                  <div className="text-xs font-medium">{c.name || c.role}</div>
-                  <div className="text-[10px] font-mono uppercase text-muted-foreground">{c.hex}</div>
-                </div>
+      {/* 1. Core Logo System */}
+      <Section title="01 · Core Logo System">
+        <div className="grid gap-4 md:grid-cols-[260px_1fr]">
+          <div className="rounded-lg grid place-items-center aspect-square" style={{ background: "#FFFFFF" }}>
+            {primaryLogo ? (
+              <img src={primaryLogo.image_url} alt="Primary logo" className="max-h-full max-w-full object-contain p-6" />
+            ) : (
+              <div className="text-xs" style={{ color: "#666" }}>No approved logo</div>
+            )}
+          </div>
+          <DarkTextarea
+            rows={8}
+            value={doc.coreLogoNotes}
+            onChange={(v) => update({ coreLogoNotes: v })}
+          />
+        </div>
+      </Section>
+
+      {/* 2. Color Palette */}
+      <Section title="02 · Color Palette">
+        <DarkTextarea rows={3} value={doc.paletteNotes} onChange={(v) => update({ paletteNotes: v })} />
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {doc.colors.map((c, i) => (
+            <div key={i} className="rounded-lg overflow-hidden border" style={{ borderColor: "#222" }}>
+              <div className="h-24" style={{ background: c.hex }} />
+              <div className="p-3 space-y-1.5" style={{ background: "#111" }}>
+                <DarkInput value={c.name} onChange={(v) => updateColor(i, { name: v })} />
+                <DarkInput value={c.hex} onChange={(v) => updateColor(i, { hex: v.toUpperCase() })} mono />
+                <DarkTextarea rows={2} value={c.usage} onChange={(v) => updateColor(i, { usage: v })} small />
               </div>
-            ))}
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* 3. Font Selection */}
+      <Section title="03 · Font Selection">
+        <div className="grid gap-4 md:grid-cols-3">
+          <FontField label="Heading" value={doc.headingFont} onChange={(v) => update({ headingFont: v })} preview="Aa Bb Cc" big />
+          <FontField label="Body" value={doc.bodyFont} onChange={(v) => update({ bodyFont: v })} preview="The quick brown fox jumps." />
+          <FontField label="Accent" value={doc.accentFont} onChange={(v) => update({ accentFont: v })} preview="Editorial Italic" italic />
+        </div>
+        <DarkTextarea className="mt-4" rows={3} value={doc.fontNotes} onChange={(v) => update({ fontNotes: v })} />
+      </Section>
+
+      {/* 4. Brand Icons / Visual Elements */}
+      <Section title="04 · Brand Icons / Visual Elements">
+        <DarkTextarea rows={4} value={doc.iconNotes} onChange={(v) => update({ iconNotes: v })} />
+      </Section>
+
+      {/* 5. Brand Application Recommendations */}
+      <Section title="05 · Brand Application Recommendations">
+        <DarkTextarea rows={8} value={doc.applications} onChange={(v) => update({ applications: v })} />
+      </Section>
+
+      {/* 6. Strategic Branding Process */}
+      <Section title="06 · Strategic Branding Process">
+        <DarkTextarea rows={6} value={doc.process} onChange={(v) => update({ process: v })} />
+      </Section>
+
+      {/* 7. Slogan / Brand Message */}
+      <Section title="07 · Slogan / Brand Message">
+        <div className="space-y-3">
+          <div>
+            <Lbl>Slogan</Lbl>
+            <DarkInput value={doc.slogan} onChange={(v) => update({ slogan: v })} placeholder="Optional tagline" />
+          </div>
+          <div>
+            <Lbl>Brand Message</Lbl>
+            <DarkTextarea rows={5} value={doc.brandMessage} onChange={(v) => update({ brandMessage: v })} />
           </div>
         </div>
-      )}
+      </Section>
 
-      {(v.typography?.heading || v.typography?.body) && (
-        <div>
-          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Typography</div>
-          <div className="text-sm space-y-1">
-            {v.typography.heading && <div><span className="text-muted-foreground">Heading:</span> <strong>{v.typography.heading}</strong></div>}
-            {v.typography.body && <div><span className="text-muted-foreground">Body:</span> <strong>{v.typography.body}</strong></div>}
-            {v.typography.accent && <div><span className="text-muted-foreground">Accent:</span> <strong>{v.typography.accent}</strong></div>}
-          </div>
-        </div>
-      )}
+      {/* 8. Why Branding Matters */}
+      <Section title="08 · Why Branding Matters">
+        <DarkTextarea rows={6} value={doc.whyBranding} onChange={(v) => update({ whyBranding: v })} />
+      </Section>
 
-      <div>
-        <Label>Logo usage notes</Label>
-        <Textarea className="mt-1.5" rows={3} value={edits.usageNotes} onChange={(e) => onChange({ usageNotes: e.target.value })} />
-      </div>
-
-      <div>
-        <Label>Recommended printing products (one per line)</Label>
-        <Textarea className="mt-1.5" rows={4} value={edits.productionRecs} onChange={(e) => onChange({ productionRecs: e.target.value })} />
+      {/* 9. Final AB Brand Statement Footer */}
+      <div className="px-10 py-10 text-center border-t" style={{ borderColor: "#1F1F1F", background: "#000" }}>
+        <div className="text-xs tracking-[0.4em] mb-3" style={{ color: GOLD }}>ANAGLYPH BRANDING</div>
+        <DarkTextarea
+          rows={4}
+          value={doc.footerStatement}
+          onChange={(v) => update({ footerStatement: v })}
+          centered
+        />
+        <div className="mt-4 h-[2px] w-24 mx-auto" style={{ background: RED }} />
       </div>
     </div>
   );
 }
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="px-10 py-8 border-t" style={{ borderColor: "#1F1F1F" }}>
+      <h3 className="text-xs tracking-[0.3em] mb-4" style={{ color: GOLD }}>{title}</h3>
+      <div className="rounded-lg p-5 border" style={{ background: "#0F0F0F", borderColor: "#1F1F1F" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Lbl({ children }: { children: React.ReactNode }) {
+  return <div className="text-[10px] tracking-[0.25em] mb-1.5" style={{ color: GOLD }}>{String(children).toUpperCase()}</div>;
+}
+
+function DarkInput({
+  value, onChange, placeholder, mono,
+}: { value: string; onChange: (v: string) => void; placeholder?: string; mono?: boolean }) {
+  return (
+    <Input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`bg-transparent border-[#2A2A2A] text-white placeholder:text-zinc-600 focus-visible:ring-0 focus-visible:border-[${GOLD}] ${mono ? "font-mono text-xs uppercase" : ""}`}
+    />
+  );
+}
+
+function DarkTextarea({
+  value, onChange, rows = 3, className, centered, small,
+}: { value: string; onChange: (v: string) => void; rows?: number; className?: string; centered?: boolean; small?: boolean }) {
+  return (
+    <Textarea
+      rows={rows}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`bg-transparent border-[#2A2A2A] text-white placeholder:text-zinc-600 focus-visible:ring-0 leading-relaxed ${centered ? "text-center" : ""} ${small ? "text-xs" : ""} ${className || ""}`}
+    />
+  );
+}
+
+function FontField({
+  label, value, onChange, preview, big, italic,
+}: { label: string; value: string; onChange: (v: string) => void; preview: string; big?: boolean; italic?: boolean }) {
+  return (
+    <div className="rounded-lg border p-4" style={{ borderColor: "#2A2A2A", background: "#111" }}>
+      <Lbl>{label}</Lbl>
+      <DarkInput value={value} onChange={onChange} />
+      <div
+        className="mt-3 text-white"
+        style={{
+          fontSize: big ? 28 : 18,
+          fontStyle: italic ? "italic" : "normal",
+          fontWeight: big ? 700 : 400,
+        }}
+      >
+        {preview}
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------- PDF --------------------------------- */
 
 async function fetchAsDataUrl(url: string): Promise<{ dataUrl: string; format: "PNG" | "JPEG" } | null> {
   const res = await fetch(url);
@@ -356,222 +490,274 @@ async function fetchAsDataUrl(url: string): Promise<{ dataUrl: string; format: "
   return { dataUrl, format };
 }
 
-async function buildBrandKitPdf(d: {
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  return [
+    parseInt(h.slice(0, 2), 16) || 0,
+    parseInt(h.slice(2, 4), 16) || 0,
+    parseInt(h.slice(4, 6), 16) || 0,
+  ];
+}
+
+async function buildAbBrandKitPdf(d: {
   businessName: string;
   industry: string;
-  slogan: string;
-  brandSummary: string;
-  usageNotes: string;
-  productionRecs: string;
-  palette: Array<{ role: string; name: string | null; hex: string | null }>;
-  typography: Record<string, string>;
+  doc: KitDoc;
   logoDataUrl: { dataUrl: string; format: "PNG" | "JPEG" } | null;
-  index: number;
 }) {
-  const doc = new jsPDF({ unit: "pt", format: "letter" });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
+  const pdf = new jsPDF({ unit: "pt", format: "letter" });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
   const margin = 48;
-  let y = margin;
+  const contentW = pageW - margin * 2;
+
+  const [gr, gg, gb] = hexToRgb(GOLD);
+  const [rr, rg, rb] = hexToRgb(RED);
+
+  let y = 0;
+  let pageNum = 0;
+
+  const startPage = (cover = false) => {
+    if (pageNum > 0) pdf.addPage();
+    pageNum += 1;
+    // Black background
+    pdf.setFillColor(10, 10, 10);
+    pdf.rect(0, 0, pageW, pageH, "F");
+    if (!cover) {
+      // Header
+      pdf.setTextColor(gr, gg, gb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8);
+      pdf.text("ANAGLYPH BRANDING", margin, 28);
+      pdf.setTextColor(180, 180, 180);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${d.businessName}`.toUpperCase(), pageW - margin, 28, { align: "right" });
+      pdf.setDrawColor(60, 60, 60);
+      pdf.line(margin, 36, pageW - margin, 36);
+      // Footer
+      pdf.setTextColor(120, 120, 120);
+      pdf.setFontSize(8);
+      pdf.text("Official Brand Kit · Anaglyph Branding", pageW / 2, pageH - 22, { align: "center" });
+      pdf.setFillColor(rr, rg, rb);
+      pdf.rect(margin, pageH - 14, 32, 2, "F");
+      y = 60;
+    }
+  };
 
   const ensure = (needed: number) => {
-    if (y + needed > pageH - margin - 24) {
-      drawFooter();
-      doc.addPage();
-      y = margin;
-      drawHeader();
-    }
+    if (y + needed > pageH - 50) startPage();
   };
 
-  const drawHeader = () => {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(120);
-    doc.text("ANAGLYPH BRANDING", margin, 28);
-    doc.setFont("helvetica", "normal");
-    doc.text("Brand Kit", pageW - margin, 28, { align: "right" });
-    doc.setDrawColor(220);
-    doc.line(margin, 34, pageW - margin, 34);
-    doc.setTextColor(20);
+  const sectionHeader = (title: string) => {
+    ensure(50);
+    pdf.setTextColor(gr, gg, gb);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.text(title.toUpperCase(), margin, y);
+    pdf.setDrawColor(gr, gg, gb);
+    pdf.setLineWidth(0.6);
+    pdf.line(margin, y + 6, margin + 60, y + 6);
+    pdf.setLineWidth(0.2);
+    y += 22;
   };
 
-  const drawFooter = () => {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(140);
-    doc.text(
-      `Prepared by Anaglyph Branding · ${d.businessName} · Brand Kit ${d.index + 1}`,
-      pageW / 2,
-      pageH - 24,
-      { align: "center" },
-    );
-    doc.setTextColor(20);
-  };
-
-  const heading = (text: string) => {
-    ensure(36);
-    y += 12;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.setTextColor(20);
-    doc.text(text, margin, y);
-    y += 6;
-    doc.setDrawColor(230);
-    doc.line(margin, y, pageW - margin, y);
-    y += 14;
-  };
-
-  const paragraph = (text: string, size = 10) => {
+  const paragraph = (text: string, opts?: { color?: [number, number, number]; size?: number; italic?: boolean }) => {
     if (!text) return;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(size);
-    doc.setTextColor(40);
-    const lines = doc.splitTextToSize(text, pageW - margin * 2);
+    const size = opts?.size ?? 10;
+    const c = opts?.color ?? [230, 230, 230];
+    pdf.setTextColor(c[0], c[1], c[2]);
+    pdf.setFont("helvetica", opts?.italic ? "italic" : "normal");
+    pdf.setFontSize(size);
+    const lines = pdf.splitTextToSize(text, contentW);
     for (const line of lines) {
       ensure(size + 4);
-      doc.text(line, margin, y);
+      pdf.text(line, margin, y);
       y += size + 4;
     }
+    y += 4;
   };
 
-  drawHeader();
-
-  // Title
-  y = margin + 24;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(26);
-  doc.text(d.businessName, margin, y);
-  y += 18;
+  /* Cover */
+  startPage(true);
+  pdf.setTextColor(gr, gg, gb);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(10);
+  pdf.text("ANAGLYPH BRANDING", pageW / 2, 120, { align: "center", charSpace: 4 });
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFontSize(34);
+  pdf.text(d.businessName, pageW / 2, pageH / 2 - 40, { align: "center" });
   if (d.industry) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    doc.setTextColor(110);
-    doc.text(d.industry, margin, y);
-    y += 14;
-    doc.setTextColor(20);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(12);
+    pdf.setTextColor(180, 180, 180);
+    pdf.text(d.industry, pageW / 2, pageH / 2 - 18, { align: "center" });
   }
-  if (d.slogan) {
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(12);
-    doc.setTextColor(70);
-    doc.text(`"${d.slogan}"`, margin, y + 8);
-    y += 22;
-    doc.setTextColor(20);
-  }
+  // Red badge
+  pdf.setFillColor(rr, rg, rb);
+  const badgeW = 160;
+  const badgeH = 22;
+  pdf.rect((pageW - badgeW) / 2, pageH / 2, badgeW, badgeH, "F");
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.text("OFFICIAL BRAND KIT", pageW / 2, pageH / 2 + 14, { align: "center", charSpace: 3 });
 
-  // Logo
+  // Logo on cover
   if (d.logoDataUrl) {
-    heading("Approved Logo");
-    const maxW = 240;
-    const maxH = 180;
     try {
-      const props = doc.getImageProperties(d.logoDataUrl.dataUrl);
+      const props = pdf.getImageProperties(d.logoDataUrl.dataUrl);
+      const maxW = 200;
+      const maxH = 160;
       const ratio = Math.min(maxW / props.width, maxH / props.height);
       const w = props.width * ratio;
       const h = props.height * ratio;
-      ensure(h + 8);
-      doc.addImage(d.logoDataUrl.dataUrl, d.logoDataUrl.format, margin, y, w, h);
-      y += h + 6;
+      // White card
+      const cardPad = 16;
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect((pageW - w) / 2 - cardPad, pageH / 2 + 50, w + cardPad * 2, h + cardPad * 2, "F");
+      pdf.addImage(d.logoDataUrl.dataUrl, d.logoDataUrl.format, (pageW - w) / 2, pageH / 2 + 50 + cardPad, w, h);
     } catch { /* skip */ }
   }
+  pdf.setTextColor(120, 120, 120);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.text("Prepared by Anaglyph Branding", pageW / 2, pageH - 60, { align: "center" });
 
-  if (d.brandSummary) {
-    heading("Brand Summary");
-    paragraph(d.brandSummary);
+  /* Section 1 — Core Logo System */
+  startPage();
+  sectionHeader("01 · Core Logo System");
+  if (d.logoDataUrl) {
+    try {
+      const props = pdf.getImageProperties(d.logoDataUrl.dataUrl);
+      const boxW = 200;
+      const boxH = 160;
+      const ratio = Math.min(boxW / props.width, boxH / props.height);
+      const w = props.width * ratio;
+      const h = props.height * ratio;
+      ensure(boxH + 12);
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(margin, y, boxW, boxH, "F");
+      pdf.addImage(d.logoDataUrl.dataUrl, d.logoDataUrl.format, margin + (boxW - w) / 2, y + (boxH - h) / 2, w, h);
+      y += boxH + 14;
+    } catch { /* */ }
+  }
+  paragraph(d.doc.coreLogoNotes);
+
+  /* Section 2 — Color Palette */
+  sectionHeader("02 · Color Palette");
+  paragraph(d.doc.paletteNotes);
+  const swW = (contentW - 12 * 3) / 4;
+  const swH = 70;
+  ensure(swH + 60);
+  for (let i = 0; i < d.doc.colors.length; i++) {
+    const col = i % 4;
+    if (col === 0 && i !== 0) y += swH + 60;
+    if (col === 0) ensure(swH + 60);
+    const c = d.doc.colors[i];
+    const [cr, cg, cb] = hexToRgb(c.hex);
+    const x = margin + col * (swW + 12);
+    pdf.setFillColor(cr, cg, cb);
+    pdf.rect(x, y, swW, swH, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.text(c.name.toUpperCase(), x, y + swH + 12);
+    pdf.setFont("courier", "normal");
+    pdf.setTextColor(gr, gg, gb);
+    pdf.setFontSize(8);
+    pdf.text(c.hex.toUpperCase(), x, y + swH + 24);
+    pdf.setTextColor(200, 200, 200);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(7);
+    const usageLines = pdf.splitTextToSize(c.usage, swW);
+    pdf.text(usageLines.slice(0, 3), x, y + swH + 34);
+  }
+  y += swH + 60;
+
+  /* Section 3 — Fonts */
+  sectionHeader("03 · Font Selection");
+  const fontBlock = (label: string, name: string, sample: string, italic = false, big = false) => {
+    ensure(46);
+    pdf.setTextColor(gr, gg, gb);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8);
+    pdf.text(label.toUpperCase(), margin, y);
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    pdf.text(name, margin + 70, y);
+    pdf.setFont("helvetica", italic ? "italic" : "normal");
+    pdf.setFontSize(big ? 18 : 13);
+    pdf.setTextColor(220, 220, 220);
+    pdf.text(sample, margin + 70, y + 18);
+    y += 36;
+  };
+  fontBlock("Heading", d.doc.headingFont, "Aa Bb Cc 123", false, true);
+  fontBlock("Body", d.doc.bodyFont, "The quick brown fox jumps over the lazy dog.");
+  fontBlock("Accent", d.doc.accentFont, "Editorial Accent", true);
+  paragraph(d.doc.fontNotes);
+
+  /* Section 4 — Icons */
+  sectionHeader("04 · Brand Icons / Visual Elements");
+  paragraph(d.doc.iconNotes);
+
+  /* Section 5 — Applications */
+  sectionHeader("05 · Brand Application Recommendations");
+  for (const line of d.doc.applications.split("\n").map((s) => s.trim()).filter(Boolean)) {
+    ensure(16);
+    pdf.setTextColor(rr, rg, rb);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.text("•", margin, y);
+    pdf.setTextColor(230, 230, 230);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    const lines = pdf.splitTextToSize(line, contentW - 14);
+    pdf.text(lines, margin + 12, y);
+    y += lines.length * 13 + 4;
   }
 
-  // Palette
-  if (d.palette.length > 0) {
-    heading("Color Palette");
-    const swatchW = 110;
-    const swatchH = 60;
-    const gap = 12;
-    const perRow = Math.max(1, Math.floor((pageW - margin * 2 + gap) / (swatchW + gap)));
-    let col = 0;
-    let rowY = y;
-    ensure(swatchH + 32);
-    rowY = y;
-    for (const c of d.palette) {
-      if (col === perRow) {
-        col = 0;
-        y = rowY + swatchH + 32;
-        ensure(swatchH + 32);
-        rowY = y;
-      }
-      const x = margin + col * (swatchW + gap);
-      const hex = (c.hex || "#cccccc").replace("#", "");
-      const r = parseInt(hex.slice(0, 2), 16) || 0;
-      const g = parseInt(hex.slice(2, 4), 16) || 0;
-      const b = parseInt(hex.slice(4, 6), 16) || 0;
-      doc.setFillColor(r, g, b);
-      doc.setDrawColor(220);
-      doc.roundedRect(x, rowY, swatchW, swatchH, 4, 4, "FD");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(40);
-      doc.text(c.name || c.role || "Color", x, rowY + swatchH + 12);
-      doc.setFont("courier", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(110);
-      doc.text((c.hex || "").toUpperCase(), x, rowY + swatchH + 24);
-      doc.setTextColor(20);
-      col += 1;
-    }
-    y = rowY + swatchH + 32;
+  /* Section 6 — Process */
+  sectionHeader("06 · Strategic Branding Process");
+  paragraph(d.doc.process);
+
+  /* Section 7 — Slogan / Brand Message */
+  sectionHeader("07 · Slogan / Brand Message");
+  if (d.doc.slogan) {
+    ensure(28);
+    pdf.setTextColor(gr, gg, gb);
+    pdf.setFont("helvetica", "bolditalic");
+    pdf.setFontSize(16);
+    pdf.text(`"${d.doc.slogan}"`, margin, y);
+    y += 22;
   }
+  paragraph(d.doc.brandMessage);
 
-  // Typography
-  if (d.typography?.heading || d.typography?.body || d.typography?.accent) {
-    heading("Typography");
-    const fontRow = (label: string, name: string | undefined) => {
-      if (!name) return;
-      ensure(34);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(110);
-      doc.text(label.toUpperCase(), margin, y);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      doc.setTextColor(20);
-      doc.text(name, margin + 70, y);
-      y += 14;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(14);
-      doc.setTextColor(60);
-      doc.text("AaBbCc 1234 — The quick brown fox", margin + 70, y);
-      y += 14;
-    };
-    fontRow("Heading", d.typography.heading);
-    fontRow("Body", d.typography.body);
-    fontRow("Accent", d.typography.accent);
-    doc.setTextColor(20);
+  /* Section 8 — Why */
+  sectionHeader("08 · Why Branding Matters");
+  paragraph(d.doc.whyBranding);
+
+  /* Section 9 — Footer */
+  startPage();
+  pdf.setTextColor(gr, gg, gb);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(10);
+  pdf.text("ANAGLYPH BRANDING", pageW / 2, pageH / 2 - 40, { align: "center", charSpace: 4 });
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(11);
+  const footLines = pdf.splitTextToSize(d.doc.footerStatement, contentW - 40);
+  let fy = pageH / 2;
+  for (const line of footLines) {
+    pdf.text(line, pageW / 2, fy, { align: "center" });
+    fy += 16;
   }
-
-  if (d.usageNotes) {
-    heading("Logo Usage Notes");
-    paragraph(d.usageNotes);
-  }
-
-  heading("Logo Do's & Don'ts");
-  paragraph("Do — preserve clear space around the logo equal to the height of its primary mark.");
-  paragraph("Do — use the approved color palette on appropriate backgrounds for legibility.");
-  paragraph("Don't — stretch, skew, recolor, or rotate the logo.");
-  paragraph("Don't — place the logo on busy imagery or low-contrast backgrounds without a container.");
-
-  const recs = d.productionRecs.split("\n").map((s) => s.trim()).filter(Boolean);
-  if (recs.length > 0) {
-    heading("Recommended Printing Products");
-    for (const r of recs) {
-      ensure(16);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.text(`•  ${r}`, margin, y);
-      y += 14;
-    }
-  }
-
-  drawFooter();
+  pdf.setFillColor(rr, rg, rb);
+  pdf.rect(pageW / 2 - 20, fy + 12, 40, 3, "F");
+  pdf.setTextColor(150, 150, 150);
+  pdf.setFontSize(8);
+  pdf.text(`${d.businessName} · Official Brand Kit`, pageW / 2, fy + 36, { align: "center" });
 
   const safe = (d.businessName || "Brand").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "Brand";
-  doc.save(`${safe}-Brand-Kit-${d.index + 1}.pdf`);
+  pdf.save(`${safe}-AB-Brand-Kit.pdf`);
 }
