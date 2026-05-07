@@ -791,11 +791,12 @@ function fileToDataUrl(file: File): Promise<string> {
 type VisualEl = KitDoc["visualElements"][number];
 
 function VisualElementSlot({
-  element, onChange, onFile,
+  element, onChange, onFile, onRemove,
 }: {
   element: VisualEl;
   onChange: (patch: Partial<VisualEl>) => void;
   onFile: (file: File | null) => void;
+  onRemove?: () => void;
 }) {
   const inputId = `ve-${element.title.replace(/\s+/g, "-")}-${Math.random().toString(36).slice(2, 6)}`;
   return (
@@ -829,6 +830,17 @@ function VisualElementSlot({
               style={{ borderColor: "#2A2A2A", color: "#bbb" }}
             >
               CLEAR
+            </button>
+          )}
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="text-[10px] tracking-wider py-1 px-2 rounded border"
+              style={{ borderColor: "#2A2A2A", color: "#bbb" }}
+              title="Remove this slot"
+            >
+              <X className="h-3 w-3" />
             </button>
           )}
         </div>
