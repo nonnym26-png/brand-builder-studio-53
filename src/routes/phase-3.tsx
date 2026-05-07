@@ -1055,6 +1055,47 @@ async function buildAbBrandKitPdf(d: {
   /* Section 4 — Icons */
   sectionHeader("04 · Brand Icons / Visual Elements");
   paragraph(d.doc.iconNotes);
+  {
+    const cols = 5;
+    const gap = 10;
+    const slotW = (contentW - gap * (cols - 1)) / cols;
+    const slotH = slotW;
+    const blockH = slotH + 70;
+    ensure(blockH);
+    const rowY = y;
+    for (let i = 0; i < d.doc.visualElements.length; i++) {
+      const el = d.doc.visualElements[i];
+      const x = margin + i * (slotW + gap);
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(x, rowY, slotW, slotH, "F");
+      if (el.dataUrl) {
+        try {
+          const props = pdf.getImageProperties(el.dataUrl);
+          const pad = 8;
+          const ratio = Math.min((slotW - pad * 2) / props.width, (slotH - pad * 2) / props.height);
+          const w = props.width * ratio;
+          const h = props.height * ratio;
+          const fmt: "PNG" | "JPEG" = el.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+          pdf.addImage(el.dataUrl, fmt, x + (slotW - w) / 2, rowY + (slotH - h) / 2, w, h);
+        } catch { /* skip */ }
+      } else {
+        pdf.setTextColor(160, 160, 160);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7);
+        pdf.text("[ placeholder ]", x + slotW / 2, rowY + slotH / 2, { align: "center" });
+      }
+      pdf.setTextColor(gr, gg, gb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7);
+      pdf.text((el.title || "").toUpperCase(), x, rowY + slotH + 12, { maxWidth: slotW });
+      pdf.setTextColor(200, 200, 200);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(6.5);
+      const lines = pdf.splitTextToSize(el.explanation || "", slotW);
+      pdf.text(lines.slice(0, 4), x, rowY + slotH + 22);
+    }
+    y = rowY + blockH;
+  }
 
   /* Section 5 — Applications */
   sectionHeader("05 · Brand Application Recommendations");
