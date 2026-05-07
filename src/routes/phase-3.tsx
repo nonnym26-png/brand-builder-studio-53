@@ -1277,6 +1277,10 @@ async function buildAbBrandKitPdf(d: {
   const [rr, rg, rb] = hexToRgb(RED);
   let pageNum = 0;
 
+  // Comfortable default line-height across the document so bullets and
+  // paragraphs never collide. Individual sections can still override.
+  pdf.setLineHeightFactor(1.45);
+
   const drawBg = () => {
     pdf.setFillColor(8, 8, 10);
     pdf.rect(0, 0, pageW, pageH, "F");
