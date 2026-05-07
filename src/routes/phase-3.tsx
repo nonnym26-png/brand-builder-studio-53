@@ -766,19 +766,56 @@ function buildVisualElements(v: PV): KitDoc["visualElements"] {
   return slots;
 }
 
-function buildApplications(v: PV): string {
-  const lines = [
-    "Apparel & Uniforms — embroidered or printed primary logo, ≥ 1.5 in.",
-    "Business Cards — primary logo front, one-color reverse on back.",
-    "Signage — high-contrast primary logo on approved background.",
-    "Vehicle Decals — bold, single-color version for distance readability.",
-    "Social Media — favicon mark for avatars, primary for posts.",
-    "Website — primary logo in header, favicon mark for browser tab.",
-  ];
-  if (v.brand.productsServices) {
-    lines.push(`Service-specific collateral — apply the brand consistently across: ${v.brand.productsServices}.`);
+const APPLICATION_CATALOG: Array<{ title: string; explanation: string; usage: string }> = [
+  { title: "Business Cards", explanation: "Compact, premium-feeling print piece used for in-person introductions.", usage: "Primary logo on the front; one-color or reversed mark on the back." },
+  { title: "Car Magnets", explanation: "Removable branded magnets that turn personal vehicles into mobile signage.", usage: "Bold one-color logo with phone number and service area." },
+  { title: "Vehicle Decals", explanation: "Permanent vinyl graphics for trucks, vans, and trailers.", usage: "Use high-contrast logo and large legible type for distance readability." },
+  { title: "Embroidered Polo Shirts", explanation: "Stitched logo apparel for staff and owner-operators.", usage: "Use the embroidery-safe logo at 3–4 inches over the chest." },
+  { title: "T-Shirts / Uniform Tops", explanation: "Printed brand apparel for crews, events, and giveaways.", usage: "Primary logo centered on chest or back; preserve clear space." },
+  { title: "Signage", explanation: "Exterior and interior signage that anchors the brand to a location.", usage: "Use the primary logo with high contrast against the surface." },
+  { title: "Social Media Presence", explanation: "Profile, cover, and post templates that present the brand consistently online.", usage: "Use the icon-only mark for avatars and primary logo for posts." },
+  { title: "Website", explanation: "Information site or landing page that builds trust and captures leads.", usage: "Primary logo in the header; favicon mark in the browser tab." },
+  { title: "Brochures / Flyers", explanation: "Take-away print pieces explaining services or promotions.", usage: "Lead with primary logo and brand colors; keep typography hierarchy clear." },
+  { title: "Product Labels", explanation: "Branded labels applied directly to retail products.", usage: "Use the primary logo with required regulatory copy in body font." },
+  { title: "Window Graphics", explanation: "Vinyl applied to storefront glass to attract walk-by traffic.", usage: "Bold one-color logo with hours and core services." },
+  { title: "Menus / Service Sheets", explanation: "Customer-facing menus or service price lists.", usage: "Primary logo at top, accent color for section dividers." },
+  { title: "Custom Recommendation", explanation: "An additional recommendation specific to this client.", usage: "Edit this card with a custom recommendation." },
+];
+
+function suggestApplicationTitles(v: PV): string[] {
+  const setup = (v.brand.currentSetup || "").toLowerCase();
+  const products = (v.brand.productsServices || "").toLowerCase();
+  const text = `${setup} ${products}`;
+
+  const isMobile = /(mobile|referral|service|no storefront|home[- ]based|on[- ]site|field)/.test(text);
+  const isStorefront = /(storefront|retail|walk[- ]?in|brick|shop|boutique|salon|cafe|restaurant|store)/.test(text);
+  const isProduct = /(product|packag|merch|retail item|goods|food|drink|cosmetic|bottle|label)/.test(text);
+
+  const set = new Set<string>(["Business Cards", "Social Media Presence", "Website"]);
+
+  if (isMobile) {
+    ["Car Magnets", "Vehicle Decals", "Embroidered Polo Shirts"].forEach((t) => set.add(t));
   }
-  return lines.join("\n");
+  if (isStorefront) {
+    ["Signage", "Window Graphics", "Embroidered Polo Shirts", "Brochures / Flyers"].forEach((t) => set.add(t));
+  }
+  if (isProduct) {
+    ["Product Labels", "Brochures / Flyers"].forEach((t) => set.add(t));
+  }
+  // Sensible default if nothing matched
+  if (!isMobile && !isStorefront && !isProduct) {
+    ["Embroidered Polo Shirts", "Signage", "Brochures / Flyers"].forEach((t) => set.add(t));
+  }
+  return Array.from(set);
+}
+
+function buildApplications(v: PV): KitDoc["applications"] {
+  const suggested = new Set(suggestApplicationTitles(v));
+  return APPLICATION_CATALOG.map((a) => ({
+    ...a,
+    dataUrl: null,
+    selected: suggested.has(a.title),
+  }));
 }
 
 function pickSlogan(v: PV): string {
