@@ -155,6 +155,7 @@ function Phase3() {
           "Use Heading font for titles and the logo lockup. Body font for paragraphs, captions, and UI. Accent font sparingly for editorial moments.",
         iconNotes:
           buildIconNotes(v),
+        visualElements: buildVisualElements(v),
         applications:
           buildApplications(v),
         process: DEFAULT_PROCESS,
