@@ -24,13 +24,15 @@ export type OrderItem = {
   approval_status?: "pending" | "approved" | "rejected";
 };
 
+type Json = string | number | boolean | null | { [k: string]: Json } | Json[];
+
 export type BrandOrder = {
   id: string;
   brand_profile_id: string;
   package_id: string | null;
   package_name: string | null;
   client_proof_id: string | null;
-  selected_concept: Record<string, unknown> | null;
+  selected_concept: Json;
   business_name: string | null;
   client_name: string | null;
   status: OrderStatus;
