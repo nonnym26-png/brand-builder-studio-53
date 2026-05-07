@@ -162,8 +162,7 @@ function Phase3() {
         iconNotes:
           buildIconNotes(v),
         visualElements: buildVisualElements(v),
-        applications:
-          buildApplications(v),
+        applications: buildApplications(v),
         process: DEFAULT_PROCESS,
         slogan: pickSlogan(v),
         brandMessage:
