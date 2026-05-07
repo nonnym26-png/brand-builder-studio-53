@@ -227,7 +227,7 @@ function ProofPage() {
 }
 
 function labelFor(k: Kind | string) {
-  if (k === "approve_final") return "Approved as Final";
+  if (k === "approve_final") return "Brand Kit Approved";
   if (k === "minor_revision") return "Minor Revision Requested";
   if (k === "full_redesign") return "New Direction Requested";
   return k;
