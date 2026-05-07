@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useImperativeHandle, useState, forwardRef } from "react";
 import { Loader2, Sparkles, RefreshCw, Download, Check, FileText, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,12 +38,14 @@ const QUICK_REVISIONS = [
   "Start over",
 ];
 
-export function AbCreativeEngine({
-  brandProfileId,
-  designDna,
-  extras,
-}: {
+export type AbCreativeEngineHandle = {
+  generate: (bg?: "white" | "transparent" | "dark" | "mockup-free") => Promise<void>;
+  refresh: () => Promise<void>;
+};
+
+type AbCreativeEngineProps = {
   brandProfileId: string | null;
+  hideHeaderGenerate?: boolean;
   designDna?: { mustHave?: string; avoid?: string; qualityBar?: string; formula?: string };
   extras?: {
     fonts?: { heading?: string; body?: string; accent?: string };
@@ -51,7 +53,12 @@ export function AbCreativeEngine({
     elements?: string[];
     mascot?: { enabled?: boolean; style?: string; idea?: string };
   };
-}) {
+};
+
+export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEngineProps>(function AbCreativeEngine(
+  { brandProfileId, hideHeaderGenerate, designDna, extras },
+  ref,
+) {
   const [designs, setDesigns] = useState<Design[]>([]);
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState(-1);
@@ -85,11 +92,12 @@ export function AbCreativeEngine({
     }
   };
 
-  const onGenerate = async () => {
+  const onGenerate = async (bgOverride?: typeof background) => {
     if (!brandProfileId) { toast.error("Select a brand profile first"); return; }
+    const bg = bgOverride ?? background;
     await runProgress(async () => {
       try {
-        await generateAbDesign({ data: { brandProfileId, backgroundChoice: background, designDna, extras } });
+        await generateAbDesign({ data: { brandProfileId, backgroundChoice: bg, designDna, extras } });
         toast.success("Design generated");
         await refresh();
       } catch (e) {
@@ -97,6 +105,8 @@ export function AbCreativeEngine({
       }
     });
   };
+
+  useImperativeHandle(ref, () => ({ generate: onGenerate, refresh }), [brandProfileId, background, designDna, extras]);
 
   const onRevise = async () => {
     if (!reviseTarget || !reviseText.trim()) return;
@@ -147,10 +157,12 @@ export function AbCreativeEngine({
             <option value="dark">Dark</option>
             <option value="mockup-free">Mockup-free</option>
           </select>
-          <Button onClick={onGenerate} disabled={busy || !brandProfileId}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-            Generate Design
-          </Button>
+          {!hideHeaderGenerate && (
+            <Button onClick={() => onGenerate()} disabled={busy || !brandProfileId}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+              Generate Design
+            </Button>
+          )}
         </div>
       </div>
 
@@ -267,4 +279,4 @@ export function AbCreativeEngine({
       </Dialog>
     </section>
   );
-}
+});
