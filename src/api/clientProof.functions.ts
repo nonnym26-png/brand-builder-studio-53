@@ -187,7 +187,7 @@ export const actOnClientProof = createServerFn({ method: "POST" })
         .from("client_proofs")
         .update({ acted_at: new Date().toISOString(), acted_kind: "minor_revision_created" })
         .eq("id", data.proofId);
-      return { ok: true, kind: "minor_revision", newDesignId: primary.id, conceptGroupId: result.conceptGroupId };
+      return { ok: true, kind: "minor_revision" as const, newDesignId: String(primary.id ?? ""), conceptGroupId: result.conceptGroupId };
     }
 
     if (proof.status === "full_redesign") {
@@ -195,14 +195,16 @@ export const actOnClientProof = createServerFn({ method: "POST" })
       const result = await runLogoPipeline({
         brandProfileId,
         outputCount: 1,
-        revisionContext: notes ? `Client requested a NEW direction. Notes: ${notes}` : undefined,
+        revisionContext: notes
+          ? { userRequest: `Client requested a NEW direction. Notes: ${notes}`, classification: "full_redesign" }
+          : undefined,
       });
       const primary = result.designRows[0] as Record<string, unknown>;
       await supabaseAdmin
         .from("client_proofs")
         .update({ acted_at: new Date().toISOString(), acted_kind: "new_concept_group_created" })
         .eq("id", data.proofId);
-      return { ok: true, kind: "full_redesign", newDesignId: primary.id, conceptGroupId: result.conceptGroupId };
+      return { ok: true, kind: "full_redesign" as const, newDesignId: String(primary.id ?? ""), conceptGroupId: result.conceptGroupId };
     }
 
     throw new Error("This proof has no actionable client request.");
