@@ -187,6 +187,16 @@ function Phase2() {
             </Select>
           </section>
 
+          {selectedId && (
+            <PhaseChecklist
+              title="Phase 2 — Logo Direction"
+              items={phase2Items}
+              message={phase2Msg}
+              badge={phase2Badge}
+              projectStatus={projectStatus}
+            />
+          )}
+
           <section className="space-y-3">
             <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Override fields</h2>
             <p className="text-[11px] text-muted-foreground -mt-1">
