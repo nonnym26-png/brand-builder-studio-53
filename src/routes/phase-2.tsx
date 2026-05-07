@@ -141,8 +141,8 @@ function Phase2() {
           <div className="flex items-center gap-3">
             <img src={abLogo} alt="Anaglyph" className="h-9 w-auto" />
             <div className="leading-tight">
-              <div className="text-sm font-semibold tracking-tight">AB Dynamic Logo Rendering Engine</div>
-              <div className="text-xs text-muted-foreground">Phase 2 · Internal use</div>
+              <div className="text-sm font-semibold tracking-tight">Phase 2 — AI Logo Design Builder</div>
+              <div className="text-xs text-muted-foreground">Generate, refine, and approve logo concepts.</div>
             </div>
           </div>
           <PhaseStepper current="/phase-2" completed={{ "/phase-2": Boolean(selectedConceptId) }} />
