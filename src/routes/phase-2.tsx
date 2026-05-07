@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { listBrandProfiles, loadBrandProfile, markPhaseComplete } from "@/api/phase2.functions";
-import { uploadPhase2Logo, removePhase2Logo } from "@/api/profile.functions";
+import { uploadPhase2Logo, removePhase2Logo, setPhase2LogoInclusions } from "@/api/profile.functions";
 import abLogo from "@/assets/ab-logo.png";
 import { PhaseStepper } from "@/components/PhaseStepper";
 
@@ -40,6 +40,7 @@ function Phase2() {
   const [selectedId, setSelectedId] = useState<string>("");
   const [profileFull, setProfileFull] = useState<Record<string, unknown> | null>(null);
   const [logos, setLogos] = useState<Record<string, string>>({});
+  const [inclusions, setInclusions] = useState<Record<string, boolean>>({});
   const [busySlot, setBusySlot] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,6 +54,8 @@ function Phase2() {
       if (row) {
         setProfileFull(row);
         setLogos(((row.phase_2_uploaded_logos as Record<string, string> | null) || {}));
+        const stored = (row.phase_2_logo_inclusions as Record<string, boolean> | null) || {};
+        setInclusions(stored);
         toast.success("Profile loaded");
       }
     } catch (e) {
@@ -77,6 +80,12 @@ function Phase2() {
         data: { brandProfileId: selectedId, slot, dataUrl, filename: file.name },
       });
       setLogos(out.logos);
+      // Auto-include newly uploaded slots by default
+      if (inclusions[slot] === undefined) {
+        const next = { ...inclusions, [slot]: true };
+        setInclusions(next);
+        try { await setPhase2LogoInclusions({ data: { brandProfileId: selectedId, inclusions: next } }); } catch { /* ignore */ }
+      }
       toast.success(`${LOGO_SLOTS.find((s) => s.key === slot)?.label} uploaded`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
@@ -102,6 +111,18 @@ function Phase2() {
   const uploadedCount = Object.keys(logos).length;
   const phase2Ready = Boolean(logos.main);
   const businessName = (profileFull?.business_name as string | null) ?? "this project";
+
+  const toggleInclude = async (slot: string) => {
+    if (!selectedId) return;
+    const next = { ...inclusions, [slot]: !(inclusions[slot] ?? true) };
+    setInclusions(next);
+    try {
+      await setPhase2LogoInclusions({ data: { brandProfileId: selectedId, inclusions: next } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save selection");
+    }
+  };
+  const includedCount = LOGO_SLOTS.filter((s) => logos[s.key] && (inclusions[s.key] ?? true)).length;
 
   const continueToPhase3 = async () => {
     if (!selectedId) return;
@@ -166,6 +187,9 @@ function Phase2() {
               <div className="mt-2 text-xs text-muted-foreground">
                 Uploaded: <span className="font-semibold text-foreground">{uploadedCount}</span> / {LOGO_SLOTS.length}
               </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Included in Phase 3: <span className="font-semibold text-foreground">{includedCount}</span>
+              </div>
               <div className="mt-1 text-[11px] text-muted-foreground">
                 {phase2Ready ? (
                   <span className="inline-flex items-center gap-1 text-emerald-600">
@@ -206,6 +230,7 @@ function Phase2() {
                   const url = logos[slot.key];
                   const isBusy = busySlot === slot.key;
                   const isDark = slot.key === "white";
+                  const included = inclusions[slot.key] ?? true;
                   return (
                     <div key={slot.key} className="rounded-lg border border-border bg-background p-4">
                       <div className="flex items-start justify-between gap-2">
@@ -261,6 +286,22 @@ function Phase2() {
                           </span>
                         </Button>
                       </label>
+
+                      {url && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={included ? "default" : "outline"}
+                          className="mt-2 w-full"
+                          onClick={() => toggleInclude(slot.key)}
+                        >
+                          {included ? (
+                            <><CheckCircle2 className="h-3.5 w-3.5" /> Included in Phase 3</>
+                          ) : (
+                            <>Excluded — click to include</>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   );
                 })}
