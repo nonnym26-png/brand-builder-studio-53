@@ -1565,11 +1565,28 @@ async function buildAbBrandKitPdf(d: {
     newPage();
     let py = margin + 6;
 
+    // Safe area: space available before footer (footer band starts at pageH - 56)
+    const FOOTER_SAFE = 70;
+    const SECTION_GAP = 14;
+    const HEADER_H = 22; // section header tab height + gap before card
+    const CARD_PAD = 14;
+
+    const ensureSpace = (needed: number) => {
+      if (py + needed > pageH - FOOTER_SAFE) {
+        drawFooter();
+        pdf.addPage();
+        pageNum += 1;
+        drawBg();
+        py = margin + 6;
+      }
+    };
+
     /* ----- Section 5: Brand Application Recommendations ----- */
     if (apps.length > 0) {
-      sectionHeader("5", "Brand Application Recommendations", margin, py, contentW);
       const cardsH = 170;
-      card(margin, py + 22, contentW, cardsH - 22);
+      ensureSpace(cardsH);
+      sectionHeader("5", "Brand Application Recommendations", margin, py, contentW);
+      card(margin, py + HEADER_H, contentW, cardsH - HEADER_H);
       const inner = { x: margin + 12, y: py + 32, w: contentW - 24, h: cardsH - 50 };
       const maxCols = Math.min(apps.length, 5);
       const gap = 10;
@@ -1594,131 +1611,159 @@ async function buildAbBrandKitPdf(d: {
         pdf.setTextColor(rr, rg, rb);
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(7);
-        pdf.text(`${i + 1}.`, x, inner.y + imgH + 12);
+        pdf.text(`${i + 1}.`, x, inner.y + imgH + 14);
         pdf.setTextColor(20, 20, 20);
-        pdf.text(pdf.splitTextToSize((a.title || "").toUpperCase(), cardW - 12).slice(0, 2), x + 12, inner.y + imgH + 12);
+        pdf.text(pdf.splitTextToSize((a.title || "").toUpperCase(), cardW - 12).slice(0, 2), x + 12, inner.y + imgH + 14);
       }
-      py += cardsH + 10;
+      py += cardsH + SECTION_GAP;
     }
 
     /* ----- Section 6: Strategic Branding Process ----- */
     if (process.length > 0) {
-      sectionHeader("6", "The Strategic Branding Process", margin, py, contentW);
-      const h = 100;
-      card(margin, py + 22, contentW, h - 22);
-      const inner = { x: margin + 14, y: py + 32, w: contentW - 28, h: h - 36 };
+      // Measure: each step needs title (1 line) + description (up to 4 lines)
       const cols = process.length;
-      const stepW = inner.w / cols;
+      const stepW = (contentW - 28) / cols;
+      let maxDescLines = 0;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(6.5);
+      for (const p of process) {
+        const lines = pdf.splitTextToSize(p.explanation || "", stepW - 10).length;
+        if (lines > maxDescLines) maxDescLines = lines;
+      }
+      const descLines = Math.min(maxDescLines, 6);
+      // badge(28) + title(14) + desc(descLines * 8) + bottom pad(14)
+      const cardBodyH = 28 + 16 + descLines * 8 + 14;
+      const totalH = HEADER_H + cardBodyH;
+      ensureSpace(totalH);
+      sectionHeader("6", "The Strategic Branding Process", margin, py, contentW);
+      card(margin, py + HEADER_H, contentW, cardBodyH);
+      const inner = { x: margin + 14, y: py + HEADER_H + CARD_PAD, w: contentW - 28, h: cardBodyH - CARD_PAD * 2 };
       for (let i = 0; i < cols; i++) {
         const p = process[i];
         const cx = inner.x + i * stepW + stepW / 2;
-        // Number badge (red circle)
         pdf.setFillColor(rr, rg, rb);
-        pdf.circle(cx, inner.y + 12, 9, "F");
+        pdf.circle(cx, inner.y + 10, 9, "F");
         pdf.setTextColor(255, 255, 255);
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(9);
-        pdf.text(String(i + 1), cx, inner.y + 15, { align: "center" });
-        // Arrow connector
+        pdf.text(String(i + 1), cx, inner.y + 13, { align: "center" });
         if (i < cols - 1) {
           pdf.setDrawColor(gr, gg, gb);
           pdf.setLineWidth(0.5);
-          pdf.line(cx + 12, inner.y + 12, cx + stepW - 12, inner.y + 12);
+          pdf.line(cx + 12, inner.y + 10, cx + stepW - 12, inner.y + 10);
         }
         pdf.setTextColor(20, 20, 20);
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(7.5);
-        pdf.text(p.title.toUpperCase(), cx, inner.y + 32, { align: "center", charSpace: 0.4 });
+        pdf.text(pdf.splitTextToSize(p.title.toUpperCase(), stepW - 8).slice(0, 2), cx, inner.y + 30, { align: "center", charSpace: 0.4 });
         pdf.setTextColor(80, 80, 80);
         pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(6);
-        const lines = pdf.splitTextToSize(p.explanation || "", stepW - 8);
-        pdf.text(lines.slice(0, 4), cx, inner.y + 42, { align: "center" });
+        pdf.setFontSize(6.5);
+        const lines = pdf.splitTextToSize(p.explanation || "", stepW - 10).slice(0, descLines);
+        pdf.text(lines, cx, inner.y + 44, { align: "center" });
       }
-      py += h + 10;
+      py += totalH + SECTION_GAP;
     }
 
-    /* ----- Section 7: Slogans ----- + Section 8: Why Branding Matters (side by side or stacked) ----- */
+    /* ----- Section 7: Slogan / Brand Message (full width, dynamic height) ----- */
     if (slogans.length > 0) {
-      const h = 100;
-      const sw = contentW * 0.55 - 6;
-      sectionHeader("7", "Slogan / Brand Message", margin, py, sw);
-      card(margin, py + 22, sw, h - 22);
       const cols = Math.min(slogans.length, 2);
-      const gap = 8;
-      const inner = { x: margin + 10, y: py + 30, w: sw - 20, h: h - 36 };
+      const gap = 12;
+      const inner = { x: margin + 14, w: contentW - 28 };
       const subW = (inner.w - gap * (cols - 1)) / cols;
+      // Measure tallest slogan column
+      let maxH = 0;
+      pdf.setFontSize(10);
+      for (let i = 0; i < cols; i++) {
+        const s = slogans[i];
+        const headLines = pdf.splitTextToSize(s.headline.toUpperCase(), subW).length;
+        pdf.setFontSize(7);
+        const explLines = s.explanation ? pdf.splitTextToSize(s.explanation, subW).length : 0;
+        // label tab(18) + headline(headLines * 12) + gap(6) + expl(explLines * 9)
+        const colH = 18 + 6 + headLines * 12 + (explLines ? 6 + explLines * 9 : 0);
+        if (colH > maxH) maxH = colH;
+      }
+      const cardBodyH = maxH + CARD_PAD * 2;
+      const totalH = HEADER_H + cardBodyH;
+      ensureSpace(totalH);
+      sectionHeader("7", "Slogan / Brand Message", margin, py, contentW);
+      card(margin, py + HEADER_H, contentW, cardBodyH);
+      const innerY = py + HEADER_H + CARD_PAD;
       for (let i = 0; i < cols; i++) {
         const s = slogans[i];
         const x = inner.x + i * (subW + gap);
         pdf.setFillColor(rr, rg, rb);
-        pdf.roundedRect(x, inner.y, 60, 12, 1, 1, "F");
+        pdf.roundedRect(x, innerY, 64, 14, 2, 2, "F");
         pdf.setTextColor(255, 255, 255);
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(7);
-        pdf.text(`OPTION ${i + 1}`, x + 30, inner.y + 8, { align: "center" });
+        pdf.text(`OPTION ${i + 1}`, x + 32, innerY + 9, { align: "center" });
         pdf.setTextColor(20, 20, 20);
-        pdf.setFontSize(9);
-        pdf.text(pdf.splitTextToSize(s.headline.toUpperCase(), subW).slice(0, 2), x, inner.y + 26);
+        pdf.setFontSize(10);
+        const headLines = pdf.splitTextToSize(s.headline.toUpperCase(), subW);
+        pdf.text(headLines, x, innerY + 28);
         if (s.explanation) {
           pdf.setTextColor(80, 80, 80);
           pdf.setFont("helvetica", "normal");
-          pdf.setFontSize(6.5);
-          pdf.text(pdf.splitTextToSize(s.explanation, subW).slice(0, 4), x, inner.y + 50);
+          pdf.setFontSize(7);
+          const explLines = pdf.splitTextToSize(s.explanation, subW);
+          pdf.text(explLines, x, innerY + 28 + headLines.length * 12 + 8);
         }
       }
+      py += totalH + SECTION_GAP;
+    }
 
-      // Section 8 — Why Branding Matters (right column)
-      if (why.length > 0) {
-        const ww = contentW - sw - 12;
-        const wx = margin + sw + 12;
-        sectionHeader("8", "Why Branding Matters", wx, py, ww);
-        card(wx, py + 22, ww, h - 22);
-        const winner = { x: wx + 10, y: py + 32, w: ww - 20, h: h - 38 };
-        const rowH = winner.h / why.length;
-        for (let i = 0; i < why.length; i++) {
-          const b = why[i];
-          const ry2 = winner.y + i * rowH + rowH / 2;
-          pdf.setFillColor(rr, rg, rb);
-          pdf.circle(winner.x + 10, ry2, 6, "F");
-          pdf.setTextColor(20, 20, 20);
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(8);
-          pdf.text(b.title.toUpperCase(), winner.x + 22, ry2 - 2);
-          pdf.setTextColor(80, 80, 80);
-          pdf.setFont("helvetica", "normal");
-          pdf.setFontSize(6.5);
-          const lines = pdf.splitTextToSize(b.explanation || "", winner.w - 24);
-          pdf.text(lines.slice(0, 2), winner.x + 22, ry2 + 7);
-        }
-      }
-      py += h + 10;
-    } else if (why.length > 0) {
-      // Why-only row
-      const h = 90;
-      sectionHeader("8", "Why Branding Matters", margin, py, contentW);
-      card(margin, py + 22, contentW, h - 22);
-      const inner = { x: margin + 14, y: py + 30, w: contentW - 28, h: h - 36 };
-      const cols = why.length;
-      const colW = inner.w / cols;
-      for (let i = 0; i < cols; i++) {
-        const b = why[i];
-        const cx = inner.x + i * colW + colW / 2;
-        pdf.setFillColor(rr, rg, rb);
-        pdf.circle(cx, inner.y + 14, 10, "F");
-        pdf.setTextColor(255, 255, 255);
+    /* ----- Section 8: Why Branding Matters — vertical stack of clean rows ----- */
+    if (why.length > 0) {
+      const inner = { x: margin + 14, w: contentW - 28 };
+      const iconColW = 40;
+      const textW = inner.w - iconColW - 8;
+      const rowGap = 10;
+      // Measure each row
+      const rowMeasures = why.map((b) => {
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(10);
-        pdf.text("★", cx, inner.y + 18, { align: "center" });
-        pdf.setTextColor(20, 20, 20);
-        pdf.setFontSize(8);
-        pdf.text(b.title.toUpperCase(), cx, inner.y + 36, { align: "center" });
-        pdf.setTextColor(80, 80, 80);
+        const titleLines = pdf.splitTextToSize((b.title || "").toUpperCase(), textW).length || 1;
         pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(6.5);
-        pdf.text(pdf.splitTextToSize(b.explanation || "", colW - 12).slice(0, 3), cx, inner.y + 46, { align: "center" });
+        pdf.setFontSize(8);
+        const bodyLines = b.explanation ? pdf.splitTextToSize(b.explanation, textW).length : 0;
+        const h = Math.max(40, titleLines * 12 + 4 + bodyLines * 10 + 8);
+        return { titleLines, bodyLines, h };
+      });
+      const rowsTotal = rowMeasures.reduce((sum, m) => sum + m.h, 0) + rowGap * (why.length - 1);
+      const cardBodyH = rowsTotal + CARD_PAD * 2;
+      const totalH = HEADER_H + cardBodyH;
+      ensureSpace(totalH);
+      sectionHeader("8", "Why Branding Matters", margin, py, contentW);
+      card(margin, py + HEADER_H, contentW, cardBodyH);
+      let ry = py + HEADER_H + CARD_PAD;
+      for (let i = 0; i < why.length; i++) {
+        const b = why[i];
+        const m = rowMeasures[i];
+        // Red dot/icon column
+        pdf.setFillColor(rr, rg, rb);
+        pdf.circle(inner.x + 12, ry + 10, 7, "F");
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.text(String(i + 1), inner.x + 12, ry + 13, { align: "center" });
+        // Title
+        pdf.setTextColor(20, 20, 20);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10);
+        const titleLines = pdf.splitTextToSize((b.title || "").toUpperCase(), textW);
+        pdf.text(titleLines, inner.x + iconColW, ry + 11);
+        // Body
+        if (b.explanation) {
+          pdf.setTextColor(80, 80, 80);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(8);
+          const bodyLines = pdf.splitTextToSize(b.explanation, textW);
+          pdf.text(bodyLines, inner.x + iconColW, ry + 11 + titleLines.length * 12 + 4);
+        }
+        ry += m.h + rowGap;
       }
-      py += h + 10;
+      py += totalH + SECTION_GAP;
     }
   }
 
