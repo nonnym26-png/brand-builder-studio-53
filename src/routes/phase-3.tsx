@@ -227,7 +227,28 @@ function Phase3() {
       try {
         const saved = await loadPhase3KitData({ data: { brandProfileId: id } });
         if (saved?.data && typeof saved.data === "object") {
-          setDoc((d) => (d ? { ...d, ...(saved.data as Partial<KitDoc>) } : d));
+          const savedData = saved.data as Partial<KitDoc>;
+          setDoc((d) => {
+            if (!d) return d;
+            const merged: KitDoc = { ...d, ...savedData };
+            // Preserve freshly fetched logo data — saved snapshots can have
+            // stale null dataUrls that would hide logos uploaded in Phase 2.
+            if (Array.isArray(savedData.logoSlots)) {
+              const freshByLabel = new Map(d.logoSlots.map((s) => [s.label, s]));
+              merged.logoSlots = savedData.logoSlots.map((s) => {
+                if (s?.dataUrl) return s;
+                const fresh = freshByLabel.get(s?.label);
+                return fresh && fresh.dataUrl ? { ...s, ...fresh } : s;
+              });
+              // Append any fresh slots not present in saved.
+              for (const fresh of d.logoSlots) {
+                if (fresh.dataUrl && !savedData.logoSlots.find((s) => s?.label === fresh.label)) {
+                  merged.logoSlots.push(fresh);
+                }
+              }
+            }
+            return merged;
+          });
         }
         setSavedAt(saved?.savedAt ?? null);
       } catch { /* ignore */ }
