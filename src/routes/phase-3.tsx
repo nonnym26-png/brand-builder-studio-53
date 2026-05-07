@@ -1306,7 +1306,10 @@ async function buildAbBrandKitPdf(d: {
   /* Section 1 — Core Logo System */
   sectionHeader("01 · Core Logo System");
   {
-    const slots = d.doc.logoSlots;
+    const slots = d.doc.logoSlots.filter((s) => !!s.dataUrl);
+    if (slots.length === 0) {
+      paragraph("No logo files were uploaded for this kit.", { italic: true, color: [160, 160, 160] });
+    } else {
     const cols = 5;
     const gap = 10;
     const slotW = (contentW - gap * (cols - 1)) / cols;
@@ -1328,11 +1331,6 @@ async function buildAbBrandKitPdf(d: {
           const fmt: "PNG" | "JPEG" = s.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
           pdf.addImage(s.dataUrl, fmt, x + (slotW - w) / 2, y + (slotH - h) / 2, w, h);
         } catch { /* skip */ }
-      } else {
-        pdf.setTextColor(160, 160, 160);
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(7);
-        pdf.text("[ placeholder ]", x + slotW / 2, y + slotH / 2, { align: "center" });
       }
       pdf.setTextColor(gr, gg, gb);
       pdf.setFont("helvetica", "bold");
@@ -1340,6 +1338,7 @@ async function buildAbBrandKitPdf(d: {
       pdf.text(s.label.toUpperCase(), x, y + slotH + 12);
     }
     y += slotH + 26;
+    }
   }
   paragraph(d.doc.coreLogoNotes);
 
