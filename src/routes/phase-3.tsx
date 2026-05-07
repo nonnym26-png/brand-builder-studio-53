@@ -1557,7 +1557,7 @@ async function buildAbBrandKitPdf(d: {
   }
 
   /* ============== PAGE 2 — Applications + Process + Slogans + Why ============== */
-  const apps = d.doc.applications.filter((a) => a.selected && (a.title?.trim() || a.dataUrl));
+  const apps = d.doc.applications.filter((a) => a.selected && a.dataUrl);
   const slogans = d.doc.slogans.filter((s) => s.headline && s.headline.trim());
   const why = d.doc.whyBlocks.filter((w) => w.title?.trim() || w.explanation?.trim());
   const process = d.doc.processSteps.filter((p) => p.title?.trim());
