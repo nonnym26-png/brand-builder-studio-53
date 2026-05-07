@@ -2,12 +2,23 @@ import { createServerFn } from "@tanstack/react-start";
 
 type MarkType = "wordmark" | "lettermark" | "monogram" | "emblem" | "combination" | "abstract" | "mascot";
 
-const DESIGN_DNA = `ANAGLYPH BRANDING — PROFESSIONAL LOGO ENGINE (must follow on EVERY render):
-MUST HAVE: clear readability · balanced composition · limited color palette · strong contrast · clean typography · memorable icon or mascot · real-world usability · vector-friendly shapes.
-AVOID: generic clipart · busy backgrounds · thin lines · unreadable fonts · too many colors · too many symbols · overly detailed illustrations · mockup scenes · distorted text · misspelled words · aggressive mascot · scary teeth · messy shadows · photo-realistic rendering · watermarks · random shapes · unbalanced spacing · childish clipart.
-QUALITY BAR (every metric ≥ 8/10): readability · originality · color balance · professional polish · print readiness · brand fit.
-FORMULA: strong symbol + clean typography + limited color palette + balanced layout + real-world usability.
+export const DEFAULT_DESIGN_DNA = {
+  mustHave: "clear readability · balanced composition · limited color palette · strong contrast · clean typography · memorable icon or mascot · real-world usability · vector-friendly shapes",
+  avoid: "generic clipart · busy backgrounds · thin lines · unreadable fonts · too many colors · too many symbols · overly detailed illustrations · mockup scenes · distorted text · misspelled words · aggressive mascot · scary teeth · messy shadows · photo-realistic rendering · watermarks · random shapes · unbalanced spacing · childish clipart",
+  qualityBar: "every metric ≥ 8/10: readability · originality · color balance · professional polish · print readiness · brand fit",
+  formula: "strong symbol + clean typography + limited color palette + balanced layout + real-world usability",
+};
+export type DesignDna = typeof DEFAULT_DESIGN_DNA;
+
+function buildDnaBlock(dna?: Partial<DesignDna>) {
+  const d = { ...DEFAULT_DESIGN_DNA, ...(dna || {}) };
+  return `ANAGLYPH BRANDING — PROFESSIONAL LOGO ENGINE (must follow on EVERY render):
+MUST HAVE: ${d.mustHave}.
+AVOID: ${d.avoid}.
+QUALITY BAR: ${d.qualityBar}.
+FORMULA: ${d.formula}.
 OUTPUT: pure white background · centered composition · generous margins · crisp vector look · bold confident outlines · flat color or simple cel shading only · suitable for signage, shirts, embroidery, business cards, website, decals, social media.`;
+}
 
 function buildComposition(markType: MarkType | undefined, brandName: string, initial: string, descriptor: string, primary: string, accent: string, neutral: string) {
   const upper = brandName.toUpperCase();
@@ -64,6 +75,7 @@ export const generatePremiumLogoImage = createServerFn({ method: "POST" })
     markType?: MarkType;
     extraDirection?: string;
     model?: "google/gemini-2.5-flash-image" | "google/gemini-3-pro-image-preview" | "google/gemini-3.1-flash-image-preview";
+    designDna?: Partial<DesignDna>;
   }) => input)
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
@@ -75,10 +87,11 @@ export const generatePremiumLogoImage = createServerFn({ method: "POST" })
     const accent = data.accentHex || "#B81F2A";
     const neutral = data.neutralHex || "#3A3A3A";
     const composition = buildComposition(data.markType, data.brandName, initial, descriptor, primary, accent, neutral);
+    const dnaBlock = buildDnaBlock(data.designDna);
 
     const prompt = `Design a premium, agency-grade brand logo on a clean pure white background. The output must look like a finished professional logo presentation — crisp, vector-clean, perfectly centered, generous margins.
 
-${DESIGN_DNA}
+${dnaBlock}
 
 BRAND: "${data.brandName}"
 ${descriptor ? `DESCRIPTOR: "${descriptor}"` : ""}

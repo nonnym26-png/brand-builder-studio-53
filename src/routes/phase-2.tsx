@@ -21,6 +21,7 @@ import { PhaseStepper } from "@/components/PhaseStepper";
 import { PALETTES } from "@/components/brand-kit/palettes";
 import { FONTS, type FontKey } from "@/components/brand-kit/types";
 import { CustomFontUploader, useCustomFonts } from "@/components/brand-kit/CustomFontUploader";
+import { DesignDnaRuleEditor, useDesignDna } from "@/components/brand-kit/DesignDnaRuleEditor";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -50,6 +51,7 @@ function Phase2() {
   // New Phase 2 creative selections
   const [fonts, setFonts] = useState<{ heading: FontKey; body: FontKey; accent: FontKey }>({ heading: "playfair", body: "inter", accent: "bebas" });
   const customFonts = useCustomFonts();
+  const designDna = useDesignDna(profile.business_name || "default");
   const [slogans, setSlogans] = useState<string[]>([]);
   const [chosenSlogan, setChosenSlogan] = useState<string>("");
   const [sloganBusy, setSloganBusy] = useState(false);
@@ -445,6 +447,13 @@ function Phase2() {
           {(() => {
             const selectedConcept = concepts.find((c) => c.id === selectedConceptId) || null;
             return (
+              <>
+              <DesignDnaRuleEditor
+                dna={designDna.dna}
+                onChange={designDna.update}
+                onReset={designDna.reset}
+                brandName={profile.business_name || undefined}
+              />
               <div className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-card to-primary/5 p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
@@ -515,6 +524,7 @@ function Phase2() {
                             neutralHex: c.palette.primary || profile.neutral_hex || "#3A3A3A",
                             markType: c.markType as any,
                             extraDirection: direction,
+                            designDna: designDna.dna,
                           } });
                           setPremiumImage(out.imageUrl);
                           toast.success("Premium refinement rendered");
@@ -545,6 +555,7 @@ function Phase2() {
                   </div>
                 </div>
               </div>
+              </>
             );
           })()}
         </section>
