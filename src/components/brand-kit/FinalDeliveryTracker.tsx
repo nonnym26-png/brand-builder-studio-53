@@ -43,7 +43,7 @@ const STATUS_META: Record<DeliveryStatus, { label: string; tone: string }> = {
   delivered: { label: "Delivered / Closed", tone: "border-emerald-500/40 bg-emerald-500/5 text-emerald-600" },
 };
 
-export function FinalDeliveryTracker({ onOpenProject }: { onOpenProject?: (id: string) => void }) {
+export function FinalDeliveryTracker({ onOpenProject, externalFilter }: { onOpenProject?: (id: string) => void; externalFilter?: Filter }) {
   const [items, setItems] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -63,6 +63,7 @@ export function FinalDeliveryTracker({ onOpenProject }: { onOpenProject?: (id: s
     }
   };
   useEffect(() => { refresh(); }, []);
+  useEffect(() => { if (externalFilter) setFilter(externalFilter); }, [externalFilter]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

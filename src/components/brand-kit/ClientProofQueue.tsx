@@ -39,7 +39,7 @@ const GROUPS: { id: Exclude<Filter, "all">; label: string; tone: string }[] = [
   { id: "full_redesign", label: "New Direction Requested", tone: "border-rose-500/40 bg-rose-500/5" },
 ];
 
-export function ClientProofQueue({ onOpenProject }: { onOpenProject?: (brandProfileId: string) => void }) {
+export function ClientProofQueue({ onOpenProject, externalFilter }: { onOpenProject?: (brandProfileId: string) => void; externalFilter?: Filter }) {
   const [proofs, setProofs] = useState<Proof[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -58,6 +58,7 @@ export function ClientProofQueue({ onOpenProject }: { onOpenProject?: (brandProf
     }
   };
   useEffect(() => { refresh(); }, []);
+  useEffect(() => { if (externalFilter) setFilter(externalFilter); }, [externalFilter]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
