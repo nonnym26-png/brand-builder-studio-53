@@ -447,6 +447,13 @@ function Phase2() {
           {(() => {
             const selectedConcept = concepts.find((c) => c.id === selectedConceptId) || null;
             return (
+              <>
+              <DesignDnaRuleEditor
+                dna={designDna.dna}
+                onChange={designDna.update}
+                onReset={designDna.reset}
+                brandName={profile.business_name || undefined}
+              />
               <div className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-card to-primary/5 p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
