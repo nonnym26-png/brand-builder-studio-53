@@ -390,8 +390,15 @@ function BrandKitEditor({
 
       {/* 1. Core Logo System */}
       <Section title="01 · Core Logo System">
+        {(() => {
+          const shown = doc.logoSlots.map((slot, i) => ({ slot, i })).filter(({ slot }) => !!slot.dataUrl);
+          return shown.length === 0 ? (
+            <div className="text-xs italic" style={{ color: "#888" }}>
+              No logos uploaded yet. Upload logos in Phase 2 to populate this section.
+            </div>
+          ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {doc.logoSlots.map((slot, i) => (
+          {shown.map(({ slot, i }) => (
             <LogoSlot
               key={i}
               slot={slot}
@@ -416,6 +423,8 @@ function BrandKitEditor({
             />
           ))}
         </div>
+          );
+        })()}
         <div className="mt-4">
           <Lbl>Logo usage note</Lbl>
           <DarkTextarea
