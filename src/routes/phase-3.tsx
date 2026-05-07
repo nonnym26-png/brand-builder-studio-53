@@ -37,6 +37,7 @@ type KitDoc = {
   fontNotes: string;
   // 4. Brand Icons / Visual Elements
   iconNotes: string;
+  visualElements: Array<{ title: string; explanation: string; dataUrl: string | null }>;
   // 5. Brand Application Recommendations
   applications: string;
   // 6. Strategic Branding Process
