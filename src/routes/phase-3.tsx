@@ -128,9 +128,28 @@ function Phase3() {
               { name: "Accent", hex: "#C9A24B", usage: "Highlights and CTAs." },
               { name: "Neutral", hex: "#F5F5F5", usage: "Backgrounds and body text." },
             ],
-        headingFont: v.typography?.heading || "Montserrat Bold",
-        bodyFont: v.typography?.body || "Inter Regular",
-        accentFont: v.typography?.accent || "Playfair Display Italic",
+        fonts: [
+          {
+            label: "Headline Font",
+            name: v.typography?.heading || "Montserrat Bold",
+            sample: "Aa Bb Cc 123",
+            usage: "Use for titles, hero statements, and the logo lockup.",
+            big: true,
+          },
+          {
+            label: "Support Font",
+            name: v.typography?.body || "Inter Regular",
+            sample: "The quick brown fox jumps over the lazy dog.",
+            usage: "Use for body copy, paragraphs, captions, and UI.",
+          },
+          {
+            label: "Accent / Script Font",
+            name: v.typography?.accent || "Playfair Display Italic",
+            sample: "Editorial Accent",
+            usage: "Use sparingly for editorial moments and quotes.",
+            style: "italic",
+          },
+        ],
         fontNotes:
           "Use Heading font for titles and the logo lockup. Body font for paragraphs, captions, and UI. Accent font sparingly for editorial moments.",
         iconNotes:
