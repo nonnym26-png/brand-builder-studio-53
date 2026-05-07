@@ -28,6 +28,7 @@ const RED = "#C8323C";
 type KitDoc = {
   // 1. Core Logo System
   coreLogoNotes: string;
+  logoSlots: Array<{ label: string; dataUrl: string | null; isPrimary?: boolean }>;
   // 2. Color Palette
   paletteNotes: string;
   colors: Array<{ name: string; hex: string; usage: string }>;
@@ -93,6 +94,10 @@ function Phase3() {
         : (data.adminView?.allApprovedAssets?.[0] ?? null);
       setPrimaryLogo(logo as LogoAsset | null);
 
+      const primaryDataUrl = logo
+        ? await fetchAsDataUrl(logo.image_url).then((r) => r?.dataUrl ?? null).catch(() => null)
+        : null;
+
       const colors = (v.palette || []).map((c) => ({
         name: c.name || c.role || "Color",
         hex: (c.hex || "#000000").toUpperCase(),
@@ -108,6 +113,13 @@ function Phase3() {
       setDoc({
         coreLogoNotes:
           buildCoreLogoNotes(v),
+        logoSlots: [
+          { label: "Primary Logo", dataUrl: primaryDataUrl, isPrimary: true },
+          { label: "Simplified Mark", dataUrl: null },
+          { label: "Black Version", dataUrl: null },
+          { label: "White Version", dataUrl: null },
+          { label: "Icon Only", dataUrl: null },
+        ],
         paletteNotes:
           "These colors form the official brand palette. Use HEX values for digital and convert to CMYK / Pantone for print. Always preserve the hierarchy: primary leads, secondary supports, accent highlights.",
         colors: colors.length
@@ -313,16 +325,36 @@ function BrandKitEditor({
 
       {/* 1. Core Logo System */}
       <Section title="01 · Core Logo System">
-        <div className="grid gap-4 md:grid-cols-[260px_1fr]">
-          <div className="rounded-lg grid place-items-center aspect-square" style={{ background: "#FFFFFF" }}>
-            {primaryLogo ? (
-              <img src={primaryLogo.image_url} alt="Primary logo" className="max-h-full max-w-full object-contain p-6" />
-            ) : (
-              <div className="text-xs" style={{ color: "#666" }}>No approved logo</div>
-            )}
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {doc.logoSlots.map((slot, i) => (
+            <LogoSlot
+              key={i}
+              slot={slot}
+              dark={slot.label === "White Version"}
+              onLabelChange={(label) => {
+                const next = doc.logoSlots.slice();
+                next[i] = { ...next[i], label };
+                update({ logoSlots: next });
+              }}
+              onFileChange={async (file) => {
+                const dataUrl = file ? await fileToDataUrl(file) : null;
+                const next = doc.logoSlots.slice();
+                next[i] = { ...next[i], dataUrl };
+                update({ logoSlots: next });
+              }}
+              onClear={() => {
+                const next = doc.logoSlots.slice();
+                // Re-fill primary slot from approved logo if cleared
+                next[i] = { ...next[i], dataUrl: null };
+                update({ logoSlots: next });
+              }}
+            />
+          ))}
+        </div>
+        <div className="mt-4">
+          <Lbl>Logo usage note</Lbl>
           <DarkTextarea
-            rows={8}
+            rows={4}
             value={doc.coreLogoNotes}
             onChange={(v) => update({ coreLogoNotes: v })}
           />
@@ -465,6 +497,78 @@ function FontField({
       </div>
     </div>
   );
+}
+
+function LogoSlot({
+  slot, dark, onLabelChange, onFileChange, onClear,
+}: {
+  slot: { label: string; dataUrl: string | null; isPrimary?: boolean };
+  dark?: boolean;
+  onLabelChange: (label: string) => void;
+  onFileChange: (file: File | null) => void;
+  onClear: () => void;
+}) {
+  const inputId = `logo-slot-${slot.label.replace(/\s+/g, "-")}`;
+  return (
+    <div className="rounded-lg border overflow-hidden" style={{ borderColor: "#2A2A2A", background: "#111" }}>
+      <div
+        className="aspect-square grid place-items-center relative"
+        style={{ background: dark ? "#000" : "#FFFFFF" }}
+      >
+        {slot.dataUrl ? (
+          <img src={slot.dataUrl} alt={slot.label} className="max-h-full max-w-full object-contain p-4" />
+        ) : (
+          <label htmlFor={inputId} className="cursor-pointer text-center px-3 text-[11px]" style={{ color: dark ? "#888" : "#999" }}>
+            <div className="font-semibold mb-1" style={{ color: dark ? "#bbb" : "#666" }}>Upload</div>
+            <div>Click to add {slot.label.toLowerCase()}</div>
+          </label>
+        )}
+        {slot.isPrimary && (
+          <div className="absolute top-2 left-2 text-[9px] px-1.5 py-0.5 rounded" style={{ background: GOLD, color: "#000" }}>
+            FROM PHASE 2
+          </div>
+        )}
+      </div>
+      <div className="p-2 space-y-1.5">
+        <DarkInput value={slot.label} onChange={onLabelChange} />
+        <div className="flex gap-1.5">
+          <label
+            htmlFor={inputId}
+            className="flex-1 text-center text-[10px] tracking-wider py-1 rounded cursor-pointer border"
+            style={{ borderColor: "#2A2A2A", color: GOLD }}
+          >
+            {slot.dataUrl ? "REPLACE" : "UPLOAD"}
+          </label>
+          {slot.dataUrl && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-[10px] tracking-wider py-1 px-2 rounded border"
+              style={{ borderColor: "#2A2A2A", color: "#bbb" }}
+            >
+              CLEAR
+            </button>
+          )}
+        </div>
+        <input
+          id={inputId}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
 }
 
 /* --------------------------------- PDF --------------------------------- */
@@ -699,20 +803,41 @@ async function buildAbBrandKitPdf(d: {
   /* Section 1 — Core Logo System */
   startPage();
   sectionHeader("01 · Core Logo System");
-  if (d.logoDataUrl) {
-    try {
-      const props = pdf.getImageProperties(d.logoDataUrl.dataUrl);
-      const boxW = 200;
-      const boxH = 160;
-      const ratio = Math.min(boxW / props.width, boxH / props.height);
-      const w = props.width * ratio;
-      const h = props.height * ratio;
-      ensure(boxH + 12);
-      pdf.setFillColor(255, 255, 255);
-      pdf.rect(margin, y, boxW, boxH, "F");
-      pdf.addImage(d.logoDataUrl.dataUrl, d.logoDataUrl.format, margin + (boxW - w) / 2, y + (boxH - h) / 2, w, h);
-      y += boxH + 14;
-    } catch { /* */ }
+  {
+    const slots = d.doc.logoSlots;
+    const cols = 5;
+    const gap = 10;
+    const slotW = (contentW - gap * (cols - 1)) / cols;
+    const slotH = slotW;
+    ensure(slotH + 30);
+    for (let i = 0; i < slots.length; i++) {
+      const s = slots[i];
+      const x = margin + i * (slotW + gap);
+      const dark = s.label === "White Version";
+      pdf.setFillColor(dark ? 0 : 255, dark ? 0 : 255, dark ? 0 : 255);
+      pdf.rect(x, y, slotW, slotH, "F");
+      if (s.dataUrl) {
+        try {
+          const props = pdf.getImageProperties(s.dataUrl);
+          const pad = 8;
+          const ratio = Math.min((slotW - pad * 2) / props.width, (slotH - pad * 2) / props.height);
+          const w = props.width * ratio;
+          const h = props.height * ratio;
+          const fmt: "PNG" | "JPEG" = s.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+          pdf.addImage(s.dataUrl, fmt, x + (slotW - w) / 2, y + (slotH - h) / 2, w, h);
+        } catch { /* skip */ }
+      } else {
+        pdf.setTextColor(160, 160, 160);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7);
+        pdf.text("[ placeholder ]", x + slotW / 2, y + slotH / 2, { align: "center" });
+      }
+      pdf.setTextColor(gr, gg, gb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7);
+      pdf.text(s.label.toUpperCase(), x, y + slotH + 12);
+    }
+    y += slotH + 26;
   }
   paragraph(d.doc.coreLogoNotes);
 
