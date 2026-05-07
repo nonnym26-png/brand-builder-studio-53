@@ -1312,6 +1312,19 @@ async function buildAbBrandKitPdf(d: {
   pdf.setFontSize(8);
   pdf.text("Prepared by Anaglyph Branding", pageW / 2, pageH - 60, { align: "center" });
 
+  // AB house brand colors strip (gold + red) — present on every cover for identity continuity
+  {
+    const stripY = pageH - 44;
+    const stripW = 120;
+    pdf.setFillColor(gr, gg, gb);
+    pdf.rect(pageW / 2 - stripW / 2, stripY, stripW / 2, 4, "F");
+    pdf.setFillColor(rr, rg, rb);
+    pdf.rect(pageW / 2, stripY, stripW / 2, 4, "F");
+    pdf.setTextColor(150, 150, 150);
+    pdf.setFontSize(6.5);
+    pdf.text(`AB GOLD ${GOLD}   ·   AB RED ${RED}`, pageW / 2, stripY + 14, { align: "center", charSpace: 1 });
+  }
+
   /* Section 1 — Core Logo System */
   sectionHeader("01 · Core Logo System");
   {
