@@ -46,7 +46,10 @@ export const loadBrandKit = createServerFn({ method: "GET" })
 
     // Featured assets — picked from approved set (fallback to most recent)
     const pool = approved.length ? approved : designs;
-    const primary = find(pool, /refined|premium|main|original|wordmark|combination/i) || pool[0] || null;
+    const uploadedPrimary = (profile.phase_2_uploaded_logos as Record<string, string> | null)?.main;
+    const primary = uploadedPrimary
+      ? { id: "uploaded-main", image_url: uploadedPrimary, design_type: "Main Logo" }
+      : (find(pool, /refined|premium|main|original|wordmark|combination/i) || pool[0] || null);
     const transparent = find(pool, /transparent/i);
     const embroidery = find(pool, /embroidery/i);
     const badge = find(pool, /badge|emblem|crest/i);
@@ -58,6 +61,8 @@ export const loadBrandKit = createServerFn({ method: "GET" })
       { role: "accent", name: profile.accent_color_name, hex: profile.accent_hex, note: profile.accent_color_note },
       { role: "neutral", name: profile.neutral_color_name, hex: profile.neutral_hex, note: profile.neutral_color_note },
     ].filter((c) => c.hex);
+
+    const uploadedLogos = (profile.phase_2_uploaded_logos as Record<string, string> | null) || {};
 
     const fonts = (profile.phase_2_fonts as Record<string, string> | null) || {};
     const qualityAvg = approved.filter((d) => d.quality_score != null).length
@@ -110,6 +115,7 @@ export const loadBrandKit = createServerFn({ method: "GET" })
         shortDescription: profile.business_description || null,
       },
       primary: primary && { id: primary.id, image_url: primary.image_url, design_type: primary.design_type },
+      uploadedLogos,
       phase2: {
         slogans: (profile.phase_2_slogans as unknown) ?? null,
         elements: (profile.phase_2_elements as unknown) ?? null,

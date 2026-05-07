@@ -140,3 +140,58 @@ export const uploadExistingLogo = createServerFn({ method: "POST" })
     if (dbErr) throw new Error(dbErr.message);
     return { ok: true as const, url };
   });
+
+/** Upload a labeled Phase-2 logo (Main / Abbreviated / Icon / Black / White / Additional). */
+export const uploadPhase2Logo = createServerFn({ method: "POST" })
+  .inputValidator((input: { brandProfileId: string; slot: string; dataUrl: string; filename?: string }) => input)
+  .handler(async ({ data }) => {
+    const m = data.dataUrl.match(/^data:(image\/[\w+.-]+);base64,(.+)$/);
+    if (!m) throw new Error("Invalid image data");
+    const mime = m[1];
+    const ext = mime.split("/")[1].split("+")[0] || "png";
+    const bytes = Uint8Array.from(atob(m[2]), (c) => c.charCodeAt(0));
+    const safeSlot = data.slot.replace(/[^a-z0-9_-]/gi, "_").toLowerCase();
+    const path = `${data.brandProfileId}/phase2-logos/${safeSlot}-${Date.now()}.${ext}`;
+    const { error: upErr } = await supabaseAdmin.storage
+      .from("ab-designs")
+      .upload(path, bytes, { contentType: mime, upsert: true });
+    if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+    const { data: pub } = supabaseAdmin.storage.from("ab-designs").getPublicUrl(path);
+    const url = pub.publicUrl;
+    const sb = getAdminClient();
+    const { data: row } = await sb
+      .from("brand_profiles")
+      .select("phase_2_uploaded_logos")
+      .eq("id", data.brandProfileId)
+      .maybeSingle();
+    const current = ((row?.phase_2_uploaded_logos as Record<string, string> | null) || {});
+    const next = { ...current, [safeSlot]: url };
+    const { error: dbErr } = await sb
+      .from("brand_profiles")
+      .update({ phase_2_uploaded_logos: next, updated_at: new Date().toISOString() } as never)
+      .eq("id", data.brandProfileId);
+    if (dbErr) throw new Error(dbErr.message);
+    return { ok: true as const, url, slot: safeSlot, logos: next };
+  });
+
+/** Remove a labeled Phase-2 logo from the brand profile. */
+export const removePhase2Logo = createServerFn({ method: "POST" })
+  .inputValidator((input: { brandProfileId: string; slot: string }) => input)
+  .handler(async ({ data }) => {
+    const sb = getAdminClient();
+    const { data: row } = await sb
+      .from("brand_profiles")
+      .select("phase_2_uploaded_logos")
+      .eq("id", data.brandProfileId)
+      .maybeSingle();
+    const current = ((row?.phase_2_uploaded_logos as Record<string, string> | null) || {});
+    const safeSlot = data.slot.replace(/[^a-z0-9_-]/gi, "_").toLowerCase();
+    const next = { ...current };
+    delete next[safeSlot];
+    const { error: dbErr } = await sb
+      .from("brand_profiles")
+      .update({ phase_2_uploaded_logos: next, updated_at: new Date().toISOString() } as never)
+      .eq("id", data.brandProfileId);
+    if (dbErr) throw new Error(dbErr.message);
+    return { ok: true as const, logos: next };
+  });

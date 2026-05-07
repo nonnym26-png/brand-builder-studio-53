@@ -1,0 +1,1 @@
+ALTER TABLE public.brand_profiles ADD COLUMN IF NOT EXISTS phase_2_uploaded_logos jsonb DEFAULT '{}'::jsonb;

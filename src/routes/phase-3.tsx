@@ -122,6 +122,23 @@ function Phase3() {
         ? await fetchAsDataUrl(logo.image_url).then((r) => r?.dataUrl ?? null).catch(() => null)
         : null;
 
+      // Map Phase 2 uploaded logos (Main / Abbreviated / Icon / Black / White / Additional) into the kit slots.
+      const uploaded = (v as unknown as { uploadedLogos?: Record<string, string> }).uploadedLogos || {};
+      const fetchSlot = async (key: string) => {
+        const url = uploaded[key];
+        if (!url) return null;
+        const r = await fetchAsDataUrl(url).catch(() => null);
+        return r?.dataUrl ?? null;
+      };
+      const [mainData, abbrData, iconData, blackData, whiteData, additionalData] = await Promise.all([
+        fetchSlot("main"),
+        fetchSlot("abbreviated"),
+        fetchSlot("icon"),
+        fetchSlot("black"),
+        fetchSlot("white"),
+        fetchSlot("additional"),
+      ]);
+
       const colors = (v.palette || []).map((c) => ({
         name: c.name || c.role || "Color",
         hex: (c.hex || "#000000").toUpperCase(),
@@ -140,11 +157,12 @@ function Phase3() {
         coreLogoNotes:
           buildCoreLogoNotes(v),
         logoSlots: [
-          { label: "Primary Logo", dataUrl: primaryDataUrl, isPrimary: true },
-          { label: "Simplified Mark", dataUrl: null },
-          { label: "Black Version", dataUrl: null },
-          { label: "White Version", dataUrl: null },
-          { label: "Icon Only", dataUrl: null },
+          { label: "Main Logo", dataUrl: mainData ?? primaryDataUrl, isPrimary: true },
+          { label: "Abbreviated Logo", dataUrl: abbrData },
+          { label: "Icon Logo", dataUrl: iconData },
+          { label: "Black Logo", dataUrl: blackData },
+          { label: "White Logo", dataUrl: whiteData },
+          { label: "Additional Logo", dataUrl: additionalData },
         ],
         paletteNotes:
           "These colors form the official brand palette. Use HEX values for digital and convert to CMYK / Pantone for print. Always preserve the hierarchy: primary leads, secondary supports, accent highlights.",
@@ -375,7 +393,7 @@ function BrandKitEditor({
             <LogoSlot
               key={i}
               slot={slot}
-              dark={slot.label === "White Version"}
+              dark={slot.label === "White Logo"}
               onLabelChange={(label) => {
                 const next = doc.logoSlots.slice();
                 next[i] = { ...next[i], label };
@@ -1212,7 +1230,7 @@ async function buildAbBrandKitPdf(d: {
     for (let i = 0; i < slots.length; i++) {
       const s = slots[i];
       const x = margin + i * (slotW + gap);
-      const dark = s.label === "White Version";
+      const dark = s.label === "White Logo";
       pdf.setFillColor(dark ? 0 : 255, dark ? 0 : 255, dark ? 0 : 255);
       pdf.rect(x, y, slotW, slotH, "F");
       if (s.dataUrl) {
