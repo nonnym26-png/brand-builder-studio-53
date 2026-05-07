@@ -409,6 +409,47 @@ export type Database = {
           },
         ]
       }
+      creative_briefs: {
+        Row: {
+          brand_profile_id: string
+          brief_json: Json | null
+          created_at: string
+          final_prompt: string | null
+          id: string
+          negative_prompt: string | null
+          revision_of: string | null
+          user_id: string | null
+        }
+        Insert: {
+          brand_profile_id: string
+          brief_json?: Json | null
+          created_at?: string
+          final_prompt?: string | null
+          id?: string
+          negative_prompt?: string | null
+          revision_of?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          brand_profile_id?: string
+          brief_json?: Json | null
+          created_at?: string
+          final_prompt?: string | null
+          id?: string
+          negative_prompt?: string | null
+          revision_of?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_briefs_revision_of_fkey"
+            columns: ["revision_of"]
+            isOneToOne: false
+            referencedRelation: "creative_briefs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       design_dna: {
         Row: {
           accent_color_usage: string | null
@@ -500,6 +541,63 @@ export type Database = {
             columns: ["brand_profile_id"]
             isOneToOne: false
             referencedRelation: "brand_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generated_designs: {
+        Row: {
+          brand_profile_id: string
+          created_at: string
+          creative_brief_id: string | null
+          design_type: string | null
+          id: string
+          image_url: string
+          is_approved: boolean
+          parent_design_id: string | null
+          prompt_used: string | null
+          revision_number: number
+          user_id: string | null
+        }
+        Insert: {
+          brand_profile_id: string
+          created_at?: string
+          creative_brief_id?: string | null
+          design_type?: string | null
+          id?: string
+          image_url: string
+          is_approved?: boolean
+          parent_design_id?: string | null
+          prompt_used?: string | null
+          revision_number?: number
+          user_id?: string | null
+        }
+        Update: {
+          brand_profile_id?: string
+          created_at?: string
+          creative_brief_id?: string | null
+          design_type?: string | null
+          id?: string
+          image_url?: string
+          is_approved?: boolean
+          parent_design_id?: string | null
+          prompt_used?: string | null
+          revision_number?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_designs_creative_brief_id_fkey"
+            columns: ["creative_brief_id"]
+            isOneToOne: false
+            referencedRelation: "creative_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_designs_parent_design_id_fkey"
+            columns: ["parent_design_id"]
+            isOneToOne: false
+            referencedRelation: "generated_designs"
             referencedColumns: ["id"]
           },
         ]
@@ -613,6 +711,57 @@ export type Database = {
             columns: ["brand_profile_id"]
             isOneToOne: false
             referencedRelation: "brand_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revision_requests: {
+        Row: {
+          brand_profile_id: string
+          created_at: string
+          generated_design_id: string | null
+          id: string
+          new_design_id: string | null
+          revised_image_url: string | null
+          revised_prompt: string | null
+          user_id: string | null
+          user_request: string
+        }
+        Insert: {
+          brand_profile_id: string
+          created_at?: string
+          generated_design_id?: string | null
+          id?: string
+          new_design_id?: string | null
+          revised_image_url?: string | null
+          revised_prompt?: string | null
+          user_id?: string | null
+          user_request: string
+        }
+        Update: {
+          brand_profile_id?: string
+          created_at?: string
+          generated_design_id?: string | null
+          id?: string
+          new_design_id?: string | null
+          revised_image_url?: string | null
+          revised_prompt?: string | null
+          user_id?: string | null
+          user_request?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revision_requests_generated_design_id_fkey"
+            columns: ["generated_design_id"]
+            isOneToOne: false
+            referencedRelation: "generated_designs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_requests_new_design_id_fkey"
+            columns: ["new_design_id"]
+            isOneToOne: false
+            referencedRelation: "generated_designs"
             referencedColumns: ["id"]
           },
         ]
