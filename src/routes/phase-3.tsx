@@ -1399,7 +1399,7 @@ async function buildAbBrandKitPdf(d: {
   const colors = d.doc.colors.filter((c) => c.hex && /^#[0-9a-f]{3,6}$/i.test(c.hex.trim()));
 
   // Two-column row: logos card (left, ~62%) + palette card (right)
-  const row1H = 200;
+  const row1H = 180;
   const lw = contentW * 0.62 - 6;
   const rw = contentW - lw - 12;
 
@@ -1486,7 +1486,7 @@ async function buildAbBrandKitPdf(d: {
   // Only show visual element cards that have an actual uploaded/generated image.
   const visEls = d.doc.visualElements.filter((e) => !!e.dataUrl);
 
-  const row2H = 220;
+  const row2H = 190;
   const fw = contentW * 0.40 - 6;
   const vw = contentW - fw - 12;
 
@@ -1581,7 +1581,7 @@ async function buildAbBrandKitPdf(d: {
   /* ----- Section 5: Brand Application Recommendations (anchored to bottom of page 1) ----- */
   const apps = d.doc.applications.filter((a) => a.selected && a.dataUrl);
   if (apps.length > 0) {
-    const cardsH = 160;
+    const cardsH = 150;
     const HEADER_H_P1 = 22;
     // Anchor to bottom of page 1 (leave room for footer).
     const FOOTER_SAFE_P1 = 70;
