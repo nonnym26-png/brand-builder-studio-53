@@ -37,6 +37,7 @@ type KitDoc = {
   fontNotes: string;
   // 4. Brand Icons / Visual Elements
   iconNotes: string;
+  visualElements: Array<{ title: string; explanation: string; dataUrl: string | null }>;
   // 5. Brand Application Recommendations
   applications: string;
   // 6. Strategic Branding Process
@@ -154,6 +155,7 @@ function Phase3() {
           "Use Heading font for titles and the logo lockup. Body font for paragraphs, captions, and UI. Accent font sparingly for editorial moments.",
         iconNotes:
           buildIconNotes(v),
+        visualElements: buildVisualElements(v),
         applications:
           buildApplications(v),
         process: DEFAULT_PROCESS,
@@ -415,7 +417,26 @@ function BrandKitEditor({
 
       {/* 4. Brand Icons / Visual Elements */}
       <Section title="04 · Brand Icons / Visual Elements">
-        <DarkTextarea rows={4} value={doc.iconNotes} onChange={(v) => update({ iconNotes: v })} />
+        <DarkTextarea rows={3} value={doc.iconNotes} onChange={(v) => update({ iconNotes: v })} />
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {doc.visualElements.map((el, i) => (
+            <VisualElementSlot
+              key={i}
+              element={el}
+              onChange={(patch) => {
+                const next = doc.visualElements.slice();
+                next[i] = { ...next[i], ...patch };
+                update({ visualElements: next });
+              }}
+              onFile={async (file) => {
+                const dataUrl = file ? await fileToDataUrl(file) : null;
+                const next = doc.visualElements.slice();
+                next[i] = { ...next[i], dataUrl };
+                update({ visualElements: next });
+              }}
+            />
+          ))}
+        </div>
       </Section>
 
       {/* 5. Brand Application Recommendations */}
@@ -604,6 +625,62 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+type VisualEl = KitDoc["visualElements"][number];
+
+function VisualElementSlot({
+  element, onChange, onFile,
+}: {
+  element: VisualEl;
+  onChange: (patch: Partial<VisualEl>) => void;
+  onFile: (file: File | null) => void;
+}) {
+  const inputId = `ve-${element.title.replace(/\s+/g, "-")}-${Math.random().toString(36).slice(2, 6)}`;
+  return (
+    <div className="rounded-lg border overflow-hidden" style={{ borderColor: "#2A2A2A", background: "#111" }}>
+      <div className="aspect-square grid place-items-center" style={{ background: "#FFFFFF" }}>
+        {element.dataUrl ? (
+          <img src={element.dataUrl} alt={element.title} className="max-h-full max-w-full object-contain p-4" />
+        ) : (
+          <label htmlFor={inputId} className="cursor-pointer text-center px-3 text-[11px]" style={{ color: "#999" }}>
+            <div className="font-semibold mb-1" style={{ color: "#666" }}>Upload</div>
+            <div>Click to add image</div>
+          </label>
+        )}
+      </div>
+      <div className="p-2 space-y-1.5">
+        <DarkInput value={element.title} onChange={(v) => onChange({ title: v })} />
+        <DarkTextarea rows={3} value={element.explanation} onChange={(v) => onChange({ explanation: v })} small />
+        <div className="flex gap-1.5">
+          <label
+            htmlFor={inputId}
+            className="flex-1 text-center text-[10px] tracking-wider py-1 rounded cursor-pointer border"
+            style={{ borderColor: "#2A2A2A", color: GOLD }}
+          >
+            {element.dataUrl ? "REPLACE" : "UPLOAD"}
+          </label>
+          {element.dataUrl && (
+            <button
+              type="button"
+              onClick={() => onFile(null)}
+              className="text-[10px] tracking-wider py-1 px-2 rounded border"
+              style={{ borderColor: "#2A2A2A", color: "#bbb" }}
+            >
+              CLEAR
+            </button>
+          )}
+        </div>
+        <input
+          id={inputId}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+        />
+      </div>
+    </div>
+  );
+}
+
 /* --------------------------------- PDF --------------------------------- */
 
 async function fetchAsDataUrl(url: string): Promise<{ dataUrl: string; format: "PNG" | "JPEG" } | null> {
@@ -643,6 +720,45 @@ function buildIconNotes(v: PV): string {
     "Custom brand icons follow the same line weight and corner radius as the logo. Use sparingly — icons support the message, they do not replace it. Maintain monochrome usage on busy backgrounds." +
     extra
   );
+}
+
+function buildVisualElements(v: PV): KitDoc["visualElements"] {
+  const slots: KitDoc["visualElements"] = [
+    { title: "Icon Concept 1", explanation: "Primary supporting icon — represents the core service.", dataUrl: null },
+    { title: "Icon Concept 2", explanation: "Secondary icon — supports a key offering or feature.", dataUrl: null },
+    { title: "Supporting Visual Mark", explanation: "Companion mark used alongside the primary logo for variety.", dataUrl: null },
+    { title: "Mascot / Industry Graphic", explanation: "Optional character or industry-specific illustration.", dataUrl: null },
+    { title: "Pattern / Brand Element", explanation: "Optional repeating pattern or texture used on packaging and collateral.", dataUrl: null },
+  ];
+
+  // Auto-fill from Phase 2 elements (array or object with images/urls)
+  const collect = (val: unknown): Array<{ title?: string; description?: string; url?: string }> => {
+    const out: Array<{ title?: string; description?: string; url?: string }> = [];
+    const visit = (x: unknown) => {
+      if (!x) return;
+      if (typeof x === "string" && /^https?:\/\//.test(x)) out.push({ url: x });
+      else if (Array.isArray(x)) x.forEach(visit);
+      else if (typeof x === "object") {
+        const o = x as Record<string, unknown>;
+        const url = (o.image_url || o.imageUrl || o.url || o.src) as string | undefined;
+        const title = (o.name || o.title || o.label) as string | undefined;
+        const description = (o.description || o.note || o.explanation) as string | undefined;
+        if (url || title || description) out.push({ url, title, description });
+        Object.values(o).forEach(visit);
+      }
+    };
+    visit(val);
+    return out;
+  };
+
+  const found = [...collect(v.phase2?.elements), ...collect(v.phase2?.mascot)];
+  for (let i = 0; i < slots.length && i < found.length; i++) {
+    const f = found[i];
+    if (f.url) slots[i].dataUrl = f.url;
+    if (f.title) slots[i].title = f.title;
+    if (f.description) slots[i].explanation = f.description;
+  }
+  return slots;
 }
 
 function buildApplications(v: PV): string {
@@ -939,6 +1055,47 @@ async function buildAbBrandKitPdf(d: {
   /* Section 4 — Icons */
   sectionHeader("04 · Brand Icons / Visual Elements");
   paragraph(d.doc.iconNotes);
+  {
+    const cols = 5;
+    const gap = 10;
+    const slotW = (contentW - gap * (cols - 1)) / cols;
+    const slotH = slotW;
+    const blockH = slotH + 70;
+    ensure(blockH);
+    const rowY = y;
+    for (let i = 0; i < d.doc.visualElements.length; i++) {
+      const el = d.doc.visualElements[i];
+      const x = margin + i * (slotW + gap);
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(x, rowY, slotW, slotH, "F");
+      if (el.dataUrl) {
+        try {
+          const props = pdf.getImageProperties(el.dataUrl);
+          const pad = 8;
+          const ratio = Math.min((slotW - pad * 2) / props.width, (slotH - pad * 2) / props.height);
+          const w = props.width * ratio;
+          const h = props.height * ratio;
+          const fmt: "PNG" | "JPEG" = el.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+          pdf.addImage(el.dataUrl, fmt, x + (slotW - w) / 2, rowY + (slotH - h) / 2, w, h);
+        } catch { /* skip */ }
+      } else {
+        pdf.setTextColor(160, 160, 160);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7);
+        pdf.text("[ placeholder ]", x + slotW / 2, rowY + slotH / 2, { align: "center" });
+      }
+      pdf.setTextColor(gr, gg, gb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7);
+      pdf.text((el.title || "").toUpperCase(), x, rowY + slotH + 12, { maxWidth: slotW });
+      pdf.setTextColor(200, 200, 200);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(6.5);
+      const lines = pdf.splitTextToSize(el.explanation || "", slotW);
+      pdf.text(lines.slice(0, 4), x, rowY + slotH + 22);
+    }
+    y = rowY + blockH;
+  }
 
   /* Section 5 — Applications */
   sectionHeader("05 · Brand Application Recommendations");
