@@ -417,7 +417,26 @@ function BrandKitEditor({
 
       {/* 4. Brand Icons / Visual Elements */}
       <Section title="04 · Brand Icons / Visual Elements">
-        <DarkTextarea rows={4} value={doc.iconNotes} onChange={(v) => update({ iconNotes: v })} />
+        <DarkTextarea rows={3} value={doc.iconNotes} onChange={(v) => update({ iconNotes: v })} />
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {doc.visualElements.map((el, i) => (
+            <VisualElementSlot
+              key={i}
+              element={el}
+              onChange={(patch) => {
+                const next = doc.visualElements.slice();
+                next[i] = { ...next[i], ...patch };
+                update({ visualElements: next });
+              }}
+              onFile={async (file) => {
+                const dataUrl = file ? await fileToDataUrl(file) : null;
+                const next = doc.visualElements.slice();
+                next[i] = { ...next[i], dataUrl };
+                update({ visualElements: next });
+              }}
+            />
+          ))}
+        </div>
       </Section>
 
       {/* 5. Brand Application Recommendations */}
