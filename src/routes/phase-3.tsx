@@ -28,6 +28,7 @@ const RED = "#C8323C";
 type KitDoc = {
   // 1. Core Logo System
   coreLogoNotes: string;
+  logoSlots: Array<{ label: string; dataUrl: string | null; isPrimary?: boolean }>;
   // 2. Color Palette
   paletteNotes: string;
   colors: Array<{ name: string; hex: string; usage: string }>;
