@@ -67,10 +67,10 @@ const AB_STATEMENT = "WE DESIGN THE BRAND FIRST, THEN BUILD THE MATERIALS THAT M
 type ProcessIconKey = "search" | "compass" | "palette" | "package" | "layers" | "eye";
 type WhyIconKey = "award" | "shield" | "briefcase";
 
-const PROCESS_ICONS: Record<ProcessIconKey, React.ComponentType<{ className?: string }>> = {
+const PROCESS_ICONS: Record<ProcessIconKey, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
   search: Search, compass: Compass, palette: Palette, package: Package, layers: Layers, eye: Eye,
 };
-const WHY_ICONS: Record<WhyIconKey, React.ComponentType<{ className?: string }>> = {
+const WHY_ICONS: Record<WhyIconKey, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
   award: Award, shield: ShieldCheck, briefcase: Briefcase,
 };
 
