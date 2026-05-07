@@ -33,7 +33,8 @@ const RED = "#C92222";
 const BLUE = "#1F4FA8";
 // Backwards-compat alias so the rest of this file (and the PDF chrome)
 // keeps working without renaming every reference.
-const GOLD = BLUE;
+// Per latest brand direction: all former "gold" accents are now RED.
+const GOLD = RED;
 
 type KitDoc = {
   // 1. Core Logo System
