@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Upload, Trash2, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 export type CustomFont = {
@@ -227,10 +226,6 @@ export function CustomFontUploader({
   );
 }
 
-// minimal Label to avoid extra import churn
 function Label(props: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return <label {...props} className={`text-xs font-medium ${props.className ?? ""}`} />;
 }
-
-// silence unused import warnings (Input is exported for future textbox use)
-void Input;
