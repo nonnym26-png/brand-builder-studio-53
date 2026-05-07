@@ -152,8 +152,39 @@ function ProofPage() {
           </section>
         )}
 
+        <section>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Brand Usage Guide</h2>
+          <div className="rounded-xl border border-border bg-card p-5 grid gap-2 text-sm sm:grid-cols-2">
+            <div><strong>Primary logo:</strong> Use on marketing material, websites, and packaging.</div>
+            <div><strong>Transparent logo:</strong> Use on photos, complex backgrounds, signage, and apparel mockups.</div>
+            <div><strong>Embroidery-safe:</strong> Use for stitched apparel — hats, polos, jackets.</div>
+            <div><strong>Badge / emblem:</strong> Use for stickers, patches, and decals.</div>
+            <div className="sm:col-span-2"><strong>Social / favicon:</strong> Use for avatars and browser icons.</div>
+            <div className="sm:col-span-2 text-muted-foreground text-xs pt-2 border-t border-border">
+              Avoid stretching, recoloring, or recreating the logo in another typeface. Keep approved clear-space.
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Production Recommendations</h2>
+          <div className="rounded-xl border border-border bg-card p-5 grid gap-2 sm:grid-cols-2 text-sm">
+            <div>· Apparel & uniforms (embroidery-safe variant)</div>
+            <div>· Business cards (primary + reverse)</div>
+            <div>· Signage (transparent production logo)</div>
+            <div>· Decals & stickers (badge / emblem)</div>
+            <div>· Social media (social mark + primary)</div>
+            <div>· Flyers & print collateral (primary)</div>
+            <div>· Website & favicon (social mark)</div>
+            <div>· Embroidery & patches (embroidery-safe)</div>
+            <div className="sm:col-span-2 text-xs text-muted-foreground pt-2 border-t border-border">
+              Recommendations only. Production and orders are arranged separately by Anaglyph Branding.
+            </div>
+          </div>
+        </section>
+
         <section className="rounded-2xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold">Your Response</h2>
+          <h2 className="text-lg font-semibold">Brand Kit Review</h2>
           <p className="text-sm text-muted-foreground mt-1">Choose one of the options below to let us know how to proceed.</p>
 
           {submitted ? (
@@ -167,7 +198,7 @@ function ProofPage() {
           ) : (
             <>
               <div className="grid gap-3 sm:grid-cols-3 mt-4">
-                <ChoiceCard active={kind === "approve_final"} onClick={() => setKind("approve_final")} icon={<Check className="h-4 w-4" />} title="Approve as Final" desc="The logo is ready. Proceed to final delivery." />
+                <ChoiceCard active={kind === "approve_final"} onClick={() => setKind("approve_final")} icon={<Check className="h-4 w-4" />} title="Approve Brand Kit" desc="The brand kit is ready. Proceed to final delivery." />
                 <ChoiceCard active={kind === "minor_revision"} onClick={() => setKind("minor_revision")} icon={<RefreshCw className="h-4 w-4" />} title="Minor Revision" desc="Small tweaks needed before approval." />
                 <ChoiceCard active={kind === "full_redesign"} onClick={() => setKind("full_redesign")} icon={<Sparkles className="h-4 w-4" />} title="New Direction" desc="Explore a different concept." />
               </div>
