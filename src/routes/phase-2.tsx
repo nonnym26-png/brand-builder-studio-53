@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Database, Loader2, Sparkles, Wand2, MessageSquare, Upload, RefreshCw, ImageIcon } from "lucide-react";
+import { ArrowRight, Database, Loader2, Sparkles, Wand2, MessageSquare, Upload, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
