@@ -575,6 +575,7 @@ function Phase2() {
               elements,
               mascot: { enabled: mascotEnabled, style: mascotStyle, idea: mascotIdea },
             }}
+            onDesignsChanged={(list) => setPhase2Designs(list)}
           />
         </section>
       </main>
