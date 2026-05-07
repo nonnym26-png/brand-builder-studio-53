@@ -262,6 +262,7 @@ function Phase2() {
               <h3 className="mb-3 inline-flex items-center gap-2 text-sm font-semibold tracking-tight">
                 <Type className="h-4 w-4" /> Typography
               </h3>
+              <p className="text-[11px] text-muted-foreground mb-2">Choose heading / body / accent typefaces. The names are sent to the AI as the typography direction.</p>
               <div className="space-y-2">
                 {(["heading", "body", "accent"] as const).map((slot) => (
                   <div key={slot}>
@@ -325,6 +326,7 @@ function Phase2() {
                   <Wand2 className="mr-1.5 h-3.5 w-3.5" /> {sloganBusy ? "Thinking…" : "Generate slogans"}
                 </Button>
               </div>
+              <p className="text-[11px] text-muted-foreground mb-2">AI writes 6 tagline candidates from this brand profile. The selected one becomes the lockup tagline in the render.</p>
               {slogans.length === 0 ? (
                 <p className="text-xs text-muted-foreground">Click generate to get 6 AI-written tagline candidates from this brand profile.</p>
               ) : (
@@ -345,6 +347,7 @@ function Phase2() {
             {/* Elements */}
             <div className="rounded-xl border border-border bg-card p-5">
               <h3 className="mb-3 text-sm font-semibold tracking-tight">Brand Elements</h3>
+              <p className="text-[11px] text-muted-foreground mb-2">Optional structural cues (badge, ribbon, frame…) the AI should consider in the composition.</p>
               <div className="flex flex-wrap gap-1.5">
                 {ELEMENT_OPTIONS.map((el) => {
                   const on = elements.includes(el);
@@ -370,6 +373,7 @@ function Phase2() {
                   Include mascot
                 </label>
               </div>
+              <p className="text-[11px] text-muted-foreground mb-2">Toggle on to instruct the AI to build a character-led mark with the chosen style and idea.</p>
               {mascotEnabled && (
                 <div className="space-y-2">
                   <Select value={mascotStyle} onValueChange={setMascotStyle}>
