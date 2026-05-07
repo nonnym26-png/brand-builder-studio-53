@@ -19,6 +19,7 @@ import { CustomFontUploader, useCustomFonts } from "@/components/brand-kit/Custo
 import { DesignDnaRuleEditor, useDesignDna } from "@/components/brand-kit/DesignDnaRuleEditor";
 import { AbCreativeEngine, type AbCreativeEngineHandle } from "@/components/brand-kit/AbCreativeEngine";
 import { ClientProofQueue } from "@/components/brand-kit/ClientProofQueue";
+import { FinalDeliveryTracker } from "@/components/brand-kit/FinalDeliveryTracker";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -539,6 +540,8 @@ function Phase2() {
           />
 
           <ClientProofQueue onOpenProject={(id) => setSelectedId(id)} />
+
+          <FinalDeliveryTracker onOpenProject={(id) => setSelectedId(id)} />
         </section>
       </main>
     </div>

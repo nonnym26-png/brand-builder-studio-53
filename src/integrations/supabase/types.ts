@@ -25,6 +25,7 @@ export type Database = {
           avoidance_checklist: string[] | null
           brand_feeling: string | null
           brand_goals: string[] | null
+          brand_kit_exported_at: string | null
           brand_personality: string[] | null
           brand_profile_summary: string | null
           branding_kit_needs: string[] | null
@@ -53,12 +54,17 @@ export type Database = {
           current_marketing_materials: string | null
           customer_long_term_vision: string | null
           customer_pain_points: string | null
+          delivery_date: string | null
+          delivery_notes: string | null
+          delivery_status: string | null
           design_dna: Json | null
           design_dna_generated_at: string | null
           diamond_recommendation_notes: string | null
           digital_usage: string[] | null
           digital_usage_notes: string | null
           email_address: string | null
+          final_approval_date: string | null
+          final_file_link: string | null
           font_style_preferences: string[] | null
           fonts_to_avoid: string | null
           future_brand_vision: string | null
@@ -69,6 +75,7 @@ export type Database = {
           industry_symbols_to_consider: string | null
           initials_abbreviation: string | null
           internal_ab_notes: string | null
+          internal_production_notes: string | null
           is_complete: boolean | null
           is_draft: boolean | null
           logo_direction_notes: string | null
@@ -154,6 +161,7 @@ export type Database = {
           avoidance_checklist?: string[] | null
           brand_feeling?: string | null
           brand_goals?: string[] | null
+          brand_kit_exported_at?: string | null
           brand_personality?: string[] | null
           brand_profile_summary?: string | null
           branding_kit_needs?: string[] | null
@@ -182,12 +190,17 @@ export type Database = {
           current_marketing_materials?: string | null
           customer_long_term_vision?: string | null
           customer_pain_points?: string | null
+          delivery_date?: string | null
+          delivery_notes?: string | null
+          delivery_status?: string | null
           design_dna?: Json | null
           design_dna_generated_at?: string | null
           diamond_recommendation_notes?: string | null
           digital_usage?: string[] | null
           digital_usage_notes?: string | null
           email_address?: string | null
+          final_approval_date?: string | null
+          final_file_link?: string | null
           font_style_preferences?: string[] | null
           fonts_to_avoid?: string | null
           future_brand_vision?: string | null
@@ -198,6 +211,7 @@ export type Database = {
           industry_symbols_to_consider?: string | null
           initials_abbreviation?: string | null
           internal_ab_notes?: string | null
+          internal_production_notes?: string | null
           is_complete?: boolean | null
           is_draft?: boolean | null
           logo_direction_notes?: string | null
@@ -283,6 +297,7 @@ export type Database = {
           avoidance_checklist?: string[] | null
           brand_feeling?: string | null
           brand_goals?: string[] | null
+          brand_kit_exported_at?: string | null
           brand_personality?: string[] | null
           brand_profile_summary?: string | null
           branding_kit_needs?: string[] | null
@@ -311,12 +326,17 @@ export type Database = {
           current_marketing_materials?: string | null
           customer_long_term_vision?: string | null
           customer_pain_points?: string | null
+          delivery_date?: string | null
+          delivery_notes?: string | null
+          delivery_status?: string | null
           design_dna?: Json | null
           design_dna_generated_at?: string | null
           diamond_recommendation_notes?: string | null
           digital_usage?: string[] | null
           digital_usage_notes?: string | null
           email_address?: string | null
+          final_approval_date?: string | null
+          final_file_link?: string | null
           font_style_preferences?: string[] | null
           fonts_to_avoid?: string | null
           future_brand_vision?: string | null
@@ -327,6 +347,7 @@ export type Database = {
           industry_symbols_to_consider?: string | null
           initials_abbreviation?: string | null
           internal_ab_notes?: string | null
+          internal_production_notes?: string | null
           is_complete?: boolean | null
           is_draft?: boolean | null
           logo_direction_notes?: string | null
