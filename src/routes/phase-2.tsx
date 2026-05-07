@@ -512,6 +512,8 @@ function Phase2() {
                             descriptor: premiumDescriptor,
                             primaryHex: c.palette.dark || profile.neutral_hex || "#0F0F10",
                             accentHex: c.palette.accent || profile.accent_hex || "#B81F2A",
+                            neutralHex: c.palette.primary || profile.neutral_hex || "#3A3A3A",
+                            markType: c.markType as any,
                             extraDirection: direction,
                           } });
                           setPremiumImage(out.imageUrl);
