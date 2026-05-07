@@ -103,6 +103,8 @@ function Phase3() {
   const [exporting, setExporting] = useState<string | null>(null);
   const [doc, setDoc] = useState<KitDoc | null>(null);
   const [primaryLogo, setPrimaryLogo] = useState<LogoAsset | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
 
   useEffect(() => {
     listBrandProfiles().then((rows) => setProfiles(rows as ProfileRow[])).catch(() => {});
@@ -221,6 +223,15 @@ function Phase3() {
         footerBusinessType: v.brand.industry || "",
         footerProjectNote: "",
       });
+
+      // Merge in any previously saved Phase 3 progress so users don't lose edits.
+      try {
+        const saved = await loadPhase3KitData({ data: { brandProfileId: id } });
+        if (saved?.data && typeof saved.data === "object") {
+          setDoc((d) => (d ? { ...d, ...(saved.data as Partial<KitDoc>) } : d));
+        }
+        setSavedAt(saved?.savedAt ?? null);
+      } catch { /* ignore */ }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load");
     } finally {
@@ -229,6 +240,20 @@ function Phase3() {
   };
 
   const refresh = async () => { if (selectedId) await load(selectedId); };
+
+  const saveProgress = async () => {
+    if (!kit || !doc) return;
+    setSaving(true);
+    try {
+      const r = await savePhase3KitData({ data: { brandProfileId: kit.profileId, data: doc } });
+      setSavedAt(r.savedAt);
+      toast.success("Brand Kit progress saved.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const update = (patch: Partial<KitDoc>) => setDoc((d) => (d ? { ...d, ...patch } : d));
   const updateColor = (i: number, patch: Partial<KitDoc["colors"][number]>) =>
