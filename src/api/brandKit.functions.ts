@@ -46,7 +46,10 @@ export const loadBrandKit = createServerFn({ method: "GET" })
 
     // Featured assets — picked from approved set (fallback to most recent)
     const pool = approved.length ? approved : designs;
-    const primary = find(pool, /refined|premium|main|original|wordmark|combination/i) || pool[0] || null;
+    const uploadedPrimary = (profile.phase_2_uploaded_logos as Record<string, string> | null)?.main;
+    const primary = uploadedPrimary
+      ? { id: "uploaded-main", image_url: uploadedPrimary, design_type: "Main Logo" }
+      : (find(pool, /refined|premium|main|original|wordmark|combination/i) || pool[0] || null);
     const transparent = find(pool, /transparent/i);
     const embroidery = find(pool, /embroidery/i);
     const badge = find(pool, /badge|emblem|crest/i);
