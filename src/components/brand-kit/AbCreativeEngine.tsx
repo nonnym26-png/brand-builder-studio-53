@@ -1,5 +1,5 @@
 import { useEffect, useImperativeHandle, useState, forwardRef } from "react";
-import { Loader2, Sparkles, RefreshCw, Download, Check, FileText, Wand2 } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, Download, Check, FileText, Wand2, ShieldCheck, AlertTriangle, XCircle, Cpu, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,14 @@ type Design = {
   parent_design_id: string | null;
   is_approved: boolean;
   created_at: string;
+  quality_score?: number | null;
+  quality_decision?: string | null;
+  quality_breakdown?: Record<string, number> | null;
+  quality_notes?: string | null;
+  model_used?: string | null;
+  concept_group_id?: string | null;
+  concept_index?: number | null;
+  output_mode?: string | null;
   creative_briefs?: { brief_json: unknown; final_prompt: string; negative_prompt: string } | null;
 };
 
@@ -39,7 +47,7 @@ const QUICK_REVISIONS = [
 ];
 
 export type AbCreativeEngineHandle = {
-  generate: (bg?: "white" | "transparent" | "dark" | "mockup-free") => Promise<void>;
+  generate: (bg?: "white" | "transparent" | "dark" | "mockup-free", outputCount?: number) => Promise<void>;
   refresh: () => Promise<void>;
 };
 
@@ -64,6 +72,7 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
   const [step, setStep] = useState(-1);
   const [background, setBackground] = useState<"white" | "transparent" | "dark" | "mockup-free">("white");
   const [drawer, setDrawer] = useState<Design | null>(null);
+  const [qualityDrawer, setQualityDrawer] = useState<Design | null>(null);
   const [reviseTarget, setReviseTarget] = useState<Design | null>(null);
   const [reviseText, setReviseText] = useState("");
 
@@ -92,13 +101,13 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
     }
   };
 
-  const onGenerate = async (bgOverride?: typeof background) => {
+  const onGenerate = async (bgOverride?: typeof background, outputCount?: number) => {
     if (!brandProfileId) { toast.error("Select a brand profile first"); return; }
     const bg = bgOverride ?? background;
     await runProgress(async () => {
       try {
-        await generateAbDesign({ data: { brandProfileId, backgroundChoice: bg, designDna, extras } });
-        toast.success("Design generated");
+        await generateAbDesign({ data: { brandProfileId, backgroundChoice: bg, outputCount: outputCount ?? 1, designDna, extras } });
+        toast.success(outputCount && outputCount > 1 ? `${outputCount} concepts generated` : "Design generated");
         await refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Generation failed");
