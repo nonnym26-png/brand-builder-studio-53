@@ -393,7 +393,7 @@ function BrandKitEditor({
             <LogoSlot
               key={i}
               slot={slot}
-              dark={slot.label === "White Version"}
+              dark={slot.label === "White Logo"}
               onLabelChange={(label) => {
                 const next = doc.logoSlots.slice();
                 next[i] = { ...next[i], label };
@@ -1230,7 +1230,7 @@ async function buildAbBrandKitPdf(d: {
     for (let i = 0; i < slots.length; i++) {
       const s = slots[i];
       const x = margin + i * (slotW + gap);
-      const dark = s.label === "White Version";
+      const dark = s.label === "White Logo";
       pdf.setFillColor(dark ? 0 : 255, dark ? 0 : 255, dark ? 0 : 255);
       pdf.rect(x, y, slotW, slotH, "F");
       if (s.dataUrl) {
