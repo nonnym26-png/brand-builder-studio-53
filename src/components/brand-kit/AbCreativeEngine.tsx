@@ -61,10 +61,11 @@ type AbCreativeEngineProps = {
     elements?: string[];
     mascot?: { enabled?: boolean; style?: string; idea?: string };
   };
+  onDesignsChanged?: (designs: { id: string; design_type: string | null; quality_score: number | null; is_approved: boolean }[]) => void;
 };
 
 export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEngineProps>(function AbCreativeEngine(
-  { brandProfileId, hideHeaderGenerate, designDna, extras },
+  { brandProfileId, hideHeaderGenerate, designDna, extras, onDesignsChanged },
   ref,
 ) {
   const [designs, setDesigns] = useState<Design[]>([]);
@@ -81,7 +82,14 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
     if (!brandProfileId) return;
     try {
       const r = await listAbDesigns({ data: { brandProfileId } });
-      setDesigns(r.designs as Design[]);
+      const list = r.designs as Design[];
+      setDesigns(list);
+      onDesignsChanged?.(list.map((d) => ({
+        id: d.id,
+        design_type: d.design_type,
+        quality_score: d.quality_score ?? null,
+        is_approved: d.is_approved,
+      })));
     } catch (e) {
       console.error(e);
     }
@@ -93,11 +101,15 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
     setBusy(true);
     setStep(0);
     const tick = setInterval(() => setStep((s) => Math.min(s + 1, STEPS.length - 2)), 1800);
+    const longRunNotice = setTimeout(() => {
+      toast.message("Still rendering — premium logo concepts can take a little longer.");
+    }, 60_000);
     try {
       await work();
       setStep(STEPS.length - 1);
     } finally {
       clearInterval(tick);
+      clearTimeout(longRunNotice);
       setTimeout(() => { setBusy(false); setStep(-1); }, 600);
     }
   };
@@ -105,12 +117,15 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
   const onGenerate = async (bgOverride?: typeof background, outputCount?: number) => {
     if (!brandProfileId) { toast.error("Select a brand profile first"); return; }
     const bg = bgOverride ?? background;
+    console.info("[ab-engine] generate start", { brandProfileId, bg, outputCount: outputCount ?? 1 });
     await runProgress(async () => {
       try {
         await generateAbDesign({ data: { brandProfileId, backgroundChoice: bg, outputCount: outputCount ?? 1, designDna, extras } });
+        console.info("[ab-engine] generate ok");
         toast.success(outputCount && outputCount > 1 ? `${outputCount} concepts generated` : "Design generated");
         await refresh();
       } catch (e) {
+        console.error("[ab-engine] generate failed", e);
         toast.error(e instanceof Error ? e.message : "Generation failed");
       }
     });
