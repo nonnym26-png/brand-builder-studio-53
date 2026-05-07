@@ -907,8 +907,8 @@ async function buildAbBrandKitPdf(d: {
 
   /* Section 3 — Fonts */
   sectionHeader("03 · Font Selection");
-  const fontBlock = (label: string, name: string, sample: string, italic = false, big = false) => {
-    ensure(46);
+  const fontBlock = (label: string, name: string, sample: string, usage: string, italic = false, big = false) => {
+    ensure(60);
     pdf.setTextColor(gr, gg, gb);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(8);
@@ -922,10 +922,18 @@ async function buildAbBrandKitPdf(d: {
     pdf.setTextColor(220, 220, 220);
     pdf.text(sample, margin + 70, y + 18);
     y += 36;
+    if (usage) {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(170, 170, 170);
+      const lines = pdf.splitTextToSize(usage, contentW - 70);
+      pdf.text(lines, margin + 70, y);
+      y += lines.length * 10 + 6;
+    }
   };
-  fontBlock("Heading", d.doc.headingFont, "Aa Bb Cc 123", false, true);
-  fontBlock("Body", d.doc.bodyFont, "The quick brown fox jumps over the lazy dog.");
-  fontBlock("Accent", d.doc.accentFont, "Editorial Accent", true);
+  for (const f of d.doc.fonts) {
+    fontBlock(f.label, f.name, f.sample, f.usage, f.style === "italic", !!f.big);
+  }
   paragraph(d.doc.fontNotes);
 
   /* Section 4 — Icons */
