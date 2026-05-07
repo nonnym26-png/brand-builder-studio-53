@@ -21,6 +21,7 @@ import { AbCreativeEngine, type AbCreativeEngineHandle } from "@/components/bran
 import { ClientProofQueue } from "@/components/brand-kit/ClientProofQueue";
 import { FinalDeliveryTracker } from "@/components/brand-kit/FinalDeliveryTracker";
 import { AbStudioDashboard, type DashboardFocus } from "@/components/brand-kit/AbStudioDashboard";
+import { BrandPackageBuilder } from "@/components/brand-kit/BrandPackageBuilder";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
