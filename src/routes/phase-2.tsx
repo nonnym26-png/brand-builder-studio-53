@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowRight, Database, RefreshCw, Save, Sparkles, Wand2, MessageSquare, Type, Palette as PaletteIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, Database, Loader2, RefreshCw, Save, Sparkles, Wand2, MessageSquare, Type, Palette as PaletteIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,7 @@ import { PALETTES } from "@/components/brand-kit/palettes";
 import { FONTS, type FontKey } from "@/components/brand-kit/types";
 import { CustomFontUploader, useCustomFonts } from "@/components/brand-kit/CustomFontUploader";
 import { DesignDnaRuleEditor, useDesignDna } from "@/components/brand-kit/DesignDnaRuleEditor";
-import { AbCreativeEngine } from "@/components/brand-kit/AbCreativeEngine";
+import { AbCreativeEngine, type AbCreativeEngineHandle } from "@/components/brand-kit/AbCreativeEngine";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -55,6 +55,9 @@ function Phase2() {
   const [mascotEnabled, setMascotEnabled] = useState(false);
   const [mascotStyle, setMascotStyle] = useState<string>("geometric");
   const [mascotIdea, setMascotIdea] = useState("");
+  const [renderBackground, setRenderBackground] = useState<"white" | "transparent" | "dark" | "mockup-free">("white");
+  const [generating, setGenerating] = useState(false);
+  const engineRef = useRef<AbCreativeEngineHandle | null>(null);
 
   // Initial deterministic generation
   useEffect(() => {
@@ -433,8 +436,86 @@ function Phase2() {
             onReset={designDna.reset}
             brandName={profile.business_name || undefined}
           />
+
+          {/* Generate Logo Design — primary CTA */}
+          <section className="rounded-2xl border-2 border-primary/40 bg-gradient-to-br from-primary/10 via-card to-card p-6 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold tracking-tight inline-flex items-center gap-2">
+                  <Wand2 className="h-5 w-5 text-primary" /> Generate Logo Design
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+                  Bundles <strong>everything above</strong> — Phase 1 intake, palette, typography, slogan, brand elements, mascot, and Design DNA Rules — and renders a logo with the AB Creative Engine. Result appears in the gallery below.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground">Background</Label>
+                <select
+                  className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+                  value={renderBackground}
+                  onChange={(e) => setRenderBackground(e.target.value as typeof renderBackground)}
+                >
+                  <option value="white">White</option>
+                  <option value="transparent">Transparent</option>
+                  <option value="dark">Dark</option>
+                  <option value="mockup-free">Mockup-free</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Summary chips */}
+            <div className="mt-4 flex flex-wrap gap-1.5 text-[11px]">
+              <span className="rounded-full border border-border bg-background px-2 py-0.5">{profile.business_name || "Untitled"}</span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5">
+                Palette
+                {[profile.primary_hex, profile.secondary_hex, profile.accent_hex, profile.neutral_hex].filter(Boolean).map((c) => (
+                  <span key={c as string} className="inline-block h-3 w-3 rounded-sm border border-border" style={{ background: c as string }} />
+                ))}
+              </span>
+              <span className="rounded-full border border-border bg-background px-2 py-0.5">
+                Type: {FONTS[fonts.heading]?.label} / {FONTS[fonts.body]?.label}
+              </span>
+              <span className="rounded-full border border-border bg-background px-2 py-0.5">
+                Slogan: {chosenSlogan ? "✓" : "—"}
+              </span>
+              <span className="rounded-full border border-border bg-background px-2 py-0.5">
+                Elements: {elements.length}
+              </span>
+              <span className="rounded-full border border-border bg-background px-2 py-0.5">
+                Mascot: {mascotEnabled ? mascotStyle : "off"}
+              </span>
+              <span className="rounded-full border border-border bg-background px-2 py-0.5">
+                DNA: {(designDna.dna.mustHave ? "must " : "") + (designDna.dna.avoid ? "· avoid " : "") + (designDna.dna.qualityBar ? "· quality " : "") + (designDna.dna.formula ? "· formula" : "") || "defaults"}
+              </span>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[11px] text-muted-foreground">
+                {selectedId ? "Ready to render. The full creative brief will be visible on the result card." : "Pick a Phase 1 profile in the sidebar to enable generation."}
+              </p>
+              <Button
+                size="lg"
+                disabled={!selectedId || generating}
+                onClick={async () => {
+                  if (!engineRef.current) return;
+                  setGenerating(true);
+                  try {
+                    await engineRef.current.generate(renderBackground);
+                  } finally {
+                    setGenerating(false);
+                  }
+                }}
+              >
+                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                Generate Logo Design
+              </Button>
+            </div>
+          </section>
+
           <AbCreativeEngine
+            ref={engineRef}
             brandProfileId={selectedId || null}
+            hideHeaderGenerate
             designDna={designDna.dna}
             extras={{
               fonts,
