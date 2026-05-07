@@ -107,7 +107,7 @@ function Phase3() {
 
       setDoc({
         coreLogoNotes:
-          "The primary logo is the official mark of the brand. Maintain clear space equal to the height of the mark on all sides. Never recolor, distort, rotate, or recreate in unapproved typefaces.",
+          buildCoreLogoNotes(v),
         paletteNotes:
           "These colors form the official brand palette. Use HEX values for digital and convert to CMYK / Pantone for print. Always preserve the hierarchy: primary leads, secondary supports, accent highlights.",
         colors: colors.length
@@ -124,21 +124,13 @@ function Phase3() {
         fontNotes:
           "Use Heading font for titles and the logo lockup. Body font for paragraphs, captions, and UI. Accent font sparingly for editorial moments.",
         iconNotes:
-          "Custom brand icons follow the same line weight and corner radius as the logo. Use sparingly — icons support the message, they do not replace it. Maintain monochrome usage on busy backgrounds.",
+          buildIconNotes(v),
         applications:
-          [
-            "Apparel & Uniforms — embroidered or printed primary logo, ≥ 1.5 in.",
-            "Business Cards — primary logo front, one-color reverse on back.",
-            "Signage — high-contrast primary logo or transparent variant.",
-            "Vehicle Decals — bold, single-color version for distance readability.",
-            "Social Media — favicon mark for avatars, primary for posts.",
-            "Website — primary logo in header, favicon mark for browser tab.",
-          ].join("\n"),
+          buildApplications(v),
         process: DEFAULT_PROCESS,
-        slogan: v.brand.selectedDirection || "",
+        slogan: pickSlogan(v),
         brandMessage:
-          v.brand.description ||
-          `${v.brand.businessName || "This brand"} delivers a distinctive experience built on craft, consistency, and trust.`,
+          buildBrandMessage(v),
         whyBranding: DEFAULT_WHY,
         footerStatement: DEFAULT_FOOTER,
       });
