@@ -446,7 +446,28 @@ function BrandKitEditor({
 
       {/* 5. Brand Application Recommendations */}
       <Section title="05 · Brand Application Recommendations">
-        <DarkTextarea rows={8} value={doc.applications} onChange={(v) => update({ applications: v })} />
+        <div className="text-xs mb-3" style={{ color: "#999" }}>
+          Tick the recommendations to include in this kit. Auto-suggestions based on the client's current business setup are pre-selected.
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {doc.applications.map((app, i) => (
+            <ApplicationCard
+              key={i}
+              app={app}
+              onChange={(patch) => {
+                const next = doc.applications.slice();
+                next[i] = { ...next[i], ...patch };
+                update({ applications: next });
+              }}
+              onFile={async (file) => {
+                const dataUrl = file ? await fileToDataUrl(file) : null;
+                const next = doc.applications.slice();
+                next[i] = { ...next[i], dataUrl };
+                update({ applications: next });
+              }}
+            />
+          ))}
+        </div>
       </Section>
 
       {/* 6. Strategic Branding Process */}
