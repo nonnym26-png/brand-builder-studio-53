@@ -237,3 +237,26 @@ export const reopenPhase2 = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Save an admin override note when a brand kit is sent despite failing the QA gate. */
+export const saveBrandKitQaOverride = createServerFn({ method: "POST" })
+  .inputValidator((d: { brandProfileId: string; reason: string; missing: string[] }) => d)
+  .handler(async ({ data }) => {
+    if (!data.reason || data.reason.trim().length < 5) {
+      throw new Error("Override reason is required (min 5 characters).");
+    }
+    const { data: profile } = await supabaseAdmin
+      .from("brand_profiles")
+      .select("internal_ab_notes")
+      .eq("id", data.brandProfileId)
+      .single();
+    const stamp = new Date().toISOString();
+    const entry = `[QA OVERRIDE ${stamp}] Sent despite missing: ${data.missing.join(", ") || "none"}. Reason: ${data.reason.trim()}`;
+    const next = profile?.internal_ab_notes ? `${profile.internal_ab_notes}\n\n${entry}` : entry;
+    const { error } = await supabaseAdmin
+      .from("brand_profiles")
+      .update({ internal_ab_notes: next })
+      .eq("id", data.brandProfileId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
