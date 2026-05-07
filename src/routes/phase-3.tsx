@@ -137,11 +137,9 @@ function Phase3() {
 
       // Map Phase 2 uploaded logos (Main / Abbreviated / Icon / Black / White / Additional) into the kit slots.
       const uploaded = (v as unknown as { uploadedLogos?: Record<string, string> }).uploadedLogos || {};
-      const inclusions = (v as unknown as { uploadedInclusions?: Record<string, boolean> }).uploadedInclusions || {};
-      const isIncluded = (key: string) => (uploaded[key] ? (inclusions[key] ?? true) : false);
       const fetchSlot = async (key: string) => {
-        if (!isIncluded(key)) return null;
         const url = uploaded[key];
+        if (!url) return null;
         const r = await fetchAsDataUrl(url).catch(() => null);
         return r?.dataUrl ?? null;
       };
@@ -173,11 +171,11 @@ function Phase3() {
           buildCoreLogoNotes(v),
         logoSlots: [
           (mainData ?? primaryDataUrl) ? { label: "Main Logo", dataUrl: mainData ?? primaryDataUrl, isPrimary: true } : null,
-          abbrData && isIncluded("abbreviated") ? { label: "Abbreviated Logo", dataUrl: abbrData } : null,
-          iconData && isIncluded("icon") ? { label: "Icon Logo", dataUrl: iconData } : null,
-          blackData && isIncluded("black") ? { label: "Black Logo", dataUrl: blackData } : null,
-          whiteData && isIncluded("white") ? { label: "White Logo", dataUrl: whiteData } : null,
-          additionalData && isIncluded("additional") ? { label: "Additional Logo", dataUrl: additionalData } : null,
+          abbrData ? { label: "Abbreviated Logo", dataUrl: abbrData } : null,
+          iconData ? { label: "Icon Logo", dataUrl: iconData } : null,
+          blackData ? { label: "Black Logo", dataUrl: blackData } : null,
+          whiteData ? { label: "White Logo", dataUrl: whiteData } : null,
+          additionalData ? { label: "Additional Logo", dataUrl: additionalData } : null,
         ].filter(Boolean) as Array<{ label: string; dataUrl: string | null; isPrimary?: boolean }>,
         paletteNotes:
           "These colors form the official brand palette. Use HEX values for digital and convert to CMYK / Pantone for print. Always preserve the hierarchy: primary leads, secondary supports, accent highlights.",
