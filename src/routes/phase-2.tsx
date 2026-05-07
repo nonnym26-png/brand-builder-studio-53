@@ -139,6 +139,9 @@ function Phase2() {
 
           <section className="space-y-3">
             <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Override fields</h2>
+            <p className="text-[11px] text-muted-foreground -mt-1">
+              Live overrides for this generation. The Phase 1 profile loaded above is the source of truth — anything you change here is fed straight into the AI prompt without saving to the profile.
+            </p>
             <div>
               <Label>Business name</Label>
               <Input className="mt-1.5" value={profile.business_name || ""} onChange={(e) => setProfile({ ...profile, business_name: e.target.value })} />
@@ -189,6 +192,9 @@ function Phase2() {
                 </div>
               </div>
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              Hex colors are passed to the renderer with explicit instructions to honor them. Use the swatch to pick or paste a hex.
+            </p>
 
             <div className="flex flex-wrap gap-2 pt-2">
               <Button size="sm" onClick={regenerate} variant="outline"><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Regenerate</Button>
@@ -197,6 +203,9 @@ function Phase2() {
 
           <section className="space-y-3">
             <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Internal notes</h2>
+            <p className="text-[11px] text-muted-foreground -mt-1">
+              Designer-only notes for AB. Saved to the brand profile alongside any selected concept. Not sent to AI.
+            </p>
             <Textarea rows={4} placeholder="AB creative direction notes for this round…" value={notes} onChange={(e) => setNotes(e.target.value)} />
             <Button size="sm" onClick={saveBack} disabled={!selectedId || !!savingId} className="w-full">
               <Save className="mr-1.5 h-3.5 w-3.5" /> {savingId ? "Saving…" : "Save concepts to profile"}
@@ -206,6 +215,16 @@ function Phase2() {
 
         {/* Right: concept gallery */}
         <section className="space-y-6">
+          <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 text-xs text-foreground/80 leading-relaxed">
+            <div className="font-semibold text-sm mb-1">How Phase 2 works</div>
+            <ol className="list-decimal pl-4 space-y-0.5">
+              <li><strong>Design DNA Brief</strong> — locked agency-grade rules pulled from intake (auto-generated).</li>
+              <li><strong>Color Scheme, Typography, Slogan, Brand Elements, Mascot</strong> — designer choices that customize this round.</li>
+              <li><strong>Design DNA Rules</strong> — your hard constraints (must-have / avoid / quality bar / formula) injected into every render.</li>
+              <li><strong>AB Creative Engine</strong> — sends all of the above to AI in two stages (brief → prompt → image), saves results, supports revisions.</li>
+            </ol>
+          </div>
+
           <DesignDnaEditor brandProfileId={selectedId || null} />
 
           {/* Creative selections */}
@@ -215,6 +234,7 @@ function Phase2() {
               <h3 className="mb-3 inline-flex items-center gap-2 text-sm font-semibold tracking-tight">
                 <PaletteIcon className="h-4 w-4" /> Color Scheme
               </h3>
+              <p className="text-[11px] text-muted-foreground mb-2">Pick a curated preset to populate Primary / Secondary / Accent / Neutral hex codes used by the renderer.</p>
               <div className="grid grid-cols-3 gap-2">
                 {PALETTES.map((p) => (
                   <button
