@@ -59,6 +59,8 @@ export const loadBrandKit = createServerFn({ method: "GET" })
       { role: "neutral", name: profile.neutral_color_name, hex: profile.neutral_hex, note: profile.neutral_color_note },
     ].filter((c) => c.hex);
 
+    const uploadedLogos = (profile.phase_2_uploaded_logos as Record<string, string> | null) || {};
+
     const fonts = (profile.phase_2_fonts as Record<string, string> | null) || {};
     const qualityAvg = approved.filter((d) => d.quality_score != null).length
       ? Number(
@@ -110,6 +112,7 @@ export const loadBrandKit = createServerFn({ method: "GET" })
         shortDescription: profile.business_description || null,
       },
       primary: primary && { id: primary.id, image_url: primary.image_url, design_type: primary.design_type },
+      uploadedLogos,
       phase2: {
         slogans: (profile.phase_2_slogans as unknown) ?? null,
         elements: (profile.phase_2_elements as unknown) ?? null,
