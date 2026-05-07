@@ -33,9 +33,7 @@ type KitDoc = {
   paletteNotes: string;
   colors: Array<{ name: string; hex: string; usage: string }>;
   // 3. Font Selection
-  headingFont: string;
-  bodyFont: string;
-  accentFont: string;
+  fonts: Array<{ label: string; name: string; sample: string; usage: string; style?: "normal" | "italic"; big?: boolean }>;
   fontNotes: string;
   // 4. Brand Icons / Visual Elements
   iconNotes: string;
