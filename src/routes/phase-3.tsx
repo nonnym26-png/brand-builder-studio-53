@@ -1273,12 +1273,17 @@ async function buildAbBrandKitPdf(d: {
         const h = 24;
         const w = (props.width / props.height) * h;
         pdf.addImage(d.abLogoDataUrl.dataUrl, d.abLogoDataUrl.format, margin, 11, w, h);
+        // "Anaglyph Branding" text next to the AB logo.
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.text("Anaglyph Branding", margin + w + 8, 28);
       } catch { /* skip */ }
     } else {
       pdf.setTextColor(gr, gg, gb);
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(9);
-      pdf.text("ANAGLYPH BRANDING", margin, 28, { charSpace: 2 });
+      pdf.setFontSize(11);
+      pdf.text("Anaglyph Branding", margin, 28);
     }
     pdf.setTextColor(220, 220, 220);
     pdf.setFont("helvetica", "bold");
