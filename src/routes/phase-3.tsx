@@ -16,6 +16,7 @@ import { PhaseStepper } from "@/components/PhaseStepper";
 import { listBrandProfiles } from "@/api/phase2.functions";
 import { loadBrandKit, markBrandKitExported } from "@/api/brandKit.functions";
 import abLogo from "@/assets/ab-logo.png";
+import { getStoredProjectId, storeProjectId } from "@/lib/selected-project";
 
 export const Route = createFileRoute("/phase-3")({
   head: () => ({ meta: [{ title: "Phase 3 — AB Brand Kit Builder | Anaglyph Branding" }] }),
@@ -100,10 +101,14 @@ function Phase3() {
 
   useEffect(() => {
     listBrandProfiles().then((rows) => setProfiles(rows as ProfileRow[])).catch(() => {});
+    const stored = getStoredProjectId();
+    if (stored) load(stored).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const load = async (id: string) => {
     setSelectedId(id);
+    storeProjectId(id);
     setKit(null);
     setDoc(null);
     setPrimaryLogo(null);
