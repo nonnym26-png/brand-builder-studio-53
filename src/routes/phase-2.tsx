@@ -18,9 +18,6 @@ import { FONTS, type FontKey } from "@/components/brand-kit/types";
 import { CustomFontUploader, useCustomFonts } from "@/components/brand-kit/CustomFontUploader";
 import { DesignDnaRuleEditor, useDesignDna } from "@/components/brand-kit/DesignDnaRuleEditor";
 import { AbCreativeEngine, type AbCreativeEngineHandle } from "@/components/brand-kit/AbCreativeEngine";
-import { ClientProofQueue } from "@/components/brand-kit/ClientProofQueue";
-import { FinalDeliveryTracker } from "@/components/brand-kit/FinalDeliveryTracker";
-import { AbStudioDashboard, type DashboardFocus } from "@/components/brand-kit/AbStudioDashboard";
 import { PhaseChecklist, buildPhase2Checklist, derivePhase2Message, deriveBadge, deriveProjectStatus } from "@/components/brand-kit/PhaseChecklist";
 import { listAbDesigns } from "@/api/abCreativeEngine.functions";
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
@@ -63,21 +60,8 @@ function Phase2() {
   const [generating, setGenerating] = useState(false);
   const [outputCount, setOutputCount] = useState<number>(1);
   const engineRef = useRef<AbCreativeEngineHandle | null>(null);
-  const [proofFilter, setProofFilter] = useState<"all" | "pending" | "approve_final" | "minor_revision" | "full_redesign" | undefined>(undefined);
-  const [deliveryFilter, setDeliveryFilter] = useState<"all" | "needs_final_kit" | "kit_prepared" | "sent" | "delivered" | undefined>(undefined);
   const [phase2Designs, setPhase2Designs] = useState<Array<{ id: string; design_type: string | null; quality_score: number | null; is_approved: boolean }>>([]);
   const [profileFull, setProfileFull] = useState<Record<string, unknown> | null>(null);
-
-  const onDashboardFocus = (focus: DashboardFocus) => {
-    if (!focus) return;
-    if (focus.queue === "proof") {
-      setProofFilter(focus.status || "all");
-      setTimeout(() => document.getElementById("client-proof-queue")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-    } else if (focus.queue === "delivery") {
-      setDeliveryFilter(focus.status || "all");
-      setTimeout(() => document.getElementById("final-delivery-tracker")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-    }
-  };
 
   // Initial deterministic generation
   useEffect(() => {
@@ -275,8 +259,6 @@ function Phase2() {
 
         {/* Right: concept gallery */}
         <section className="space-y-6">
-          <AbStudioDashboard onFocus={onDashboardFocus} onOpenProject={(id) => setSelectedId(id)} />
-
           <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 text-xs text-foreground/80 leading-relaxed">
             <div className="font-semibold text-sm mb-1">How Phase 2 works</div>
             <ol className="list-decimal pl-4 space-y-0.5">
@@ -594,14 +576,6 @@ function Phase2() {
               mascot: { enabled: mascotEnabled, style: mascotStyle, idea: mascotIdea },
             }}
           />
-
-          <div id="client-proof-queue">
-            <ClientProofQueue onOpenProject={(id) => setSelectedId(id)} externalFilter={proofFilter} />
-          </div>
-
-          <div id="final-delivery-tracker">
-            <FinalDeliveryTracker onOpenProject={(id) => setSelectedId(id)} externalFilter={deliveryFilter} />
-          </div>
         </section>
       </main>
     </div>
