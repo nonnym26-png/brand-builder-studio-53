@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Database, Download, Loader2, RefreshCw, Sparkles,
   Search, Compass, Palette, Package, Layers, Eye,
-  Award, ShieldCheck, Briefcase,
+  Award, ShieldCheck, Briefcase, Plus, X,
 } from "lucide-react";
 import JSZip from "jszip";
 import jsPDF from "jspdf";
@@ -390,8 +390,15 @@ function BrandKitEditor({
 
       {/* 1. Core Logo System */}
       <Section title="01 · Core Logo System">
+        {(() => {
+          const shown = doc.logoSlots.map((slot, i) => ({ slot, i })).filter(({ slot }) => !!slot.dataUrl);
+          return shown.length === 0 ? (
+            <div className="text-xs italic" style={{ color: "#888" }}>
+              No logos uploaded yet. Upload logos in Phase 2 to populate this section.
+            </div>
+          ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {doc.logoSlots.map((slot, i) => (
+          {shown.map(({ slot, i }) => (
             <LogoSlot
               key={i}
               slot={slot}
@@ -416,6 +423,8 @@ function BrandKitEditor({
             />
           ))}
         </div>
+          );
+        })()}
         <div className="mt-4">
           <Lbl>Logo usage note</Lbl>
           <DarkTextarea
@@ -464,51 +473,91 @@ function BrandKitEditor({
       {/* 4. Brand Icons / Visual Elements */}
       <Section title="04 · Brand Icons / Visual Elements">
         <DarkTextarea rows={3} value={doc.iconNotes} onChange={(v) => update({ iconNotes: v })} />
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {doc.visualElements.map((el, i) => (
-            <VisualElementSlot
-              key={i}
-              element={el}
-              onChange={(patch) => {
-                const next = doc.visualElements.slice();
-                next[i] = { ...next[i], ...patch };
-                update({ visualElements: next });
-              }}
-              onFile={async (file) => {
-                const dataUrl = file ? await fileToDataUrl(file) : null;
-                const next = doc.visualElements.slice();
-                next[i] = { ...next[i], dataUrl };
-                update({ visualElements: next });
-              }}
-            />
-          ))}
+        {(() => {
+          const shown = doc.visualElements
+            .map((el, i) => ({ el, i }))
+            .filter(({ el }) => !!el.dataUrl);
+          return shown.length > 0 ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {shown.map(({ el, i }) => (
+                <VisualElementSlot
+                  key={i}
+                  element={el}
+                  onChange={(patch) => {
+                    const next = doc.visualElements.slice();
+                    next[i] = { ...next[i], ...patch };
+                    update({ visualElements: next });
+                  }}
+                  onFile={async (file) => {
+                    const dataUrl = file ? await fileToDataUrl(file) : null;
+                    const next = doc.visualElements.slice();
+                    next[i] = { ...next[i], dataUrl };
+                    update({ visualElements: next });
+                  }}
+                  onRemove={() => {
+                    const next = doc.visualElements.slice();
+                    next.splice(i, 1);
+                    update({ visualElements: next });
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4 text-xs italic" style={{ color: "#888" }}>
+              No visual elements added yet. Click below to add one.
+            </div>
+          );
+        })()}
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => {
+              const next = doc.visualElements.slice();
+              next.push({ title: "Visual Element", explanation: "", dataUrl: null });
+              update({ visualElements: next });
+            }}
+            className="inline-flex items-center gap-1.5 text-[11px] tracking-wider py-1.5 px-3 rounded border"
+            style={{ borderColor: GOLD, color: GOLD }}
+          >
+            <Plus className="h-3 w-3" /> ADD VISUAL ELEMENT
+          </button>
         </div>
       </Section>
 
       {/* 5. Brand Application Recommendations */}
       <Section title="05 · Brand Application Recommendations">
         <div className="text-xs mb-3" style={{ color: "#999" }}>
-          Tick the recommendations to include in this kit. Auto-suggestions based on the client's current business setup are pre-selected.
+          Only included recommendations appear here and in the exported PDF. Add or remove items to keep the kit clean.
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {doc.applications.map((app, i) => (
-            <ApplicationCard
-              key={i}
-              app={app}
-              onChange={(patch) => {
-                const next = doc.applications.slice();
-                next[i] = { ...next[i], ...patch };
-                update({ applications: next });
-              }}
-              onFile={async (file) => {
-                const dataUrl = file ? await fileToDataUrl(file) : null;
-                const next = doc.applications.slice();
-                next[i] = { ...next[i], dataUrl };
-                update({ applications: next });
-              }}
-            />
-          ))}
-        </div>
+        {(() => {
+          const shown = doc.applications.map((app, i) => ({ app, i })).filter(({ app }) => app.selected);
+          return shown.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {shown.map(({ app, i }) => (
+                <ApplicationCard
+                  key={i}
+                  app={app}
+                  onChange={(patch) => {
+                    const next = doc.applications.slice();
+                    next[i] = { ...next[i], ...patch };
+                    update({ applications: next });
+                  }}
+                  onFile={async (file) => {
+                    const dataUrl = file ? await fileToDataUrl(file) : null;
+                    const next = doc.applications.slice();
+                    next[i] = { ...next[i], dataUrl };
+                    update({ applications: next });
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs italic" style={{ color: "#888" }}>
+              No recommendations included yet. Add one below.
+            </div>
+          );
+        })()}
+        <ApplicationPicker doc={doc} update={update} />
       </Section>
 
       {/* 6. Strategic Branding Process */}
@@ -751,11 +800,12 @@ function fileToDataUrl(file: File): Promise<string> {
 type VisualEl = KitDoc["visualElements"][number];
 
 function VisualElementSlot({
-  element, onChange, onFile,
+  element, onChange, onFile, onRemove,
 }: {
   element: VisualEl;
   onChange: (patch: Partial<VisualEl>) => void;
   onFile: (file: File | null) => void;
+  onRemove?: () => void;
 }) {
   const inputId = `ve-${element.title.replace(/\s+/g, "-")}-${Math.random().toString(36).slice(2, 6)}`;
   return (
@@ -791,6 +841,17 @@ function VisualElementSlot({
               CLEAR
             </button>
           )}
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="text-[10px] tracking-wider py-1 px-2 rounded border"
+              style={{ borderColor: "#2A2A2A", color: "#bbb" }}
+              title="Remove this slot"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
         <input
           id={inputId}
@@ -805,6 +866,37 @@ function VisualElementSlot({
 }
 
 type AppCardData = KitDoc["applications"][number];
+
+function ApplicationPicker({
+  doc, update,
+}: {
+  doc: KitDoc;
+  update: (p: Partial<KitDoc>) => void;
+}) {
+  const available = doc.applications.map((a, i) => ({ a, i })).filter(({ a }) => !a.selected);
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {available.map(({ a, i }) => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => {
+            const next = doc.applications.slice();
+            next[i] = { ...next[i], selected: true };
+            update({ applications: next });
+          }}
+          className="inline-flex items-center gap-1.5 text-[11px] tracking-wider py-1.5 px-3 rounded border"
+          style={{ borderColor: "#2A2A2A", color: GOLD }}
+        >
+          <Plus className="h-3 w-3" /> {a.title.toUpperCase()}
+        </button>
+      ))}
+      {available.length === 0 && (
+        <div className="text-xs italic" style={{ color: "#888" }}>All recommendations included.</div>
+      )}
+    </div>
+  );
+}
 
 function ApplicationCard({
   app, onChange, onFile,
@@ -1145,7 +1237,8 @@ async function buildAbBrandKitPdf(d: {
   };
 
   const sectionHeader = (title: string) => {
-    ensure(50);
+    // Each major section starts on a fresh page so the kit reads as a cohesive story.
+    startPage();
     pdf.setTextColor(gr, gg, gb);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(11);
@@ -1219,11 +1312,26 @@ async function buildAbBrandKitPdf(d: {
   pdf.setFontSize(8);
   pdf.text("Prepared by Anaglyph Branding", pageW / 2, pageH - 60, { align: "center" });
 
+  // AB house brand colors strip (gold + red) — present on every cover for identity continuity
+  {
+    const stripY = pageH - 44;
+    const stripW = 120;
+    pdf.setFillColor(gr, gg, gb);
+    pdf.rect(pageW / 2 - stripW / 2, stripY, stripW / 2, 4, "F");
+    pdf.setFillColor(rr, rg, rb);
+    pdf.rect(pageW / 2, stripY, stripW / 2, 4, "F");
+    pdf.setTextColor(150, 150, 150);
+    pdf.setFontSize(6.5);
+    pdf.text(`AB GOLD ${GOLD}   ·   AB RED ${RED}`, pageW / 2, stripY + 14, { align: "center", charSpace: 1 });
+  }
+
   /* Section 1 — Core Logo System */
-  startPage();
   sectionHeader("01 · Core Logo System");
   {
-    const slots = d.doc.logoSlots;
+    const slots = d.doc.logoSlots.filter((s) => !!s.dataUrl);
+    if (slots.length === 0) {
+      paragraph("No logo files were uploaded for this kit.", { italic: true, color: [160, 160, 160] });
+    } else {
     const cols = 5;
     const gap = 10;
     const slotW = (contentW - gap * (cols - 1)) / cols;
@@ -1245,11 +1353,6 @@ async function buildAbBrandKitPdf(d: {
           const fmt: "PNG" | "JPEG" = s.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
           pdf.addImage(s.dataUrl, fmt, x + (slotW - w) / 2, y + (slotH - h) / 2, w, h);
         } catch { /* skip */ }
-      } else {
-        pdf.setTextColor(160, 160, 160);
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(7);
-        pdf.text("[ placeholder ]", x + slotW / 2, y + slotH / 2, { align: "center" });
       }
       pdf.setTextColor(gr, gg, gb);
       pdf.setFont("helvetica", "bold");
@@ -1257,6 +1360,7 @@ async function buildAbBrandKitPdf(d: {
       pdf.text(s.label.toUpperCase(), x, y + slotH + 12);
     }
     y += slotH + 26;
+    }
   }
   paragraph(d.doc.coreLogoNotes);
 
@@ -1326,6 +1430,10 @@ async function buildAbBrandKitPdf(d: {
   sectionHeader("04 · Brand Icons / Visual Elements");
   paragraph(d.doc.iconNotes);
   {
+    const visEls = d.doc.visualElements.filter((e) => !!e.dataUrl);
+    if (visEls.length === 0) {
+      paragraph("No additional visual elements were included in this kit.", { italic: true, color: [160, 160, 160] });
+    } else {
     const cols = 5;
     const gap = 10;
     const slotW = (contentW - gap * (cols - 1)) / cols;
@@ -1333,8 +1441,8 @@ async function buildAbBrandKitPdf(d: {
     const blockH = slotH + 70;
     ensure(blockH);
     const rowY = y;
-    for (let i = 0; i < d.doc.visualElements.length; i++) {
-      const el = d.doc.visualElements[i];
+    for (let i = 0; i < visEls.length; i++) {
+      const el = visEls[i];
       const x = margin + i * (slotW + gap);
       pdf.setFillColor(255, 255, 255);
       pdf.rect(x, rowY, slotW, slotH, "F");
@@ -1348,11 +1456,6 @@ async function buildAbBrandKitPdf(d: {
           const fmt: "PNG" | "JPEG" = el.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
           pdf.addImage(el.dataUrl, fmt, x + (slotW - w) / 2, rowY + (slotH - h) / 2, w, h);
         } catch { /* skip */ }
-      } else {
-        pdf.setTextColor(160, 160, 160);
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(7);
-        pdf.text("[ placeholder ]", x + slotW / 2, rowY + slotH / 2, { align: "center" });
       }
       pdf.setTextColor(gr, gg, gb);
       pdf.setFont("helvetica", "bold");
@@ -1365,6 +1468,7 @@ async function buildAbBrandKitPdf(d: {
       pdf.text(lines.slice(0, 4), x, rowY + slotH + 22);
     }
     y = rowY + blockH;
+    }
   }
 
   /* Section 5 — Applications */
