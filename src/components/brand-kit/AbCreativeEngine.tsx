@@ -288,6 +288,106 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Quality drawer */}
+      <Dialog open={!!qualityDrawer} onOpenChange={(o) => !o && setQualityDrawer(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="inline-flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" /> Quality Report
+            </DialogTitle>
+          </DialogHeader>
+          {qualityDrawer && (
+            <div className="space-y-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Overall score</span>
+                <span className="text-base font-semibold">
+                  {qualityDrawer.quality_score != null ? `${Number(qualityDrawer.quality_score).toFixed(1)} / 10` : "—"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Decision</span>
+                <DecisionBadge decision={qualityDrawer.quality_decision} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground inline-flex items-center gap-1"><Cpu className="h-3 w-3" /> Model</span>
+                <span>{friendlyModel(qualityDrawer.model_used)}</span>
+              </div>
+              {qualityDrawer.quality_breakdown && (
+                <div>
+                  <div className="font-semibold text-sm mb-1.5">Breakdown</div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {Object.entries(qualityDrawer.quality_breakdown).map(([k, v]) => (
+                      <div key={k} className="flex items-center justify-between rounded border border-border px-2 py-1">
+                        <span className="capitalize text-muted-foreground">{k.replace(/_/g, " ")}</span>
+                        <span className="font-medium">{Number(v).toFixed(1)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {qualityDrawer.quality_notes && (
+                <div>
+                  <div className="font-semibold text-sm mb-1">Notes</div>
+                  <p className="rounded-md bg-muted p-3 whitespace-pre-wrap">{qualityDrawer.quality_notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 });
+
+function friendlyModel(model?: string | null): string {
+  if (!model) return "—";
+  if (model.includes("pro-image")) return "Premium Refined";
+  if (model.includes("flash-image")) return "Fast Concept";
+  if (model.includes("gpt-5")) return "Strategy Engine";
+  return model;
+}
+
+function DecisionBadge({ decision }: { decision?: string | null }) {
+  if (!decision) return <span className="text-muted-foreground">—</span>;
+  const d = decision.toLowerCase();
+  if (d === "approve" || d === "approved" || d === "pass") {
+    return <Badge className="bg-emerald-600"><ShieldCheck className="h-3 w-3" /> Approved</Badge>;
+  }
+  if (d === "review" || d === "warn") {
+    return <Badge className="bg-amber-600"><AlertTriangle className="h-3 w-3" /> Review</Badge>;
+  }
+  if (d === "reject" || d === "rejected" || d === "fail") {
+    return <Badge variant="destructive"><XCircle className="h-3 w-3" /> Rejected</Badge>;
+  }
+  return <Badge variant="secondary">{decision}</Badge>;
+}
+
+function QualityRow({ design, onOpen }: { design: Design; onOpen: () => void }) {
+  const score = design.quality_score != null ? Number(design.quality_score) : null;
+  const decision = (design.quality_decision || "").toLowerCase();
+  const tone =
+    decision === "approve" || decision === "approved" || decision === "pass"
+      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+      : decision === "reject" || decision === "rejected" || decision === "fail"
+        ? "border-destructive/40 bg-destructive/10 text-destructive"
+        : decision
+          ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+          : "border-border bg-muted/40 text-muted-foreground";
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={`w-full inline-flex items-center justify-between gap-2 rounded-md border px-2 py-1 text-[11px] transition hover:opacity-90 ${tone}`}
+    >
+      <span className="inline-flex items-center gap-1">
+        <ShieldCheck className="h-3 w-3" />
+        Quality {score != null ? `${score.toFixed(1)}/10` : "—"}
+      </span>
+      <span className="inline-flex items-center gap-1">
+        <Layers className="h-3 w-3" />
+        {friendlyModel(design.model_used)}
+      </span>
+    </button>
+  );
+}
