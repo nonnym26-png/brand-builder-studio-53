@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, Save, Database, Check } from "lucide-react";
+import { ArrowRight, Save, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { PhaseStepper } from "@/components/PhaseStepper";
 import { listBrandProfiles, loadBrandProfile, markPhaseComplete } from "@/api/phase2.functions";
 import { saveBrandProfileDraft } from "@/api/profile.functions";
-import { PHASE_2_REQUIRED_FIELDS, getMissingRequiredFields } from "@/lib/profile.shared";
+import { getMissingRequiredFields } from "@/lib/profile.shared";
 import { PhaseChecklist, buildPhase1Checklist, derivePhase1Message, deriveBadge, deriveProjectStatus } from "@/components/brand-kit/PhaseChecklist";
 import abLogo from "@/assets/ab-logo.png";
 
