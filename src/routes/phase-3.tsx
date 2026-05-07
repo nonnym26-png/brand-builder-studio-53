@@ -63,6 +63,16 @@ type KitDoc = {
   slogans: Array<{ headline: string; explanation: string }>;
   // 8. Why Branding Matters
   whyBlocks: Array<{ title: string; explanation: string; icon: WhyIconKey }>;
+  // Why Branding Works — 4 editable stat cards used in the PDF (template-aligned)
+  stats: Array<{
+    title: string;
+    pct: string;
+    body: string;
+    source: string;
+    kind: "bar" | "compare" | "ring";
+    ringPct?: number;
+    barFill?: number;
+  }>;
   // 9. Final AB Brand Statement Footer
   footerBusinessName: string;
   footerBusinessType: string;
