@@ -491,38 +491,94 @@ function BrandKitEditor({
 
       {/* 6. Strategic Branding Process */}
       <Section title="06 · Strategic Branding Process">
-        <DarkTextarea rows={6} value={doc.process} onChange={(v) => update({ process: v })} />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {doc.processSteps.map((step, i) => {
+            const Icon = PROCESS_ICONS[step.icon];
+            return (
+              <div key={i} className="rounded-lg border p-4 space-y-2" style={{ borderColor: "#2A2A2A", background: "#111" }}>
+                <div className="flex items-center gap-2">
+                  <div className="h-9 w-9 grid place-items-center rounded" style={{ background: "#000", border: `1px solid ${GOLD}` }}>
+                    <Icon className="h-4 w-4" style={{ color: GOLD }} />
+                  </div>
+                  <div className="text-[10px] tracking-[0.25em]" style={{ color: GOLD }}>STEP {String(i + 1).padStart(2, "0")}</div>
+                </div>
+                <DarkInput value={step.title} onChange={(v) => {
+                  const next = doc.processSteps.slice(); next[i] = { ...next[i], title: v }; update({ processSteps: next });
+                }} />
+                <DarkTextarea rows={3} value={step.explanation} small onChange={(v) => {
+                  const next = doc.processSteps.slice(); next[i] = { ...next[i], explanation: v }; update({ processSteps: next });
+                }} />
+              </div>
+            );
+          })}
+        </div>
       </Section>
 
       {/* 7. Slogan / Brand Message */}
       <Section title="07 · Slogan / Brand Message">
-        <div className="space-y-3">
-          <div>
-            <Lbl>Slogan</Lbl>
-            <DarkInput value={doc.slogan} onChange={(v) => update({ slogan: v })} placeholder="Optional tagline" />
-          </div>
-          <div>
-            <Lbl>Brand Message</Lbl>
-            <DarkTextarea rows={5} value={doc.brandMessage} onChange={(v) => update({ brandMessage: v })} />
-          </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {doc.slogans.map((s, i) => (
+            <div key={i} className="rounded-lg border p-5 space-y-3" style={{ borderColor: "#2A2A2A", background: "#111" }}>
+              <div className="text-[10px] tracking-[0.25em]" style={{ color: GOLD }}>OPTION {i + 1}</div>
+              <div className="text-2xl font-bold leading-tight" style={{ color: "#fff" }}>
+                <DarkInput value={s.headline} placeholder="Slogan headline" onChange={(v) => {
+                  const next = doc.slogans.slice(); next[i] = { ...next[i], headline: v }; update({ slogans: next });
+                }} />
+              </div>
+              <div>
+                <Lbl>Why it fits</Lbl>
+                <DarkTextarea rows={4} value={s.explanation} onChange={(v) => {
+                  const next = doc.slogans.slice(); next[i] = { ...next[i], explanation: v }; update({ slogans: next });
+                }} small />
+              </div>
+            </div>
+          ))}
         </div>
       </Section>
 
       {/* 8. Why Branding Matters */}
       <Section title="08 · Why Branding Matters">
-        <DarkTextarea rows={6} value={doc.whyBranding} onChange={(v) => update({ whyBranding: v })} />
+        <div className="grid gap-3 md:grid-cols-3">
+          {doc.whyBlocks.map((b, i) => {
+            const Icon = WHY_ICONS[b.icon];
+            return (
+              <div key={i} className="rounded-lg border p-5 space-y-3 text-center" style={{ borderColor: "#2A2A2A", background: "#111" }}>
+                <div className="mx-auto h-12 w-12 grid place-items-center rounded-full" style={{ background: "#000", border: `1px solid ${GOLD}` }}>
+                  <Icon className="h-5 w-5" style={{ color: GOLD }} />
+                </div>
+                <DarkInput value={b.title} onChange={(v) => {
+                  const next = doc.whyBlocks.slice(); next[i] = { ...next[i], title: v }; update({ whyBlocks: next });
+                }} />
+                <DarkTextarea rows={4} value={b.explanation} small centered onChange={(v) => {
+                  const next = doc.whyBlocks.slice(); next[i] = { ...next[i], explanation: v }; update({ whyBlocks: next });
+                }} />
+              </div>
+            );
+          })}
+        </div>
       </Section>
 
       {/* 9. Final AB Brand Statement Footer */}
-      <div className="px-10 py-10 text-center border-t" style={{ borderColor: "#1F1F1F", background: "#000" }}>
-        <div className="text-xs tracking-[0.4em] mb-3" style={{ color: GOLD }}>ANAGLYPH BRANDING</div>
-        <DarkTextarea
-          rows={4}
-          value={doc.footerStatement}
-          onChange={(v) => update({ footerStatement: v })}
-          centered
-        />
-        <div className="mt-4 h-[2px] w-24 mx-auto" style={{ background: RED }} />
+      <div className="px-10 py-12 text-center border-t" style={{ borderColor: "#1F1F1F", background: "#000" }}>
+        <div className="text-xs tracking-[0.4em] mb-4" style={{ color: GOLD }}>ANAGLYPH BRANDING</div>
+        <div className="mx-auto max-w-3xl text-2xl md:text-3xl font-bold leading-tight tracking-tight" style={{ color: "#fff" }}>
+          {AB_STATEMENT}
+        </div>
+        <div className="mt-5 h-[2px] w-24 mx-auto" style={{ background: RED }} />
+        <div className="mt-6 grid gap-3 md:grid-cols-2 max-w-2xl mx-auto text-left">
+          <div>
+            <Lbl>Business Name</Lbl>
+            <DarkInput value={doc.footerBusinessName} onChange={(v) => update({ footerBusinessName: v })} />
+          </div>
+          <div>
+            <Lbl>Business Type / Industry</Lbl>
+            <DarkInput value={doc.footerBusinessType} onChange={(v) => update({ footerBusinessType: v })} />
+          </div>
+          <div className="md:col-span-2">
+            <Lbl>Project Note (optional)</Lbl>
+            <DarkTextarea rows={3} value={doc.footerProjectNote} onChange={(v) => update({ footerProjectNote: v })} />
+          </div>
+        </div>
       </div>
     </div>
   );
