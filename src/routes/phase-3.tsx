@@ -172,12 +172,12 @@ function Phase3() {
         coreLogoNotes:
           buildCoreLogoNotes(v),
         logoSlots: [
-          { label: "Main Logo", dataUrl: mainData ?? primaryDataUrl, isPrimary: true },
-          isIncluded("abbreviated") ? { label: "Abbreviated Logo", dataUrl: abbrData } : null,
-          isIncluded("icon") ? { label: "Icon Logo", dataUrl: iconData } : null,
-          isIncluded("black") ? { label: "Black Logo", dataUrl: blackData } : null,
-          isIncluded("white") ? { label: "White Logo", dataUrl: whiteData } : null,
-          isIncluded("additional") ? { label: "Additional Logo", dataUrl: additionalData } : null,
+          (mainData ?? primaryDataUrl) ? { label: "Main Logo", dataUrl: mainData ?? primaryDataUrl, isPrimary: true } : null,
+          abbrData && isIncluded("abbreviated") ? { label: "Abbreviated Logo", dataUrl: abbrData } : null,
+          iconData && isIncluded("icon") ? { label: "Icon Logo", dataUrl: iconData } : null,
+          blackData && isIncluded("black") ? { label: "Black Logo", dataUrl: blackData } : null,
+          whiteData && isIncluded("white") ? { label: "White Logo", dataUrl: whiteData } : null,
+          additionalData && isIncluded("additional") ? { label: "Additional Logo", dataUrl: additionalData } : null,
         ].filter(Boolean) as Array<{ label: string; dataUrl: string | null; isPrimary?: boolean }>,
         paletteNotes:
           "These colors form the official brand palette. Use HEX values for digital and convert to CMYK / Pantone for print. Always preserve the hierarchy: primary leads, secondary supports, accent highlights.",
