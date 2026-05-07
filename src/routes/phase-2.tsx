@@ -427,12 +427,21 @@ function Phase2() {
             </Button>
           </div>
 
-          <AbCreativeEngine brandProfileId={selectedId || null} />
           <DesignDnaRuleEditor
             dna={designDna.dna}
             onChange={designDna.update}
             onReset={designDna.reset}
             brandName={profile.business_name || undefined}
+          />
+          <AbCreativeEngine
+            brandProfileId={selectedId || null}
+            designDna={designDna.dna}
+            extras={{
+              fonts,
+              chosenSlogan: chosenSlogan || null,
+              elements,
+              mascot: { enabled: mascotEnabled, style: mascotStyle, idea: mascotIdea },
+            }}
           />
         </section>
       </main>
