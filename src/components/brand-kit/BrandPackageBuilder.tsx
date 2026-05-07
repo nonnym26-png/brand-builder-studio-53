@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { loadBrandPackages, saveBrandPackages, type BrandPackage, type PackageItem } from "@/api/brandPackages.functions";
+import { createOrderFromPackage } from "@/api/brandOrders.functions";
+import { OrderDrafts } from "@/components/brand-kit/OrderDrafts";
 
 const TIERS: BrandPackage[] = [
   {
@@ -79,6 +81,8 @@ export function BrandPackageBuilder({ brandProfileId }: { brandProfileId: string
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [creatingOrderId, setCreatingOrderId] = useState<string | null>(null);
+  const [ordersRefresh, setOrdersRefresh] = useState(0);
   const [context, setContext] = useState<{ business_name: string | null; industry: string | null; direction: string | null }>({ business_name: null, industry: null, direction: null });
 
   useEffect(() => {
@@ -129,6 +133,18 @@ export function BrandPackageBuilder({ brandProfileId }: { brandProfileId: string
 
   const updatePackage = (id: string, patch: Partial<BrandPackage>) => persist(packages.map((p) => p.id === id ? { ...p, ...patch } : p));
   const removePackage = (id: string) => persist(packages.filter((p) => p.id !== id));
+
+  const createOrder = async (pkg: BrandPackage) => {
+    if (!brandProfileId) return;
+    setCreatingOrderId(pkg.id);
+    try {
+      await createOrderFromPackage({ data: { brandProfileId, packageId: pkg.id } });
+      toast.success(`Order draft created from ${pkg.name}`);
+      setOrdersRefresh((n) => n + 1);
+      setTimeout(() => document.getElementById("order-drafts")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed to create order"); }
+    finally { setCreatingOrderId(null); }
+  };
 
   const proposalCount = packages.length;
 
@@ -184,14 +200,21 @@ export function BrandPackageBuilder({ brandProfileId }: { brandProfileId: string
                 key={p.id}
                 pkg={p}
                 editing={editingId === p.id}
+                creatingOrder={creatingOrderId === p.id}
                 onEdit={() => setEditingId(p.id)}
                 onDone={() => setEditingId(null)}
                 onChange={(patch) => updatePackage(p.id, patch)}
                 onRemove={() => removePackage(p.id)}
+                onCreateOrder={() => createOrder(p)}
               />
             ))}
           </div>
         )}
+      </div>
+
+      <div id="order-drafts" className="mt-6">
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Order Drafts</h3>
+        <OrderDrafts brandProfileId={brandProfileId} refreshKey={ordersRefresh} />
       </div>
     </section>
   );
@@ -227,7 +250,7 @@ function TierCard({ tpl, inProposal, onAdd, onCustomize, disabled }: { tpl: Bran
   );
 }
 
-function ProposalCard({ pkg, editing, onEdit, onDone, onChange, onRemove }: { pkg: BrandPackage; editing: boolean; onEdit: () => void; onDone: () => void; onChange: (patch: Partial<BrandPackage>) => void; onRemove: () => void }) {
+function ProposalCard({ pkg, editing, creatingOrder, onEdit, onDone, onChange, onRemove, onCreateOrder }: { pkg: BrandPackage; editing: boolean; creatingOrder: boolean; onEdit: () => void; onDone: () => void; onChange: (patch: Partial<BrandPackage>) => void; onRemove: () => void; onCreateOrder: () => void }) {
   const addItem = (label: string) => {
     if (!label.trim()) return;
     onChange({ items: [...pkg.items, { id: uid(), label: label.trim() }] });
@@ -255,6 +278,9 @@ function ProposalCard({ pkg, editing, onEdit, onDone, onChange, onRemove }: { pk
           ) : (
             <Button size="sm" variant="ghost" onClick={onEdit}><Pencil className="h-3 w-3" /> Edit</Button>
           )}
+          <Button size="sm" variant="default" onClick={onCreateOrder} disabled={creatingOrder || pkg.items.length === 0}>
+            {creatingOrder ? <Loader2 className="h-3 w-3 animate-spin" /> : <Package className="h-3 w-3" />} Create Order Draft
+          </Button>
           <Button size="sm" variant="ghost" onClick={onRemove}><Trash2 className="h-3 w-3" /></Button>
         </div>
       </div>
