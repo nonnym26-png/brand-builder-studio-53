@@ -875,7 +875,7 @@ type PV = BrandKit["publicView"];
 
 function buildCoreLogoNotes(v: PV): string {
   const dir = v.brand.logoDirection
-    ? v.brand.logoDirection === "rework"
+    ? /rework/i.test(v.brand.logoDirection)
       ? "This logo was developed by reworking the client's existing mark."
       : "This logo was designed as a brand-new concept for the business."
     : "";
