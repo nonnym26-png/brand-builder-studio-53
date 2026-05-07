@@ -11,13 +11,15 @@ export const Route = createFileRoute("/proof/$token")({
   component: ProofPage,
   errorComponent: ({ error }) => (
     <div className="min-h-screen grid place-items-center bg-background p-6 text-center">
-      <div>
-        <h1 className="text-2xl font-semibold mb-2">Proof not available</h1>
-        <p className="text-muted-foreground text-sm">{error.message}</p>
+      <div className="max-w-md">
+        <h1 className="text-2xl font-semibold mb-2">This brand kit isn't available</h1>
+        <p className="text-muted-foreground text-sm">
+          The link may have expired or been revoked. Please contact Anaglyph Branding for an updated review link.
+        </p>
       </div>
     </div>
   ),
-  head: () => ({ meta: [{ title: "Logo Proof" }] }),
+  head: () => ({ meta: [{ title: "Brand Kit Review · Anaglyph Branding" }] }),
 });
 
 type Kind = "approve_final" | "minor_revision" | "full_redesign";
@@ -76,7 +78,7 @@ function ProofPage() {
     <div className="min-h-screen bg-muted/30">
       <header className="border-b border-border bg-background">
         <div className="mx-auto max-w-5xl px-6 py-6">
-          <div className="text-xs uppercase tracking-widest text-muted-foreground">Logo Proof · AB Branding</div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">Brand Kit Review · Anaglyph Branding</div>
           <h1 className="text-3xl font-semibold mt-1">{proof.business_name || profile?.business_name}</h1>
           {profile?.industry && <div className="text-sm text-muted-foreground mt-1">{profile.industry}</div>}
         </div>
@@ -211,7 +213,7 @@ function ProofPage() {
               <div className="mt-5 flex justify-end">
                 <Button onClick={submit} disabled={!kind || busy} size="lg">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  Submit response
+                  Submit Response
                 </Button>
               </div>
             </>

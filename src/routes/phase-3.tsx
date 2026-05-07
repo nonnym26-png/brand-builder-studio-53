@@ -266,7 +266,7 @@ function Phase3() {
               <section className="rounded-lg border border-border bg-card p-4 space-y-3">
                 <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Admin actions</div>
                 <Button size="sm" variant="outline" className="w-full" onClick={refresh} disabled={loading}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Regenerate preview
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Regenerate Brand Kit Preview
                 </Button>
                 <Button
                   size="sm"
@@ -305,13 +305,24 @@ function Phase3() {
                 )}
                 {!approved && kit.adminView?.latestProof && (
                   <Button size="sm" variant="outline" className="w-full" onClick={markApproved} disabled={busy === "approve"}>
-                    <ShieldCheck className="h-3.5 w-3.5 mr-1.5" /> Mark approved manually
+                    <ShieldCheck className="h-3.5 w-3.5 mr-1.5" /> Mark Approved Manually
                   </Button>
                 )}
-                <Button size="sm" className="w-full" onClick={exportZip} disabled={busy === "export"}>
+                <Button
+                  size="sm"
+                  className="w-full"
+                  variant={approved ? "default" : "outline"}
+                  onClick={exportZip}
+                  disabled={busy === "export"}
+                >
                   {busy === "export" ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Download className="h-3.5 w-3.5 mr-1.5" />}
                   Export Brand Kit (ZIP)
                 </Button>
+                {!approved && (
+                  <p className="text-[10px] text-muted-foreground leading-snug">
+                    Tip: Export becomes the primary action once the client approves the brand kit.
+                  </p>
+                )}
               </section>
 
               <section className="rounded-lg border border-border bg-card p-4 space-y-2">
@@ -367,9 +378,15 @@ function Phase3() {
               <p className="text-xs mt-2">No approvals yet? Head back to <Link to="/phase-2" className="underline">Phase 2</Link>.</p>
             </div>
           ) : approved ? (
-            <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-4 text-sm flex items-center gap-2">
-              <Lock className="h-4 w-4 text-emerald-500" />
-              <span><strong>Brand kit approved.</strong> The client signed off — ready for final export.</span>
+            <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm">
+                <Lock className="h-4 w-4 text-emerald-600" />
+                <span><strong>Brand kit approved.</strong> The client signed off — ready for final export.</span>
+              </div>
+              <Button size="sm" onClick={exportZip} disabled={busy === "export"}>
+                {busy === "export" ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Download className="h-3.5 w-3.5 mr-1.5" />}
+                Export Brand Kit (ZIP)
+              </Button>
             </div>
           ) : null}
 
@@ -411,8 +428,18 @@ function BrandKitPreview({ kit }: { kit: BrandKit }) {
           <div className="aspect-[16/10] w-full bg-muted/40 rounded-xl grid place-items-center overflow-hidden mt-3">
             <img src={v.primary.image_url} alt="Primary logo" className="max-h-full max-w-full object-contain p-8" />
           </div>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{v.whyThisDirection}</p>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap break-words">{v.whyThisDirection}</p>
           <div className="mt-3 text-xs"><strong>Recommended use:</strong> {v.usageGuide.primary}</div>
+        </div>
+      )}
+
+      {!v.primary && (
+        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
+          <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-40" />
+          <div className="text-sm font-medium">No primary logo selected yet</div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Approve a refined concept in Phase 2 to populate the brand kit preview.
+          </p>
         </div>
       )}
 
