@@ -125,7 +125,9 @@ function Phase3() {
       const colors = (v.palette || []).map((c) => ({
         name: c.name || c.role || "Color",
         hex: (c.hex || "#000000").toUpperCase(),
-        usage: c.role === "primary"
+        usage: c.note && String(c.note).trim()
+          ? String(c.note)
+          : c.role === "primary"
           ? "Primary brand color — logo, headlines, hero areas."
           : c.role === "secondary"
           ? "Secondary — supporting blocks, alt logo lockups."
