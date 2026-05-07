@@ -1579,23 +1579,24 @@ async function buildAbBrandKitPdf(d: {
   y += row2H + 14;
 
   /* ----- Section 5: Brand Application Recommendations (anchored to bottom of page 1) ----- */
-  const apps = d.doc.applications.filter((a) => a.selected && a.dataUrl);
+  // Render Section 5 with any selected applications, image or not.
+  const apps = d.doc.applications.filter((a) => a.selected && (a.title?.trim() || a.dataUrl)).slice(0, 5);
   if (apps.length > 0) {
     const cardsH = 150;
     const HEADER_H_P1 = 22;
-    // Anchor to bottom of page 1 (leave room for footer).
     const FOOTER_SAFE_P1 = 70;
-    const py1 = pageH - FOOTER_SAFE_P1 - cardsH - HEADER_H_P1;
+    const py1 = pageH - FOOTER_SAFE_P1 - cardsH;
     sectionHeader("5", "Brand Application Recommendations", margin, py1, contentW);
     card(margin, py1 + HEADER_H_P1, contentW, cardsH - HEADER_H_P1);
-    const inner = { x: margin + 12, y: py1 + 32, w: contentW - 24, h: cardsH - 50 };
-    const maxCols = Math.min(apps.length, 5);
+    const inner = { x: margin + 14, y: py1 + HEADER_H_P1 + 12, w: contentW - 28, h: cardsH - HEADER_H_P1 - 24 };
+    const maxCols = apps.length;
     const gap = 10;
     const cardW = (inner.w - gap * (maxCols - 1)) / maxCols;
-    const imgH = inner.h - 30;
-    for (let i = 0; i < Math.min(apps.length, 5); i++) {
+    const imgH = inner.h - 28;
+    for (let i = 0; i < apps.length; i++) {
       const a = apps[i];
       const x = inner.x + i * (cardW + gap);
+      // Tile background
       pdf.setFillColor(20, 20, 20);
       pdf.rect(x, inner.y, cardW, imgH, "F");
       if (a.dataUrl) {
@@ -1608,13 +1609,23 @@ async function buildAbBrandKitPdf(d: {
           const fmt: "PNG" | "JPEG" = a.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
           pdf.addImage(a.dataUrl, fmt, x + (cardW - w) / 2, inner.y + (imgH - h) / 2, w, h);
         } catch { /* skip */ }
+      } else {
+        // Placeholder: red number badge centered
+        pdf.setTextColor(rr, rg, rb);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(28);
+        pdf.text(`${i + 1}`, x + cardW / 2, inner.y + imgH / 2 + 8, { align: "center" });
       }
+      // Caption under tile
       pdf.setTextColor(rr, rg, rb);
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(7);
-      pdf.text(`${i + 1}.`, x, inner.y + imgH + 14);
-      pdf.setTextColor(20, 20, 20);
-      pdf.text(pdf.splitTextToSize((a.title || "").toUpperCase(), cardW - 12).slice(0, 2), x + 12, inner.y + imgH + 14);
+      pdf.setFontSize(6.5);
+      pdf.text(`${i + 1}.`, x + 2, inner.y + imgH + 14);
+      pdf.setTextColor(25, 25, 25);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(6.5);
+      const tLines = pdf.splitTextToSize((a.title || "").toUpperCase(), cardW - 14);
+      pdf.text(tLines.slice(0, 2), x + 12, inner.y + imgH + 14, { charSpace: 0.3 });
     }
   }
 
