@@ -183,10 +183,10 @@ function Phase3() {
         colors: colors.length
           ? colors
           : [
-              { name: "Primary", hex: "#C8323C", usage: "Primary brand color." },
-              { name: "Secondary", hex: "#1A1A1A", usage: "Supporting tone." },
-              { name: "Accent", hex: "#C9A24B", usage: "Highlights and CTAs." },
-              { name: "Neutral", hex: "#F5F5F5", usage: "Backgrounds and body text." },
+              { name: "Primary Red", hex: "#C92222", usage: "Primary brand color — logo, headlines, callouts." },
+              { name: "Secondary Blue", hex: "#1F4FA8", usage: "Secondary brand color — supporting blocks, highlights." },
+              { name: "Support Black", hex: "#111111", usage: "Strong contrast — typography and dark surfaces." },
+              { name: "Neutral Gray", hex: "#9D9D9D", usage: "Borders, cards, and background separation." },
             ],
         fonts: [
           {
