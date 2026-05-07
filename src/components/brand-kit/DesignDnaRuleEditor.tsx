@@ -53,8 +53,14 @@ export function DesignDnaRuleEditor({
             {isCustom && <Badge variant="secondary" className="ml-1 text-[10px]">Customized</Badge>}
           </h3>
           <p className="text-xs text-muted-foreground">
-            These rules are injected into every premium render{brandName ? <> for <strong>{brandName}</strong></> : null}. Edits autosave and apply on next render.
+            Hard constraints injected into <strong>every</strong> AB Creative Engine render{brandName ? <> for <strong>{brandName}</strong></> : null}. Use semicolon- or middot-separated phrases. Edits autosave locally and apply on the next generation.
           </p>
+          <ul className="mt-2 text-[11px] text-muted-foreground space-y-0.5">
+            <li><strong>Must have</strong> — non-negotiable visual qualities (e.g. clear readability, balanced composition).</li>
+            <li><strong>Avoid</strong> — explicit forbidden treatments (e.g. busy backgrounds, distorted text).</li>
+            <li><strong>Quality bar</strong> — the pass/fail threshold the design must clear.</li>
+            <li><strong>Formula</strong> — the recipe the AI should follow when composing the mark.</li>
+          </ul>
         </div>
         <Button variant="ghost" size="sm" onClick={onReset} disabled={!isCustom}>
           <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Reset
