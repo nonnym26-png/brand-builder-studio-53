@@ -193,6 +193,7 @@ export type Database = {
           phase_2_refinement_notes: string | null
           phase_2_rendering_status: string | null
           phase_2_slogans: Json | null
+          phase_2_uploaded_logos: Json | null
           phase_3_assets: Json | null
           phase_3_completed_at: string | null
           phone_number: string | null
@@ -336,6 +337,7 @@ export type Database = {
           phase_2_refinement_notes?: string | null
           phase_2_rendering_status?: string | null
           phase_2_slogans?: Json | null
+          phase_2_uploaded_logos?: Json | null
           phase_3_assets?: Json | null
           phase_3_completed_at?: string | null
           phone_number?: string | null
@@ -479,6 +481,7 @@ export type Database = {
           phase_2_refinement_notes?: string | null
           phase_2_rendering_status?: string | null
           phase_2_slogans?: Json | null
+          phase_2_uploaded_logos?: Json | null
           phase_3_assets?: Json | null
           phase_3_completed_at?: string | null
           phone_number?: string | null
