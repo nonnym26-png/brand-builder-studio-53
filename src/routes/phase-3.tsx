@@ -1,6 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Database, Download, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import {
+  Database, Download, Loader2, RefreshCw, Sparkles,
+  Search, Compass, Palette, Package, Layers, Eye,
+  Award, ShieldCheck, Briefcase,
+} from "lucide-react";
 import JSZip from "jszip";
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
@@ -47,28 +51,43 @@ type KitDoc = {
     selected: boolean;
   }>;
   // 6. Strategic Branding Process
-  process: string;
+  processSteps: Array<{ title: string; explanation: string; icon: ProcessIconKey }>;
   // 7. Slogan / Brand Message
-  slogan: string;
-  brandMessage: string;
+  slogans: Array<{ headline: string; explanation: string }>;
   // 8. Why Branding Matters
-  whyBranding: string;
+  whyBlocks: Array<{ title: string; explanation: string; icon: WhyIconKey }>;
   // 9. Final AB Brand Statement Footer
-  footerStatement: string;
+  footerBusinessName: string;
+  footerBusinessType: string;
+  footerProjectNote: string;
 };
 
-const DEFAULT_PROCESS =
-  "Phase 1 — Discovery & Intake: We capture the business story, audience, and visual direction.\n" +
-  "Phase 2 — Logo Generation & Refinement: We design, revise, and approve a signature mark.\n" +
-  "Phase 3 — Brand Kit Delivery: We assemble the complete brand system for production-ready use.";
+const AB_STATEMENT = "WE DESIGN THE BRAND FIRST, THEN BUILD THE MATERIALS THAT MAKE IT VISIBLE.";
 
-const DEFAULT_WHY =
-  "Branding is more than a logo — it is the visual promise your business makes every time a customer sees you. " +
-  "A consistent, professional brand builds trust, commands premium pricing, and turns first-time buyers into loyal advocates.";
+type ProcessIconKey = "search" | "compass" | "palette" | "package" | "layers" | "eye";
+type WhyIconKey = "award" | "shield" | "briefcase";
 
-const DEFAULT_FOOTER =
-  "This Brand Kit is the official Anaglyph Branding identity system for your business. " +
-  "Every element has been crafted for print, digital, signage, and apparel. Use it consistently — and your brand will speak before you do.";
+const PROCESS_ICONS: Record<ProcessIconKey, React.ComponentType<{ className?: string }>> = {
+  search: Search, compass: Compass, palette: Palette, package: Package, layers: Layers, eye: Eye,
+};
+const WHY_ICONS: Record<WhyIconKey, React.ComponentType<{ className?: string }>> = {
+  award: Award, shield: ShieldCheck, briefcase: Briefcase,
+};
+
+const DEFAULT_PROCESS: KitDoc["processSteps"] = [
+  { icon: "search",   title: "Discovery",          explanation: "We capture the business story, audience, market, and visual direction." },
+  { icon: "compass",  title: "Strategy",           explanation: "We define positioning, tone, and the visual language that will guide every decision." },
+  { icon: "palette",  title: "Identity Design",    explanation: "We design a signature logo system, color palette, and typography built for recognition." },
+  { icon: "package",  title: "Brand Assets",       explanation: "We deliver every approved logo lockup, color, font, and supporting visual element." },
+  { icon: "layers",   title: "Applications",       explanation: "We extend the brand into print, signage, apparel, vehicles, packaging, and digital." },
+  { icon: "eye",      title: "Visibility & Trust", explanation: "We position the brand to be seen, remembered, and chosen by the right customers." },
+];
+
+const DEFAULT_WHY: KitDoc["whyBlocks"] = [
+  { icon: "award",     title: "Recognition",          explanation: "A consistent visual identity makes your business instantly recognisable across every touchpoint — print, digital, signage, and apparel." },
+  { icon: "shield",    title: "Trust",                explanation: "Customers trust brands that look intentional. A professional identity signals quality, credibility, and longevity." },
+  { icon: "briefcase", title: "Professional Presence",explanation: "A complete brand system positions you alongside the most established names in your industry — and commands premium pricing." },
+];
 
 function Phase3() {
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
@@ -163,12 +182,12 @@ function Phase3() {
           buildIconNotes(v),
         visualElements: buildVisualElements(v),
         applications: buildApplications(v),
-        process: DEFAULT_PROCESS,
-        slogan: pickSlogan(v),
-        brandMessage:
-          buildBrandMessage(v),
-        whyBranding: DEFAULT_WHY,
-        footerStatement: DEFAULT_FOOTER,
+        processSteps: DEFAULT_PROCESS.map((s) => ({ ...s })),
+        slogans: buildSlogans(v),
+        whyBlocks: DEFAULT_WHY.map((b) => ({ ...b })),
+        footerBusinessName: v.brand.businessName || "",
+        footerBusinessType: v.brand.industry || "",
+        footerProjectNote: "",
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load");
