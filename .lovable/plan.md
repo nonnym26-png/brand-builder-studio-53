@@ -1,103 +1,96 @@
-# Three-Phase Workflow: Intake → Concepts → Brand Kit
 
-Currently the app has `/` (logo builder), `/phase-2` (concept generator), and `/logo-studio` (rendering). There is no dedicated **Phase 1 intake** page, and **Phase 3 finalization** does not exist. We'll add a clear 3-phase workflow with a persistent top-nav stepper and three buttons that always show where the user is.
+# AB Creative Engine — Plan
 
-## New routes
+A professional 2-stage AI workflow that replaces the current single-shot premium logo renderer. Stage 1 writes a creative brief + image prompt with a reasoning model. Stage 2 renders the image. Revisions reuse the locked brief and only mutate what the user asks for.
 
-```
-src/routes/
-  phase-1.tsx   → /phase-1   (Complete Intake)
-  phase-2.tsx   → already exists, will be expanded
-  phase-3.tsx   → /phase-3   (Finalize Brand Kit + SVG export)
-```
+## Decisions (easiest path)
+- **Text model**: `openai/gpt-5` via Lovable AI Gateway (no extra API key).
+- **Image model**: `google/gemini-3-pro-image-preview` (Nano Banana Pro) via Gateway. True OpenAI `gpt-image-1` is not on the Gateway and would require adding your own `OPENAI_API_KEY` — skipped for v1.
+- **Auth**: none (single-operator). Tables get a nullable `user_id` column for later.
+- **Intake source**: existing `brand_profiles` row (Phase 1 + Phase 2 already collect everything in your spec). No new `projects` / `brand_intake` tables.
 
-## Shared component: `PhaseStepper`
+## Database (3 new tables, all RLS-disabled like existing pattern)
 
-A new component `src/components/PhaseStepper.tsx` rendered in the header of `/`, `/phase-1`, `/phase-2`, `/phase-3`. Three pill buttons:
+```text
+creative_briefs
+  id, brand_profile_id (fk), brief_json (jsonb), final_prompt (text),
+  negative_prompt (text), revision_of (nullable fk creative_briefs.id),
+  user_id (nullable), created_at
 
-- **Phase 1 — Complete Intake** → `/phase-1`
-- **Phase 2 — Design Concepts** → `/phase-2`
-- **Phase 3 — Finalize Brand Kit** → `/phase-3`
+generated_designs
+  id, brand_profile_id (fk), creative_brief_id (fk),
+  image_url (text), prompt_used (text), design_type (text),
+  revision_number (int default 0), parent_design_id (nullable),
+  is_approved (bool default false), user_id (nullable), created_at
 
-Each button shows a check when its data is complete (intake fields filled, concept selected, kit exported). Active phase is highlighted; uses `Link` with `activeProps`.
-
-Also added to the header on `/` (current Builder) and `/logo-studio` so the user can always see the workflow.
-
-## Phase 1 — `/phase-1` (Complete Intake)
-
-A focused intake form that writes to `brand_profiles`. Reuses `PHASE_2_REQUIRED_FIELDS` from `src/server/profile.shared.ts` to drive the field list and a live "missing fields" checklist. Sections:
-
-- Business basics (name, client, industry, stage, description)
-- Audience (target customer, pain points, problem solved, differentiator)
-- Brand voice (goals, personality, feeling, words to/not to describe)
-- Vision (client vision, inspiration, must-haves, taglines)
-- Direction (logo type prefs, color mood, usage, avoidance)
-
-Server function `saveProfile` (new, in `src/api/profile.functions.ts` if not already there) upserts the row and returns the id. A "Continue to Phase 2 →" button is enabled only when `getMissingRequiredFields()` returns empty.
-
-## Phase 2 — `/phase-2` (expanded)
-
-Keeps the existing concept gallery and adds:
-
-1. **Color scheme picker** — explicit grid of curated palettes from `PALETTES` plus manual hex inputs for primary / secondary / accent / neutral (already partially present; will be promoted into a labeled "Color Scheme" panel).
-2. **Multi-font selection** — heading + body + accent font dropdowns sourced from `FONTS` (Sans, Serif, Display, Script, Mono groups). Live preview applied to the concept renderings.
-3. **Slogan generation** — new server function `generateSlogans` (Lovable AI Gateway, `google/gemini-2.5-flash`, tool-calling) returns 6 tagline candidates from the brand profile. UI: "Generate slogans" button → list with click-to-apply.
-4. **Brand elements** — multi-select chips (badge, ribbon, frame, monogram bracket, divider, dot, line, swoosh) feeding into the logo prompt.
-5. **Mascots** — toggle + mascot style picker (geometric, line-art, mythological, animal, abstract figure). When enabled, the rendering prompt requests a mascot mark.
-
-The existing AI direction generator and concept cards remain. A "Continue to Phase 3 →" button is enabled once a concept is selected and saved.
-
-## Phase 3 — `/phase-3` (new)
-
-Pulls the selected concept (`selected_logo_concept` on `brand_profiles`) and lets the user finalize the brand kit:
-
-- **Chosen logo** — large preview (light / dark / brand / mono / mark-only)
-- **Final palette** — locked from Phase 2, with hex / RGB / CMYK display
-- **Final typography** — heading / body / accent samples
-- **Brand kit assets** — generated and downloadable:
-  - SVG: primary lockup, mark only, wordmark only, stacked, horizontal, black, white, one-color
-  - PNG: light + dark renders (via `html-to-image`)
-  - PDF: full brand kit (reuses `exportBrandKitPDF`)
-  - ZIP bundle: all SVGs + PNGs + PDF in one download (using `jszip`)
-- **Save final kit** — writes a `phase_3_completed_at` timestamp + asset manifest JSON to `brand_profiles`.
-
-## Database
-
-Add columns to `brand_profiles` (migration):
-
-```
-phase_1_completed_at  timestamptz
-phase_2_completed_at  timestamptz
-phase_3_completed_at  timestamptz
-phase_2_slogans       jsonb
-phase_2_elements      jsonb
-phase_2_mascot        jsonb
-phase_3_assets        jsonb
+revision_requests
+  id, brand_profile_id (fk), generated_design_id (fk),
+  user_request (text), revised_prompt (text), revised_image_url (text),
+  new_design_id (nullable fk generated_designs.id),
+  user_id (nullable), created_at
 ```
 
-These let `PhaseStepper` show check-marks and let Phase 3 know when the kit is finalized.
+Image storage: base64 from Gateway is uploaded to a new public Supabase Storage bucket `ab-designs/`; only the public URL is stored in DB. (Avoids storing huge base64 in Postgres.)
 
-## Files added / edited
+## Server functions (TanStack `createServerFn`, in `src/api/abCreativeEngine.functions.ts`)
 
-**Add**
-- `src/components/PhaseStepper.tsx`
-- `src/routes/phase-1.tsx`
-- `src/routes/phase-3.tsx`
-- `src/api/slogans.functions.ts` (+ optional shared in `src/server/slogans.server.ts`)
-- `src/components/brand-kit/exportBrandKitZip.ts`
+1. `generateAbDesign({ brandProfileId, directionOverrides? })`
+   - Loads `brand_profiles` row.
+   - **Step A — Brief**: calls `openai/gpt-5` with tool-calling (structured JSON) to produce a creative brief: `{ concept, audience_lens, mood, mark_type, palette, typography, layout, usage_targets, do_not_list }`.
+   - **Step B — Prompt**: second `openai/gpt-5` call that takes the brief + the Design DNA quality rules and emits `{ final_prompt, negative_prompt }`.
+   - **Step C — Render**: calls `google/gemini-3-pro-image-preview` with `final_prompt`. Uploads PNG to `ab-designs/`.
+   - Inserts `creative_briefs` + `generated_designs`. Returns the new design row.
 
-**Edit**
-- `src/routes/__root.tsx` — no change (stepper lives per-page header, not global), unless we want it globally; we'll keep it per-page for now.
-- `src/routes/index.tsx` — replace the lone "Phase 2 →" link with `<PhaseStepper />`.
-- `src/routes/phase-2.tsx` — add Color Scheme panel, font triple-picker, slogan generator, elements chips, mascot toggle, Continue button.
-- `src/routes/logo-studio.tsx` — render `<PhaseStepper />` in header.
-- `src/api/phase2.functions.ts` — add `saveSlogans`, `saveElements`, `saveMascot`, `markPhaseComplete(phase)` helpers.
-- `src/components/brand-kit/exportPdf.ts` — small extension to also return the PDF blob (for ZIP).
-- `bun add jszip` for ZIP bundling.
+2. `reviseAbDesign({ generatedDesignId, userRequest })`
+   - Loads parent design + its locked brief.
+   - Detects "start over" → routes to `generateAbDesign`.
+   - Otherwise calls `openai/gpt-5` with the brief + user request + a fixed revision-intent map (your "more bold / less cartoon / more mascot / transparent background" definitions) to produce a **mutated prompt** that preserves business name, mark type, palette unless the user changes it.
+   - Renders via Nano Banana Pro (or edits the previous image with the same model when the request is small — supported by Gateway image-edit). Uploads, inserts new `generated_designs` row with `parent_design_id` + `revision_number = parent + 1`, and a `revision_requests` row.
 
-## Acceptance
+3. `listAbDesigns({ brandProfileId })` — gallery feed (newest first, grouped by `parent_design_id`).
+4. `approveAbDesign({ generatedDesignId })` — flips `is_approved`.
 
-1. Header on `/`, `/phase-1`, `/phase-2`, `/phase-3`, `/logo-studio` shows three connected buttons; current phase highlighted; completed phases show a check.
-2. Phase 1 lists all required intake fields, blocks Continue until complete, saves to backend.
-3. Phase 2 has clearly labeled Color Scheme, Fonts (3 selectors), Slogans (AI generated), Elements, Mascots panels in addition to the existing concept gallery.
-4. Phase 3 displays the chosen concept and offers SVG, PNG, PDF, and ZIP downloads of the full brand kit.
+All three use the existing `requireSupabaseAuth` pattern only if/when auth is added later; for now they're public server functions.
+
+### Quality enforcement (built into Step B prompt)
+The prompt-writer system message hard-codes your "Design Quality Rules":
+exact business name spelling · limited palette · no mockup background unless requested · no clipart · explicit layout/typography/color direction · negative prompt always populated with: "blurry text, misspelled words, distorted letters, mockup scene, generic clipart, watermark, busy background, extra letters".
+
+## UI changes
+
+1. **`/phase-2` page** — replace the current "Premium Logo Render" section with an **AB Creative Engine** panel:
+   - Big "Generate Design" button with the 5-step progress strip (Reviewing → Direction → Prompt → Rendering → Saving) animated by the server function lifecycle.
+   - Below: **Generated Design Gallery** (grid of designs from `generated_designs`, newest first, with revision lineage shown as connected cards).
+   - Per-card actions: View brief, View prompt, Download PNG, Approve, Revise.
+
+2. **`RevisionRequestPanel`** (new component, `src/components/brand-kit/RevisionRequestPanel.tsx`)
+   - Modal opened from a card.
+   - Free-text "what should change?" + quick-chip buttons: "More professional", "More bold", "Less cartoon", "More mascot", "Transparent background", "Start over".
+   - On submit calls `reviseAbDesign`.
+
+3. **Brief / Prompt drawer** — read-only side panel showing `brief_json` (pretty) and `final_prompt` for transparency. Doubles as the admin view since you're solo.
+
+4. **Phase 1 / Phase 2 forms**: no changes — existing `brand_profiles` schema already covers every spec field (industry, services, target customer, personality, colors, colors_to_avoid, mascot ideas, typography prefs, design_usage, avoid lists, premium/playful/etc. via `brand_personality` array, mark type via `logo_type_preferences`, output background via a small new section we'll add to Phase 2).
+
+   One small Phase 2 add: a "Background" radio (white / transparent / dark / mockup-free) and "Output count" (1 vs 4) — saved into `brand_profiles.phase_2_refinement_notes` as JSON to avoid a migration.
+
+## Files to create / edit
+
+Create:
+- `src/api/abCreativeEngine.functions.ts` — the 4 server functions above.
+- `src/server/abCreativeEngine.server.ts` — Gateway HTTP helpers, brief/prompt system prompts, revision intent map, storage upload helper.
+- `src/components/brand-kit/AbCreativeEnginePanel.tsx` — generator + progress UI.
+- `src/components/brand-kit/AbDesignGallery.tsx` — grid + lineage.
+- `src/components/brand-kit/RevisionRequestPanel.tsx` — modal + quick chips.
+- `src/components/brand-kit/BriefPromptDrawer.tsx` — transparency drawer.
+- Migration: 3 new tables + storage bucket `ab-designs` (public read).
+
+Edit:
+- `src/routes/phase-2.tsx` — swap the premium-render block for `<AbCreativeEnginePanel />` + `<AbDesignGallery />`.
+- Leave `src/api/premiumLogoImage.functions.ts` in place (unused) so nothing else breaks; we can delete it in a follow-up once you've confirmed the new flow.
+
+## What's NOT in v1
+- No auth, no `user_roles`, no admin route — the gallery + drawer give you everything an admin needs as the only operator. Easy to layer on later.
+- No standalone "Brand Intake Form" / "Creative Direction Form" pages — Phase 1 + Phase 2 already are those.
+- No `gpt-image-1` (would need your own OpenAI key — happy to add as a follow-up).
+- No "Send proof" email — follow-up once we add an email connector.

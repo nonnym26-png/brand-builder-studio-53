@@ -22,6 +22,7 @@ import { PALETTES } from "@/components/brand-kit/palettes";
 import { FONTS, type FontKey } from "@/components/brand-kit/types";
 import { CustomFontUploader, useCustomFonts } from "@/components/brand-kit/CustomFontUploader";
 import { DesignDnaRuleEditor, useDesignDna } from "@/components/brand-kit/DesignDnaRuleEditor";
+import { AbCreativeEngine } from "@/components/brand-kit/AbCreativeEngine";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -448,6 +449,7 @@ function Phase2() {
             const selectedConcept = concepts.find((c) => c.id === selectedConceptId) || null;
             return (
               <>
+              <AbCreativeEngine brandProfileId={selectedId || null} />
               <DesignDnaRuleEditor
                 dna={designDna.dna}
                 onChange={designDna.update}
