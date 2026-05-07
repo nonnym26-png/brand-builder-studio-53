@@ -1722,7 +1722,218 @@ async function buildAbBrandKitPdf(d: {
     }
   }
 
+  /* ============== PAGE 3 — Branding Impact Infographics ============== */
+  drawBrandingImpactPage({
+    pdf, pageW, pageH, margin, contentW,
+    rr, rg, rb, gr, gg, gb,
+    abLogo: d.abLogoDataUrl ?? null,
+    drawBg, sectionHeader, card,
+    onBeforePage: () => {
+      drawFooter();
+      pdf.addPage();
+      pageNum += 1;
+    },
+  });
+
   drawFooter();
   const safe = (d.businessName || "Brand").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "Brand";
   pdf.save(`${safe}-Brand-Kit.pdf`);
+}
+
+/** Render the "Why Branding Works" infographic page (charts + percentages). */
+function drawBrandingImpactPage(opts: {
+  pdf: jsPDF;
+  pageW: number;
+  pageH: number;
+  margin: number;
+  contentW: number;
+  rr: number; rg: number; rb: number;
+  gr: number; gg: number; gb: number;
+  abLogo: { dataUrl: string; format: "PNG" | "JPEG" } | null;
+  drawBg: () => void;
+  sectionHeader: (n: string, title: string, x: number, yy: number, w: number) => void;
+  card: (x: number, yy: number, w: number, h: number) => void;
+  onBeforePage: () => void;
+}) {
+  const { pdf, pageW, pageH, margin, contentW, rr, rg, rb, abLogo, drawBg, sectionHeader, card, onBeforePage } = opts;
+
+  onBeforePage();
+  drawBg();
+
+  // Header strip
+  let y = margin;
+  if (abLogo) {
+    try {
+      const props = pdf.getImageProperties(abLogo.dataUrl);
+      const h = 36;
+      const w = (props.width / props.height) * h;
+      pdf.addImage(abLogo.dataUrl, abLogo.format, margin, y, w, h);
+    } catch { /* skip */ }
+  }
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(11);
+  pdf.text("ANAGLYPH BRANDING", margin + 46, y + 16, { charSpace: 1 });
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.setTextColor(200, 200, 200);
+  pdf.text("The measurable impact of strong, consistent branding.", margin + 46, y + 30);
+  y += 50;
+
+  sectionHeader("9", "Why Branding Works — Proof in Numbers", margin, y, contentW);
+  y += 30;
+
+  // 2x2 grid of stat cards
+  const gap = 14;
+  const cardW = (contentW - gap) / 2;
+  const cardH = 150;
+  const stats = [
+    {
+      pct: "10–20%",
+      title: "GROWTH FROM CONSISTENCY",
+      body: "Consistent brand presentation is associated with a 10–20% increase in overall growth.",
+      source: "Marq / Lucidpress brand consistency findings",
+      kind: "bar" as const,
+      barFill: 0.18,
+    },
+    {
+      pct: "3–4×",
+      title: "BRAND VISIBILITY",
+      body: "Consistent brands are 3–4× more likely to receive visibility.",
+      source: "Marq",
+      kind: "compare" as const,
+    },
+    {
+      pct: "81%",
+      title: "PURCHASE TRUST",
+      body: "81% of consumers take trust into account when making a purchase decision.",
+      source: "Edelman",
+      kind: "ring" as const,
+      ringPct: 0.81,
+    },
+    {
+      pct: "92%",
+      title: "RECOMMENDATION TRUST",
+      body: "92% of consumers trust recommendations from friends and family over other forms of advertising.",
+      source: "Nielsen",
+      kind: "ring" as const,
+      ringPct: 0.92,
+    },
+  ];
+
+  for (let i = 0; i < stats.length; i++) {
+    const s = stats[i];
+    const cx = margin + (i % 2) * (cardW + gap);
+    const cy = y + Math.floor(i / 2) * (cardH + gap);
+    card(cx, cy, cardW, cardH);
+
+    // Left: visual
+    const visW = cardW * 0.42;
+    const visX = cx + 14;
+    const visY = cy + 18;
+    const visH = cardH - 36;
+
+    if (s.kind === "ring") {
+      // Percentage ring (approximated with arcs via segments)
+      const cxr = visX + visW / 2;
+      const cyr = visY + visH / 2;
+      const radius = Math.min(visW, visH) / 2 - 6;
+      // Track
+      pdf.setDrawColor(230, 230, 230);
+      pdf.setLineWidth(8);
+      pdf.circle(cxr, cyr, radius, "S");
+      // Progress (segmented polyline)
+      pdf.setDrawColor(rr, rg, rb);
+      pdf.setLineWidth(8);
+      const seg = Math.max(8, Math.round(48 * (s.ringPct ?? 1)));
+      const total = Math.round(48 * (s.ringPct ?? 1));
+      const startA = -Math.PI / 2;
+      let prev: [number, number] | null = null;
+      for (let k = 0; k <= total; k++) {
+        const a = startA + (k / 48) * Math.PI * 2;
+        const px = cxr + Math.cos(a) * radius;
+        const py = cyr + Math.sin(a) * radius;
+        if (prev) pdf.line(prev[0], prev[1], px, py);
+        prev = [px, py];
+      }
+      void seg;
+      pdf.setTextColor(20, 20, 20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(20);
+      pdf.text(s.pct, cxr, cyr + 6, { align: "center" });
+    } else if (s.kind === "bar") {
+      // Two horizontal bars: baseline vs branded
+      const barH = 14;
+      const baseY = visY + visH / 2 - barH - 6;
+      const brandY = visY + visH / 2 + 6;
+      pdf.setFillColor(230, 230, 230);
+      pdf.rect(visX, baseY, visW, barH, "F");
+      pdf.setFillColor(180, 180, 180);
+      pdf.rect(visX, baseY, visW * 0.5, barH, "F");
+      pdf.setFillColor(245, 215, 215);
+      pdf.rect(visX, brandY, visW, barH, "F");
+      pdf.setFillColor(rr, rg, rb);
+      pdf.rect(visX, brandY, visW * (0.5 + (s.barFill ?? 0.18)), barH, "F");
+      pdf.setTextColor(80, 80, 80);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(6.5);
+      pdf.text("BASELINE", visX, baseY - 3);
+      pdf.setTextColor(rr, rg, rb);
+      pdf.text("CONSISTENT BRAND", visX, brandY - 3);
+      pdf.setTextColor(20, 20, 20);
+      pdf.setFontSize(16);
+      pdf.text(s.pct, visX + visW, brandY + barH + 14, { align: "right" });
+    } else {
+      // Compare 1x vs ~3.5x stacked blocks
+      const blockW = 14;
+      const baseH = 18;
+      const brandH = baseH * 3.5;
+      const baseX = visX + visW * 0.25 - blockW / 2;
+      const brandX = visX + visW * 0.7 - blockW / 2;
+      const floorY = visY + visH - 14;
+      pdf.setFillColor(200, 200, 200);
+      pdf.rect(baseX, floorY - baseH, blockW, baseH, "F");
+      pdf.setFillColor(rr, rg, rb);
+      pdf.rect(brandX, floorY - brandH, blockW, brandH, "F");
+      pdf.setTextColor(80, 80, 80);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(6.5);
+      pdf.text("OTHERS", baseX + blockW / 2, floorY + 8, { align: "center" });
+      pdf.setTextColor(rr, rg, rb);
+      pdf.text("CONSISTENT", brandX + blockW / 2, floorY + 8, { align: "center" });
+      pdf.setTextColor(20, 20, 20);
+      pdf.setFontSize(18);
+      pdf.text(s.pct, brandX + blockW / 2, floorY - brandH - 6, { align: "center" });
+    }
+
+    // Right: text block
+    const txX = cx + 14 + visW + 12;
+    const txW = cardW - (txX - cx) - 14;
+    pdf.setTextColor(rr, rg, rb);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8);
+    pdf.text(s.title, txX, cy + 22, { charSpace: 0.6 });
+    pdf.setTextColor(30, 30, 30);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    const bodyLines = pdf.splitTextToSize(s.body, txW);
+    pdf.setLineHeightFactor(1.5);
+    pdf.text(bodyLines, txX, cy + 38);
+    pdf.setTextColor(120, 120, 120);
+    pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(6.5);
+    pdf.text(`Source: ${s.source}`, txX, cy + cardH - 14);
+  }
+
+  // Takeaway strip
+  const ty = y + 2 * (cardH + gap) + 4;
+  pdf.setFillColor(rr, rg, rb);
+  pdf.rect(margin, ty, contentW, 28, "F");
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.text(
+    "STRONG BRANDING IMPROVES RECOGNITION  ·  CONSISTENCY DRIVES VISIBILITY  ·  TRUST DRIVES BUYING DECISIONS",
+    pageW / 2, ty + 18, { align: "center", charSpace: 0.6 },
+  );
 }
