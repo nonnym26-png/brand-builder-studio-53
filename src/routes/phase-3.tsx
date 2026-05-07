@@ -94,6 +94,10 @@ function Phase3() {
         : (data.adminView?.allApprovedAssets?.[0] ?? null);
       setPrimaryLogo(logo as LogoAsset | null);
 
+      const primaryDataUrl = logo
+        ? await fetchAsDataUrl(logo.image_url).then((r) => r?.dataUrl ?? null).catch(() => null)
+        : null;
+
       const colors = (v.palette || []).map((c) => ({
         name: c.name || c.role || "Color",
         hex: (c.hex || "#000000").toUpperCase(),
@@ -109,6 +113,13 @@ function Phase3() {
       setDoc({
         coreLogoNotes:
           buildCoreLogoNotes(v),
+        logoSlots: [
+          { label: "Primary Logo", dataUrl: primaryDataUrl, isPrimary: true },
+          { label: "Simplified Mark", dataUrl: null },
+          { label: "Black Version", dataUrl: null },
+          { label: "White Version", dataUrl: null },
+          { label: "Icon Only", dataUrl: null },
+        ],
         paletteNotes:
           "These colors form the official brand palette. Use HEX values for digital and convert to CMYK / Pantone for print. Always preserve the hierarchy: primary leads, secondary supports, accent highlights.",
         colors: colors.length
