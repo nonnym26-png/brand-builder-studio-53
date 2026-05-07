@@ -253,7 +253,7 @@ export const reviseAbDesign = createServerFn({ method: "POST" })
       .from("creative_briefs")
       .insert({
         brand_profile_id: parent.brand_profile_id,
-        brief_json: brief.brief_json,
+        brief_json: brief.brief_json as never,
         final_prompt: promptObj.final_prompt,
         negative_prompt: promptObj.negative_prompt,
         revision_of: parent.creative_brief_id,
