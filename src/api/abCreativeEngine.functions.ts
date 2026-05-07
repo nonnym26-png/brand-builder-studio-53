@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { runLogoPipeline } from "@/lib/logo-engine/logoPipeline";
 import { classifyRevision } from "@/lib/logo-engine/revisionEngine";
-import type { OutputMode, DesignDnaStrategy } from "@/lib/logo-engine/types";
+import type { OutputMode, DesignDnaStrategy, LogoMarkType } from "@/lib/logo-engine/types";
 
 function backgroundChoiceToMode(bg?: string): OutputMode {
   switch ((bg || "").toLowerCase()) {
@@ -175,6 +175,7 @@ export const generateAbDesign = createServerFn({ method: "POST" })
     brandProfileId: string;
     backgroundChoice?: string;
     outputCount?: number;
+    forceMarkTypes?: LogoMarkType[];
     designDna?: { mustHave?: string; avoid?: string; qualityBar?: string; formula?: string };
     extras?: {
       fonts?: { heading?: string; body?: string; accent?: string };
@@ -193,6 +194,7 @@ export const generateAbDesign = createServerFn({ method: "POST" })
       brandProfileId: data.brandProfileId,
       outputCount: data.outputCount ?? 1,
       outputMode: backgroundChoiceToMode(data.backgroundChoice),
+      forceMarkTypes: data.forceMarkTypes,
     });
 
     // Maintain the legacy { design, brief } return shape so the existing
