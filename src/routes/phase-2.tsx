@@ -21,6 +21,7 @@ import { PhaseStepper } from "@/components/PhaseStepper";
 import { PALETTES } from "@/components/brand-kit/palettes";
 import { FONTS, type FontKey } from "@/components/brand-kit/types";
 import { CustomFontUploader, useCustomFonts } from "@/components/brand-kit/CustomFontUploader";
+import { DesignDnaRuleEditor, useDesignDna } from "@/components/brand-kit/DesignDnaRuleEditor";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -50,6 +51,7 @@ function Phase2() {
   // New Phase 2 creative selections
   const [fonts, setFonts] = useState<{ heading: FontKey; body: FontKey; accent: FontKey }>({ heading: "playfair", body: "inter", accent: "bebas" });
   const customFonts = useCustomFonts();
+  const designDna = useDesignDna(profile.business_name || "default");
   const [slogans, setSlogans] = useState<string[]>([]);
   const [chosenSlogan, setChosenSlogan] = useState<string>("");
   const [sloganBusy, setSloganBusy] = useState(false);
