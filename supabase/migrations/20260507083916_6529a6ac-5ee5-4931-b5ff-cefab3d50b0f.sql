@@ -1,0 +1,1 @@
+ALTER TABLE public.brand_profiles ADD COLUMN IF NOT EXISTS logo_direction TEXT;

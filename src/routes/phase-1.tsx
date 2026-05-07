@@ -1,12 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, Save, Database } from "lucide-react";
+import { ArrowRight, Save, Database, RefreshCw, Sparkles, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { PhaseStepper } from "@/components/PhaseStepper";
 import { listBrandProfiles, loadBrandProfile, markPhaseComplete } from "@/api/phase2.functions";
 import { saveBrandProfileDraft } from "@/api/profile.functions";
@@ -21,25 +22,17 @@ export const Route = createFileRoute("/phase-1")({
 
 type ProfileRow = { id: string; business_name: string | null; client_name: string | null; phase_1_completed_at?: string | null };
 
-const TEXT_FIELDS: Array<{ key: string; label: string; long?: boolean; section: string }> = [
-  { key: "business_name", label: "Business name", section: "Basics" },
-  { key: "client_name", label: "Client name", section: "Basics" },
-  { key: "industry", label: "Industry", section: "Basics" },
-  { key: "business_description", label: "Business description", long: true, section: "Basics" },
-  { key: "target_customer", label: "Target customer", long: true, section: "Audience" },
-  { key: "business_differentiator", label: "What makes them different", long: true, section: "Audience" },
-  { key: "client_brand_vision", label: "Client brand vision", long: true, section: "Vision" },
-  { key: "client_inspiration_notes", label: "Inspiration notes", long: true, section: "Vision" },
-  { key: "tagline_ideas", label: "Tagline / slogan ideas", long: true, section: "Vision" },
+const TEXT_FIELDS: Array<{ key: string; label: string; long?: boolean; placeholder?: string }> = [
+  { key: "business_name", label: "Business name", placeholder: "Big Dog Day Care" },
+  { key: "industry", label: "Industry / business type", placeholder: "Dog daycare" },
+  { key: "business_description", label: "Short business description", long: true, placeholder: "What does the business do, in 1–3 sentences." },
+  { key: "business_stage", label: "Current business setup", long: true, placeholder: "e.g. brand new, 8 employees, one location, 6 events per year." },
+  { key: "main_products_services", label: "Services / products offered", long: true, placeholder: "e.g. boarding, grooming, daycare, training." },
+  { key: "target_customer", label: "Target customer", long: true, placeholder: "Who is this business for?" },
 ];
 
-const ARRAY_FIELDS: Array<{ key: string; label: string; section: string; placeholder: string }> = [
-  { key: "brand_goals", label: "Brand goals", section: "Voice", placeholder: "growth, premium positioning, modern" },
-  { key: "brand_personality", label: "Brand personality", section: "Voice", placeholder: "modern, bold, refined" },
-  { key: "avoidance_checklist", label: "Avoidance list", section: "Voice", placeholder: "no neon, no clipart" },
-  { key: "logo_type_preferences", label: "Logo type preferences", section: "Direction", placeholder: "monogram, wordmark" },
-  { key: "color_mood", label: "Color direction", section: "Direction", placeholder: "warm, earthy, bold" },
-  { key: "digital_usage", label: "Logo usage needs", section: "Direction", placeholder: "web, social, signage" },
+const ARRAY_FIELDS: Array<{ key: string; label: string; placeholder: string }> = [
+  { key: "brand_goals", label: "Business goals", placeholder: "grow membership, premium positioning, expand to second location" },
 ];
 
 function Phase1() {
@@ -100,7 +93,8 @@ function Phase1() {
     }
   };
 
-  const sections = ["Basics", "Audience", "Voice", "Vision", "Direction"];
+  const logoDirection = getStr("logo_direction");
+  const setLogoDirection = (v: string) => setProfile((p) => ({ ...p, logo_direction: v }));
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -154,29 +148,61 @@ function Phase1() {
         </aside>
 
         <section className="space-y-8">
-          {sections.map((s) => (
-            <div key={s} className="rounded-xl border border-border bg-card p-5">
-              <h2 className="mb-4 text-sm font-semibold tracking-tight">{s}</h2>
-              <div className="grid gap-4 md:grid-cols-2">
-                {TEXT_FIELDS.filter((f) => f.section === s).map((f) => (
-                  <div key={f.key} className={f.long ? "md:col-span-2" : ""}>
-                    <Label>{f.label}</Label>
-                    {f.long ? (
-                      <Textarea className="mt-1.5" rows={3} value={getStr(f.key)} onChange={(e) => setText(f.key, e.target.value)} />
-                    ) : (
-                      <Input className="mt-1.5" value={getStr(f.key)} onChange={(e) => setText(f.key, e.target.value)} />
-                    )}
-                  </div>
-                ))}
-                {ARRAY_FIELDS.filter((f) => f.section === s).map((f) => (
-                  <div key={f.key}>
-                    <Label>{f.label} <span className="text-muted-foreground">(comma-separated)</span></Label>
-                    <Input className="mt-1.5" placeholder={f.placeholder} value={getArr(f.key)} onChange={(e) => setArr(f.key, e.target.value)} />
-                  </div>
-                ))}
-              </div>
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h2 className="mb-1 text-sm font-semibold tracking-tight">Business information</h2>
+            <p className="mb-4 text-xs text-muted-foreground">Practical details we'll use to shape the logo and Brand Kit.</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              {TEXT_FIELDS.map((f) => (
+                <div key={f.key} className={f.long ? "md:col-span-2" : ""}>
+                  <Label>{f.label}</Label>
+                  {f.long ? (
+                    <Textarea className="mt-1.5" rows={3} placeholder={f.placeholder} value={getStr(f.key)} onChange={(e) => setText(f.key, e.target.value)} />
+                  ) : (
+                    <Input className="mt-1.5" placeholder={f.placeholder} value={getStr(f.key)} onChange={(e) => setText(f.key, e.target.value)} />
+                  )}
+                </div>
+              ))}
+              {ARRAY_FIELDS.map((f) => (
+                <div key={f.key} className="md:col-span-2">
+                  <Label>{f.label} <span className="text-muted-foreground">(comma-separated)</span></Label>
+                  <Input className="mt-1.5" placeholder={f.placeholder} value={getArr(f.key)} onChange={(e) => setArr(f.key, e.target.value)} />
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h2 className="mb-1 text-sm font-semibold tracking-tight">Logo direction</h2>
+            <p className="mb-4 text-xs text-muted-foreground">Pick how Phase 2 should approach the logo.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                { value: "rework_existing", label: "Rework Existing Logo", desc: "Refine and modernize the current mark.", Icon: RefreshCw },
+                { value: "design_new", label: "Design New Logo", desc: "Start fresh with brand-new concepts.", Icon: Sparkles },
+              ].map(({ value, label, desc, Icon }) => {
+                const active = logoDirection === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setLogoDirection(value)}
+                    className={cn(
+                      "group relative flex flex-col items-start gap-2 rounded-lg border p-4 text-left transition-colors",
+                      active
+                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                        : "border-border bg-background hover:border-foreground/40 hover:bg-accent",
+                    )}
+                  >
+                    <div className="flex w-full items-center justify-between">
+                      <Icon className="h-5 w-5 text-foreground" />
+                      {active && <Check className="h-4 w-4 text-primary" />}
+                    </div>
+                    <div className="text-sm font-semibold">{label}</div>
+                    <div className="text-xs text-muted-foreground">{desc}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="flex items-center justify-end gap-2">
             <Link to="/phase-2" className="text-xs text-muted-foreground hover:text-foreground">Skip for now →</Link>
