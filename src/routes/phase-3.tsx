@@ -1243,18 +1243,65 @@ async function buildAbBrandKitPdf(d: {
 
   /* Section 5 — Applications */
   sectionHeader("05 · Brand Application Recommendations");
-  for (const line of d.doc.applications.split("\n").map((s) => s.trim()).filter(Boolean)) {
-    ensure(16);
-    pdf.setTextColor(rr, rg, rb);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(11);
-    pdf.text("•", margin, y);
-    pdf.setTextColor(230, 230, 230);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
-    const lines = pdf.splitTextToSize(line, contentW - 14);
-    pdf.text(lines, margin + 12, y);
-    y += lines.length * 13 + 4;
+  {
+    const selected = d.doc.applications.filter((a) => a.selected);
+    const cols = 3;
+    const gap = 12;
+    const cardW = (contentW - gap * (cols - 1)) / cols;
+    const imgH = cardW * 0.6;
+    const cardH = imgH + 90;
+    for (let i = 0; i < selected.length; i++) {
+      const col = i % cols;
+      if (col === 0) ensure(cardH + 10);
+      const rowY = y;
+      const x = margin + col * (cardW + gap);
+      const app = selected[i];
+      // Card background
+      pdf.setFillColor(20, 20, 20);
+      pdf.rect(x, rowY, cardW, cardH, "F");
+      // Image area
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(x, rowY, cardW, imgH, "F");
+      if (app.dataUrl) {
+        try {
+          const props = pdf.getImageProperties(app.dataUrl);
+          const pad = 6;
+          const ratio = Math.min((cardW - pad * 2) / props.width, (imgH - pad * 2) / props.height);
+          const w = props.width * ratio;
+          const h = props.height * ratio;
+          const fmt: "PNG" | "JPEG" = app.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+          pdf.addImage(app.dataUrl, fmt, x + (cardW - w) / 2, rowY + (imgH - h) / 2, w, h);
+        } catch { /* skip */ }
+      } else {
+        pdf.setTextColor(160, 160, 160);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7);
+        pdf.text("[ mockup ]", x + cardW / 2, rowY + imgH / 2, { align: "center" });
+      }
+      // Title
+      pdf.setTextColor(gr, gg, gb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.text(app.title.toUpperCase(), x + 6, rowY + imgH + 14, { maxWidth: cardW - 12 });
+      // Explanation
+      pdf.setTextColor(220, 220, 220);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7.5);
+      const exp = pdf.splitTextToSize(app.explanation || "", cardW - 12);
+      pdf.text(exp.slice(0, 3), x + 6, rowY + imgH + 26);
+      // Usage
+      pdf.setTextColor(rr, rg, rb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7);
+      pdf.text("USAGE", x + 6, rowY + imgH + 56);
+      pdf.setTextColor(200, 200, 200);
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(7);
+      const us = pdf.splitTextToSize(app.usage || "", cardW - 12);
+      pdf.text(us.slice(0, 3), x + 6, rowY + imgH + 66);
+
+      if (col === cols - 1 || i === selected.length - 1) y = rowY + cardH + 10;
+    }
   }
 
   /* Section 6 — Process */
