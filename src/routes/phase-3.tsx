@@ -858,6 +858,37 @@ function VisualElementSlot({
 
 type AppCardData = KitDoc["applications"][number];
 
+function ApplicationPicker({
+  doc, update,
+}: {
+  doc: KitDoc;
+  update: (p: Partial<KitDoc>) => void;
+}) {
+  const available = doc.applications.map((a, i) => ({ a, i })).filter(({ a }) => !a.selected);
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {available.map(({ a, i }) => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => {
+            const next = doc.applications.slice();
+            next[i] = { ...next[i], selected: true };
+            update({ applications: next });
+          }}
+          className="inline-flex items-center gap-1.5 text-[11px] tracking-wider py-1.5 px-3 rounded border"
+          style={{ borderColor: "#2A2A2A", color: GOLD }}
+        >
+          <Plus className="h-3 w-3" /> {a.title.toUpperCase()}
+        </button>
+      ))}
+      {available.length === 0 && (
+        <div className="text-xs italic" style={{ color: "#888" }}>All recommendations included.</div>
+      )}
+    </div>
+  );
+}
+
 function ApplicationCard({
   app, onChange, onFile,
 }: {
