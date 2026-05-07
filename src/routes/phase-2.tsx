@@ -555,6 +555,7 @@ function Phase2() {
                   </div>
                 </div>
               </div>
+              </>
             );
           })()}
         </section>
