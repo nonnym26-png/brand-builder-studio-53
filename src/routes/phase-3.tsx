@@ -1410,44 +1410,132 @@ async function buildAbBrandKitPdf(d: {
 
   /* Section 6 — Process */
   sectionHeader("06 · Strategic Branding Process");
-  paragraph(d.doc.process);
+  {
+    const cols = 3;
+    const gap = 12;
+    const cardW = (contentW - gap * (cols - 1)) / cols;
+    const cardH = 90;
+    for (let i = 0; i < d.doc.processSteps.length; i++) {
+      const col = i % cols;
+      if (col === 0) ensure(cardH + 10);
+      const rowY = y;
+      const x = margin + col * (cardW + gap);
+      const step = d.doc.processSteps[i];
+      pdf.setFillColor(20, 20, 20);
+      pdf.rect(x, rowY, cardW, cardH, "F");
+      pdf.setDrawColor(gr, gg, gb);
+      pdf.setLineWidth(0.5);
+      pdf.rect(x + 8, rowY + 8, 18, 18);
+      pdf.setTextColor(gr, gg, gb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8);
+      pdf.text(String(i + 1).padStart(2, "0"), x + 17, rowY + 20, { align: "center" });
+      pdf.setFontSize(9);
+      pdf.text((step.title || "").toUpperCase(), x + 32, rowY + 20);
+      pdf.setTextColor(220, 220, 220);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      const lines = pdf.splitTextToSize(step.explanation || "", cardW - 16);
+      pdf.text(lines.slice(0, 5), x + 8, rowY + 38);
+      if (col === cols - 1 || i === d.doc.processSteps.length - 1) y = rowY + cardH + 10;
+    }
+  }
 
   /* Section 7 — Slogan / Brand Message */
   sectionHeader("07 · Slogan / Brand Message");
-  if (d.doc.slogan) {
-    ensure(28);
-    pdf.setTextColor(gr, gg, gb);
-    pdf.setFont("helvetica", "bolditalic");
-    pdf.setFontSize(16);
-    pdf.text(`"${d.doc.slogan}"`, margin, y);
-    y += 22;
+  {
+    const cols = 2;
+    const gap = 14;
+    const cardW = (contentW - gap) / cols;
+    const cardH = 110;
+    ensure(cardH + 10);
+    const rowY = y;
+    for (let i = 0; i < d.doc.slogans.length; i++) {
+      const s = d.doc.slogans[i];
+      const x = margin + i * (cardW + gap);
+      pdf.setFillColor(20, 20, 20);
+      pdf.rect(x, rowY, cardW, cardH, "F");
+      pdf.setTextColor(gr, gg, gb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8);
+      pdf.text(`OPTION ${i + 1}`, x + 10, rowY + 16);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bolditalic");
+      pdf.setFontSize(14);
+      const head = pdf.splitTextToSize(`"${s.headline}"`, cardW - 20);
+      pdf.text(head.slice(0, 3), x + 10, rowY + 36);
+      pdf.setTextColor(200, 200, 200);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      const exp = pdf.splitTextToSize(s.explanation || "", cardW - 20);
+      pdf.text(exp.slice(0, 5), x + 10, rowY + 36 + Math.min(head.length, 3) * 16 + 6);
+    }
+    y = rowY + cardH + 10;
   }
-  paragraph(d.doc.brandMessage);
 
   /* Section 8 — Why */
   sectionHeader("08 · Why Branding Matters");
-  paragraph(d.doc.whyBranding);
+  {
+    const cols = 3;
+    const gap = 12;
+    const cardW = (contentW - gap * (cols - 1)) / cols;
+    const cardH = 110;
+    ensure(cardH + 10);
+    const rowY = y;
+    for (let i = 0; i < d.doc.whyBlocks.length; i++) {
+      const b = d.doc.whyBlocks[i];
+      const x = margin + i * (cardW + gap);
+      pdf.setFillColor(20, 20, 20);
+      pdf.rect(x, rowY, cardW, cardH, "F");
+      pdf.setDrawColor(gr, gg, gb);
+      pdf.setLineWidth(0.5);
+      pdf.circle(x + cardW / 2, rowY + 22, 10);
+      pdf.setTextColor(gr, gg, gb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(11);
+      pdf.text((b.title || "").toUpperCase(), x + cardW / 2, rowY + 50, { align: "center" });
+      pdf.setTextColor(220, 220, 220);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      const lines = pdf.splitTextToSize(b.explanation || "", cardW - 16);
+      pdf.text(lines.slice(0, 6), x + cardW / 2, rowY + 64, { align: "center" });
+    }
+    y = rowY + cardH + 10;
+  }
 
   /* Section 9 — Footer */
   startPage();
   pdf.setTextColor(gr, gg, gb);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(10);
-  pdf.text("ANAGLYPH BRANDING", pageW / 2, pageH / 2 - 40, { align: "center", charSpace: 4 });
+  pdf.text("ANAGLYPH BRANDING", pageW / 2, pageH / 2 - 80, { align: "center", charSpace: 4 });
   pdf.setTextColor(255, 255, 255);
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(11);
-  const footLines = pdf.splitTextToSize(d.doc.footerStatement, contentW - 40);
-  let fy = pageH / 2;
-  for (const line of footLines) {
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(20);
+  const stmtLines = pdf.splitTextToSize(AB_STATEMENT, contentW - 40);
+  let fy = pageH / 2 - 30;
+  for (const line of stmtLines) {
     pdf.text(line, pageW / 2, fy, { align: "center" });
-    fy += 16;
+    fy += 26;
   }
   pdf.setFillColor(rr, rg, rb);
-  pdf.rect(pageW / 2 - 20, fy + 12, 40, 3, "F");
-  pdf.setTextColor(150, 150, 150);
-  pdf.setFontSize(8);
-  pdf.text(`${d.businessName} · Official Brand Kit`, pageW / 2, fy + 36, { align: "center" });
+  pdf.rect(pageW / 2 - 20, fy + 4, 40, 3, "F");
+  fy += 30;
+  pdf.setTextColor(220, 220, 220);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(12);
+  if (d.doc.footerBusinessName) { pdf.text(d.doc.footerBusinessName, pageW / 2, fy, { align: "center" }); fy += 16; }
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+  pdf.setTextColor(170, 170, 170);
+  if (d.doc.footerBusinessType) { pdf.text(d.doc.footerBusinessType, pageW / 2, fy, { align: "center" }); fy += 14; }
+  if (d.doc.footerProjectNote) {
+    pdf.setFontSize(9);
+    pdf.setTextColor(150, 150, 150);
+    const noteLines = pdf.splitTextToSize(d.doc.footerProjectNote, contentW - 80);
+    fy += 6;
+    for (const l of noteLines) { pdf.text(l, pageW / 2, fy, { align: "center" }); fy += 12; }
+  }
 
   const safe = (d.businessName || "Brand").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "Brand";
   pdf.save(`${safe}-AB-Brand-Kit.pdf`);
