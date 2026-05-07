@@ -409,6 +409,51 @@ export type Database = {
           },
         ]
       }
+      client_proofs: {
+        Row: {
+          asset_ids: string[]
+          brand_profile_id: string
+          business_name: string | null
+          created_at: string
+          id: string
+          response_kind: string | null
+          response_notes: string | null
+          selected_direction: string | null
+          status: string
+          submitted_at: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          asset_ids?: string[]
+          brand_profile_id: string
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          response_kind?: string | null
+          response_notes?: string | null
+          selected_direction?: string | null
+          status?: string
+          submitted_at?: string | null
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          asset_ids?: string[]
+          brand_profile_id?: string
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          response_kind?: string | null
+          response_notes?: string | null
+          selected_direction?: string | null
+          status?: string
+          submitted_at?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       creative_briefs: {
         Row: {
           brand_profile_id: string
