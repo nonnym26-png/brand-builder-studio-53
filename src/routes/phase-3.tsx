@@ -1984,17 +1984,19 @@ function drawBrandingImpactPage(opts: {
     pdf.setTextColor(rr, rg, rb);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(8);
-    pdf.text(s.title, txX, cy + 22, { charSpace: 0.6 });
+    const titleLines = pdf.splitTextToSize(s.title, txW);
+    pdf.text(titleLines, txX, cy + 22, { charSpace: 0.4 });
     pdf.setTextColor(30, 30, 30);
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(9);
+    pdf.setFontSize(8.5);
+    pdf.setLineHeightFactor(1.4);
     const bodyLines = pdf.splitTextToSize(s.body, txW);
-    pdf.setLineHeightFactor(1.5);
-    pdf.text(bodyLines, txX, cy + 38);
+    pdf.text(bodyLines, txX, cy + 22 + titleLines.length * 10 + 6);
     pdf.setTextColor(120, 120, 120);
     pdf.setFont("helvetica", "italic");
     pdf.setFontSize(6.5);
-    pdf.text(`Source: ${s.source}`, txX, cy + cardH - 14);
+    const srcLines = pdf.splitTextToSize(`Source: ${s.source}`, txW);
+    pdf.text(srcLines, txX, cy + cardH - 12);
   }
 
   // Takeaway strip
