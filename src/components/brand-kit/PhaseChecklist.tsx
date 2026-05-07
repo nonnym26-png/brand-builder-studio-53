@@ -34,12 +34,12 @@ export function buildPhase1Checklist(profile: Record<string, unknown> | null | u
   return [
     { label: "Business name entered", done: val(p.business_name) },
     { label: "Industry selected", done: val(p.industry) },
-    { label: "Target audience completed", done: val(p.target_customer) },
-    { label: "Brand personality completed", done: val(p.brand_personality) },
-    { label: "Color preferences completed", done: val(p.color_mood) || val(p.primary_hex) },
-    { label: "Design usage selected", done: val(p.digital_usage) || val(p.print_usage) },
-    { label: "Mascot / icon preference completed", done: val(p.logo_type_preferences) || val(p.mascot_symbol_ideas) },
-    { label: "Avoid notes completed", done: val(p.avoidance_checklist) || val(p.colors_to_avoid) || val(p.symbols_to_avoid), optional: true },
+    { label: "Business description added", done: val(p.business_description) },
+    { label: "Current business setup added", done: val(p.business_stage) },
+    { label: "Services / products listed", done: val(p.main_products_services) },
+    { label: "Target customer described", done: val(p.target_customer) },
+    { label: "Business goals captured", done: val(p.brand_goals) },
+    { label: "Logo direction selected", done: val(p.logo_direction) },
   ];
 }
 
