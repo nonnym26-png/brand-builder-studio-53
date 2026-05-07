@@ -78,6 +78,8 @@ export const generatePremiumLogoImage = createServerFn({ method: "POST" })
 
     const prompt = `Design a premium, agency-grade brand logo on a clean pure white background. The output must look like a finished professional logo presentation — crisp, vector-clean, perfectly centered, generous margins.
 
+${DESIGN_DNA}
+
 BRAND: "${data.brandName}"
 ${descriptor ? `DESCRIPTOR: "${descriptor}"` : ""}
 MARK TYPE: ${data.markType || "combination"}
@@ -87,9 +89,10 @@ ${composition}
 UNIVERSAL RULES:
 - Pure white background. No scenes, no mockups, no shadows under the logo.
 - Vector-clean appearance: flat solid fills, crisp edges, scalable. NO gradients, NO photographic textures, NO 3D bevels, NO glow.
-- Restricted palette: ${primary}, ${accent}, ${neutral}, plus white. No other colors unless the mark type explicitly calls for shading (mascot only).
+- Restricted palette: ${primary}, ${accent}, ${neutral}, plus white and a single neutral grey for shading. NO other colors.
 - Strong negative space. Optical balance. Master-level kerning.
 - Centered composition with breathing room on all four sides — NOTHING touches the edges.
+- Spell every word EXACTLY as written. Do not add, drop, or rearrange letters.
 - Output should look like an agency lockup ready for shirts, signage, business cards.
 
 ${data.extraDirection ? `ADDITIONAL DIRECTION FROM SELECTED CONCEPT: ${data.extraDirection}` : ""}`;
