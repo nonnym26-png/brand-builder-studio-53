@@ -1464,7 +1464,8 @@ async function buildAbBrandKitPdf(d: {
 
   /* ----- Section 3 + 4: Fonts (left) + Visual Elements (right) ----- */
   const fonts = d.doc.fonts.filter((f) => (f.name && f.name.trim()) || (f.sample && f.sample.trim()));
-  const visEls = d.doc.visualElements.filter((e) => !!e.dataUrl || (e.title && e.title.trim()));
+  // Only show visual element cards that have an actual uploaded/generated image.
+  const visEls = d.doc.visualElements.filter((e) => !!e.dataUrl);
 
   const row2H = 220;
   const fw = contentW * 0.40 - 6;
