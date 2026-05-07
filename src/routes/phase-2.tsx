@@ -1,20 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Database, Download, RefreshCw, Save, Sparkles, Wand2, MessageSquare, Type, Palette as PaletteIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, Database, RefreshCw, Save, Sparkles, Wand2, MessageSquare, Type, Palette as PaletteIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ConceptMark } from "@/components/brand-kit/ConceptRenderer";
 import { generateConcepts } from "@/components/brand-kit/conceptEngine";
 import type { LogoConcept, ProfileLite } from "@/components/brand-kit/conceptTypes";
-import { exportConceptPDF } from "@/components/brand-kit/exportConceptPdf";
 import { listBrandProfiles, loadBrandProfile, saveConcepts, generateSlogans, savePhase2Selections, markPhaseComplete } from "@/api/phase2.functions";
-import { generatePremiumLogoImage } from "@/api/premiumLogoImage.functions";
-import { toPng } from "html-to-image";
 import abLogo from "@/assets/ab-logo.png";
 import { DesignDnaEditor } from "@/components/DesignDnaEditor";
 import { PhaseStepper } from "@/components/PhaseStepper";
@@ -60,11 +55,6 @@ function Phase2() {
   const [mascotEnabled, setMascotEnabled] = useState(false);
   const [mascotStyle, setMascotStyle] = useState<string>("geometric");
   const [mascotIdea, setMascotIdea] = useState("");
-
-  // Premium AI image rendering
-  const [premiumImage, setPremiumImage] = useState<string | null>(null);
-  const [premiumBusy, setPremiumBusy] = useState(false);
-  const [premiumDescriptor, setPremiumDescriptor] = useState("CONSULTING");
 
   // Initial deterministic generation
   useEffect(() => {
@@ -400,7 +390,7 @@ function Phase2() {
             </Button>
             <Button
               size="sm"
-              disabled={!selectedId || !selectedConceptId}
+              disabled={!selectedId}
               onClick={async () => {
                 if (!selectedId) return;
                 const selected = concepts.find((c) => c.id === selectedConceptId) ?? null;
@@ -413,244 +403,15 @@ function Phase2() {
             </Button>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight inline-flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" /> Logo Concept Directions
-              </h1>
-              <p className="text-sm text-muted-foreground">{concepts.length} dynamic concepts generated from this brand profile.</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            {concepts.map((c) => (
-              <ConceptCard
-                key={c.id}
-                concept={c}
-                selected={selectedConceptId === c.id}
-                onSelect={() => setSelectedConceptId(c.id)}
-              />
-            ))}
-          </div>
-
-          {/* Premium AI Logo Render — refines the SELECTED dynamic concept */}
-          {(() => {
-            const selectedConcept = concepts.find((c) => c.id === selectedConceptId) || null;
-            return (
-              <>
-              <AbCreativeEngine brandProfileId={selectedId || null} />
-              <DesignDnaRuleEditor
-                dna={designDna.dna}
-                onChange={designDna.update}
-                onReset={designDna.reset}
-                brandName={profile.business_name || undefined}
-              />
-              <div className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-card to-primary/5 p-5">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight">
-                      <Sparkles className="h-4 w-4 text-primary" /> Premium Logo Render
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      {selectedConcept
-                        ? <>Refining selected concept <strong>{selectedConcept.name}</strong> into an agency-grade lockup.</>
-                        : <>Select a concept above first — the premium render will improve and refine the design DNA of the chosen concept.</>}
-                    </p>
-                  </div>
-                </div>
-                <div className="grid gap-3 md:grid-cols-[1fr_320px]">
-                  <div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-lg border border-border bg-white p-4">
-                    {premiumImage ? (
-                      <img src={premiumImage} alt="Premium logo render" className="max-h-[480px] w-auto object-contain" />
-                    ) : (
-                      <div className="text-center text-xs text-muted-foreground">
-                        <Sparkles className="mx-auto mb-2 h-6 w-6 opacity-40" />
-                        {selectedConcept
-                          ? <>Click <strong>Refine Selected Concept</strong> to render a premium version.</>
-                          : <>No concept selected.</>}
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <div>
-                      <Label className="text-xs uppercase text-muted-foreground">Descriptor</Label>
-                      <Input className="mt-1" value={premiumDescriptor} onChange={(e) => setPremiumDescriptor(e.target.value)} placeholder="CONSULTING, STUDIO, GROUP…" />
-                    </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      Brand: <strong>{profile.business_name}</strong><br />
-                      Initial: <strong>{(profile.initials_abbreviation || profile.business_name || "A").charAt(0).toUpperCase()}</strong><br />
-                      {selectedConcept && (
-                        <>Concept: <strong>{selectedConcept.name}</strong> ({selectedConcept.markType})<br /></>
-                      )}
-                      Colors: <span style={{ color: profile.primary_hex || undefined }}>{profile.primary_hex || "#0F0F10"}</span> · <span style={{ color: profile.accent_hex || undefined }}>{profile.accent_hex || "#B81F2A"}</span>
-                    </div>
-                    <Button
-                      className="w-full"
-                      disabled={premiumBusy || !selectedConcept}
-                      onClick={async () => {
-                        if (!selectedConcept) { toast.error("Select a concept first"); return; }
-                        setPremiumBusy(true);
-                        setPremiumImage(null);
-                        try {
-                          const c = selectedConcept;
-                          const direction = [
-                            `Refine and improve this dynamic concept while preserving its design DNA.`,
-                            `Concept: "${c.name}" — ${c.markType}.`,
-                            c.tagline ? `Idea: ${c.tagline}.` : "",
-                            `Mood: ${c.moodWords.join(", ")}.`,
-                            `Geometry: ${c.geometry}; corners: ${c.cornerStyle}; strokes: ${c.strokeStyle}.`,
-                            `Layout: ${c.layout}.`,
-                            c.symbol && c.symbol !== "none" ? `Symbol cue: ${c.symbol}.` : "",
-                            `Heading typeface direction: ${c.headingFont}; descriptor: ${c.subFont}.`,
-                            `Palette — primary ${c.palette.primary}, accent ${c.palette.accent}, dark ${c.palette.dark}.`,
-                            chosenSlogan ? `Tagline tone: "${chosenSlogan}".` : "",
-                            `Make it more refined: improve spacing, typographic kerning, optical balance, line quality, and silhouette strength. Do NOT redesign — elevate.`,
-                          ].filter(Boolean).join(" ");
-                          const out = await generatePremiumLogoImage({ data: {
-                            brandName: profile.business_name || "Brand",
-                            initial: (profile.initials_abbreviation || profile.business_name || "A").charAt(0),
-                            descriptor: premiumDescriptor,
-                            primaryHex: c.palette.dark || profile.neutral_hex || "#0F0F10",
-                            accentHex: c.palette.accent || profile.accent_hex || "#B81F2A",
-                            neutralHex: c.palette.primary || profile.neutral_hex || "#3A3A3A",
-                            markType: c.markType as any,
-                            extraDirection: direction,
-                            designDna: designDna.dna,
-                          } });
-                          setPremiumImage(out.imageUrl);
-                          toast.success("Premium refinement rendered");
-                        } catch (e) {
-                          toast.error(e instanceof Error ? e.message : "Render failed");
-                        } finally {
-                          setPremiumBusy(false);
-                        }
-                      }}
-                    >
-                      <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                      {premiumBusy ? "Refining… (30-60s)" : selectedConcept ? "Refine Selected Concept" : "Select a concept first"}
-                    </Button>
-                    {premiumImage && (
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => {
-                          const a = document.createElement("a");
-                          a.href = premiumImage;
-                          a.download = `${(profile.business_name || "logo").toLowerCase().replace(/\s+/g, "-")}-premium.png`;
-                          a.click();
-                        }}
-                      >
-                        <Download className="mr-1.5 h-3.5 w-3.5" /> Download PNG
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              </>
-            );
-          })()}
+          <AbCreativeEngine brandProfileId={selectedId || null} />
+          <DesignDnaRuleEditor
+            dna={designDna.dna}
+            onChange={designDna.update}
+            onReset={designDna.reset}
+            brandName={profile.business_name || undefined}
+          />
         </section>
       </main>
-    </div>
-  );
-}
-
-function ConceptCard({ concept, selected, onSelect }: { concept: LogoConcept; selected: boolean; onSelect: () => void }) {
-  const refs = {
-    light: useRef<HTMLDivElement>(null),
-    dark: useRef<HTMLDivElement>(null),
-    brand: useRef<HTMLDivElement>(null),
-    mono: useRef<HTMLDivElement>(null),
-    mark: useRef<HTMLDivElement>(null),
-  };
-  const [exporting, setExporting] = useState(false);
-
-  const downloadPDF = async () => {
-    setExporting(true);
-    try {
-      const opts = { pixelRatio: 2, cacheBust: true };
-      const [light, dark, brand, mono, mark] = await Promise.all([
-        toPng(refs.light.current!, opts),
-        toPng(refs.dark.current!, opts),
-        toPng(refs.brand.current!, opts),
-        toPng(refs.mono.current!, opts),
-        toPng(refs.mark.current!, opts),
-      ]);
-      await exportConceptPDF(concept, { light, dark, brand, mono, mark });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Export failed");
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const downloadSVG = (mode: "light" | "dark" | "brand") => {
-    const node = refs[mode].current?.querySelector("svg");
-    if (!node) { toast.error("No SVG to export for this layout"); return; }
-    const xml = new XMLSerializer().serializeToString(node);
-    const blob = new Blob([xml], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${concept.brandName.toLowerCase().replace(/\s+/g, "-")}-${concept.id}-${mode}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  return (
-    <div className={`rounded-xl border bg-card transition ${selected ? "border-foreground ring-2 ring-foreground/10" : "border-border"}`}>
-      <div className="flex items-start justify-between gap-3 border-b border-border p-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">#{concept.id}</span>
-            <Badge variant="outline" className="text-[10px] uppercase">{concept.markType}</Badge>
-            {concept.moodWords.slice(0, 2).map((m) => (
-              <Badge key={m} variant="secondary" className="text-[10px] uppercase">{m}</Badge>
-            ))}
-          </div>
-          <h3 className="mt-1.5 text-lg font-semibold tracking-tight">{concept.name}</h3>
-          {concept.tagline && <p className="text-xs text-muted-foreground">{concept.tagline}</p>}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Button size="sm" variant={selected ? "default" : "outline"} onClick={onSelect}>
-            {selected ? "Selected" : "Select"}
-          </Button>
-          <Button size="sm" variant="outline" onClick={downloadPDF} disabled={exporting}>
-            <Download className="mr-1.5 h-3.5 w-3.5" /> {exporting ? "…" : "PDF"}
-          </Button>
-        </div>
-      </div>
-
-      <div className="p-4 space-y-3">
-        <div ref={refs.light} className="overflow-hidden rounded-lg">
-          <ConceptMark concept={concept} mode="light" size={420} />
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <div ref={refs.dark} className="overflow-hidden rounded-md"><ConceptMark concept={concept} mode="dark" size={180} /></div>
-          <div ref={refs.brand} className="overflow-hidden rounded-md"><ConceptMark concept={concept} mode="brand" size={180} /></div>
-          <div ref={refs.mono} className="overflow-hidden rounded-md"><ConceptMark concept={concept} mode="mono" size={180} /></div>
-        </div>
-        <div ref={refs.mark} className="hidden">
-          <ConceptMark concept={concept} mode="light" size={300} showName={false} />
-        </div>
-
-        <p className="text-xs leading-relaxed text-muted-foreground">{concept.rationale}</p>
-
-        <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          {(["light", "dark", "brand"] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => downloadSVG(m)}
-              className="rounded-md border border-border px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
-            >
-              SVG · {m}
-            </button>
-          ))}
-          <span className="ml-auto text-[10px] text-muted-foreground">
-            {concept.palette.primary.toUpperCase()} · {concept.palette.dark.toUpperCase()}
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
