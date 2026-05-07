@@ -15,6 +15,7 @@ import { Route as Phase1RouteImport } from './routes/phase-1'
 import { Route as LogoStudioRouteImport } from './routes/logo-studio'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProofTokenRouteImport } from './routes/proof.$token'
+import { Route as OrderTokenRouteImport } from './routes/order.$token'
 
 const Phase3Route = Phase3RouteImport.update({
   id: '/phase-3',
@@ -46,6 +47,11 @@ const ProofTokenRoute = ProofTokenRouteImport.update({
   path: '/proof/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrderTokenRoute = OrderTokenRouteImport.update({
+  id: '/order/$token',
+  path: '/order/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/phase-1': typeof Phase1Route
   '/phase-2': typeof Phase2Route
   '/phase-3': typeof Phase3Route
+  '/order/$token': typeof OrderTokenRoute
   '/proof/$token': typeof ProofTokenRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/phase-1': typeof Phase1Route
   '/phase-2': typeof Phase2Route
   '/phase-3': typeof Phase3Route
+  '/order/$token': typeof OrderTokenRoute
   '/proof/$token': typeof ProofTokenRoute
 }
 export interface FileRoutesById {
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/phase-1': typeof Phase1Route
   '/phase-2': typeof Phase2Route
   '/phase-3': typeof Phase3Route
+  '/order/$token': typeof OrderTokenRoute
   '/proof/$token': typeof ProofTokenRoute
 }
 export interface FileRouteTypes {
@@ -80,6 +89,7 @@ export interface FileRouteTypes {
     | '/phase-1'
     | '/phase-2'
     | '/phase-3'
+    | '/order/$token'
     | '/proof/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -88,6 +98,7 @@ export interface FileRouteTypes {
     | '/phase-1'
     | '/phase-2'
     | '/phase-3'
+    | '/order/$token'
     | '/proof/$token'
   id:
     | '__root__'
@@ -96,6 +107,7 @@ export interface FileRouteTypes {
     | '/phase-1'
     | '/phase-2'
     | '/phase-3'
+    | '/order/$token'
     | '/proof/$token'
   fileRoutesById: FileRoutesById
 }
@@ -105,6 +117,7 @@ export interface RootRouteChildren {
   Phase1Route: typeof Phase1Route
   Phase2Route: typeof Phase2Route
   Phase3Route: typeof Phase3Route
+  OrderTokenRoute: typeof OrderTokenRoute
   ProofTokenRoute: typeof ProofTokenRoute
 }
 
@@ -152,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProofTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/order/$token': {
+      id: '/order/$token'
+      path: '/order/$token'
+      fullPath: '/order/$token'
+      preLoaderRoute: typeof OrderTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -161,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   Phase1Route: Phase1Route,
   Phase2Route: Phase2Route,
   Phase3Route: Phase3Route,
+  OrderTokenRoute: OrderTokenRoute,
   ProofTokenRoute: ProofTokenRoute,
 }
 export const routeTree = rootRouteImport
