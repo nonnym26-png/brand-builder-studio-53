@@ -259,6 +259,57 @@ export const reopenPhase2 = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Save Phase 3 Brand Kit progress (entire editable doc + uploaded assets). */
+export const savePhase3KitData = createServerFn({ method: "POST" })
+  .inputValidator((d: { brandProfileId: string; data: unknown }) => d)
+  .handler(async ({ data }) => {
+    const { error } = await supabaseAdmin
+      .from("brand_profiles")
+      .update({
+        phase_3_brand_kit_data: data.data as never,
+        phase_3_saved_at: new Date().toISOString(),
+      })
+      .eq("id", data.brandProfileId);
+    if (error) throw new Error(error.message);
+    return { ok: true, savedAt: new Date().toISOString() };
+  });
+
+/** Load saved Phase 3 Brand Kit progress (returns null if never saved). */
+export const loadPhase3KitData = createServerFn({ method: "GET" })
+  .inputValidator((d: { brandProfileId: string }) => d)
+  .handler(async ({ data }) => {
+    const { data: row, error } = await supabaseAdmin
+      .from("brand_profiles")
+      .select("phase_3_brand_kit_data, phase_3_saved_at")
+      .eq("id", data.brandProfileId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return {
+      data: (row?.phase_3_brand_kit_data as unknown) ?? null,
+      savedAt: row?.phase_3_saved_at ?? null,
+    };
+  });
+
+/** Bulk delete saved brand profiles (and their dependent rows). */
+export const deleteBrandProfiles = createServerFn({ method: "POST" })
+  .inputValidator((d: { ids: string[] }) => d)
+  .handler(async ({ data }) => {
+    if (!Array.isArray(data.ids) || data.ids.length === 0) {
+      return { ok: true, deleted: 0 };
+    }
+    // Best-effort cleanup of dependent rows. Ignore individual failures.
+    await supabaseAdmin.from("generated_designs").delete().in("brand_profile_id", data.ids);
+    await supabaseAdmin.from("logo_renderings").delete().in("brand_profile_id", data.ids);
+    await supabaseAdmin.from("client_proofs").delete().in("brand_profile_id", data.ids);
+    await supabaseAdmin.from("revision_requests").delete().in("brand_profile_id", data.ids);
+    await supabaseAdmin.from("creative_briefs").delete().in("brand_profile_id", data.ids);
+    await supabaseAdmin.from("design_dna").delete().in("brand_profile_id", data.ids);
+    await supabaseAdmin.from("brand_orders").delete().in("brand_profile_id", data.ids);
+    const { error } = await supabaseAdmin.from("brand_profiles").delete().in("id", data.ids);
+    if (error) throw new Error(error.message);
+    return { ok: true, deleted: data.ids.length };
+  });
+
 /** Save an admin override note when a brand kit is sent despite failing the QA gate. */
 export const saveBrandKitQaOverride = createServerFn({ method: "POST" })
   .inputValidator((d: { brandProfileId: string; reason: string; missing: string[] }) => d)

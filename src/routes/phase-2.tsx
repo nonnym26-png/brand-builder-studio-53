@@ -2,13 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowRight, Database, Loader2, Upload, ImageIcon, Trash2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { listBrandProfiles, loadBrandProfile, markPhaseComplete } from "@/api/phase2.functions";
 import { uploadPhase2Logo, removePhase2Logo, setPhase2LogoInclusions } from "@/api/profile.functions";
 import abLogo from "@/assets/ab-logo.png";
 import { PhaseStepper } from "@/components/PhaseStepper";
 import { getStoredProjectId, storeProjectId } from "@/lib/selected-project";
+import { SavedProfilesPicker } from "@/components/SavedProfilesPicker";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -164,25 +164,23 @@ function Phase2() {
         <aside className="space-y-6">
           <section>
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1.5">
-              <Database className="h-3.5 w-3.5" /> Phase 1 Profile
+              <Database className="h-3.5 w-3.5" /> Pick a Saved Profile
             </h2>
-            <Select value={selectedId} onValueChange={loadProfile}>
-              <SelectTrigger>
-                <SelectValue placeholder={profiles.length ? "Pick a saved profile" : "No saved profiles yet"} />
-              </SelectTrigger>
-              <SelectContent>
-                {profiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    <div className="flex flex-col">
-                      <span className="text-sm">{p.business_name || "Untitled"}</span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {p.industry || "—"} · {p.project_status || "—"}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SavedProfilesPicker
+              profiles={profiles}
+              selectedId={selectedId}
+              onSelect={loadProfile}
+              onDeleted={(ids) => {
+                setProfiles((rows) => rows.filter((r) => !ids.includes(r.id)));
+                if (ids.includes(selectedId)) {
+                  setSelectedId("");
+                  setProfileFull(null);
+                  setLogos({});
+                  setInclusions({});
+                  storeProjectId("");
+                }
+              }}
+            />
           </section>
 
           {selectedId && (

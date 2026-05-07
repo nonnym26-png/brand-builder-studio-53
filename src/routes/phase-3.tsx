@@ -3,20 +3,20 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Database, Download, Loader2, RefreshCw, Sparkles,
   Search, Compass, Palette, Package, Layers, Eye,
-  Award, ShieldCheck, Briefcase, Plus, X,
+  Award, ShieldCheck, Briefcase, Plus, X, Save,
 } from "lucide-react";
 import JSZip from "jszip";
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { PhaseStepper } from "@/components/PhaseStepper";
 import { listBrandProfiles } from "@/api/phase2.functions";
-import { loadBrandKit, markBrandKitExported } from "@/api/brandKit.functions";
+import { loadBrandKit, markBrandKitExported, savePhase3KitData, loadPhase3KitData } from "@/api/brandKit.functions";
 import abLogo from "@/assets/ab-logo.png";
 import { getStoredProjectId, storeProjectId } from "@/lib/selected-project";
+import { SavedProfilesPicker } from "@/components/SavedProfilesPicker";
 
 export const Route = createFileRoute("/phase-3")({
   head: () => ({ meta: [{ title: "Phase 3 — AB Brand Kit Builder | Anaglyph Branding" }] }),
@@ -27,8 +27,13 @@ type ProfileRow = { id: string; business_name: string | null; client_name: strin
 type BrandKit = Awaited<ReturnType<typeof loadBrandKit>>;
 type LogoAsset = { id: string; image_url: string; design_type: string | null };
 
-const GOLD = "#C9A24B";
-const RED = "#C8323C";
+// Official Anaglyph Branding Phase-3 palette: Red (primary), Blue (secondary),
+// Black + White (support), Gray (neutral). No gold accents.
+const RED = "#C92222";
+const BLUE = "#1F4FA8";
+// Backwards-compat alias so the rest of this file (and the PDF chrome)
+// keeps working without renaming every reference.
+const GOLD = BLUE;
 
 type KitDoc = {
   // 1. Core Logo System
@@ -98,6 +103,8 @@ function Phase3() {
   const [exporting, setExporting] = useState<string | null>(null);
   const [doc, setDoc] = useState<KitDoc | null>(null);
   const [primaryLogo, setPrimaryLogo] = useState<LogoAsset | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
 
   useEffect(() => {
     listBrandProfiles().then((rows) => setProfiles(rows as ProfileRow[])).catch(() => {});
@@ -176,10 +183,10 @@ function Phase3() {
         colors: colors.length
           ? colors
           : [
-              { name: "Primary", hex: "#C8323C", usage: "Primary brand color." },
-              { name: "Secondary", hex: "#1A1A1A", usage: "Supporting tone." },
-              { name: "Accent", hex: "#C9A24B", usage: "Highlights and CTAs." },
-              { name: "Neutral", hex: "#F5F5F5", usage: "Backgrounds and body text." },
+              { name: "Primary Red", hex: "#C92222", usage: "Primary brand color — logo, headlines, callouts." },
+              { name: "Secondary Blue", hex: "#1F4FA8", usage: "Secondary brand color — supporting blocks, highlights." },
+              { name: "Support Black", hex: "#111111", usage: "Strong contrast — typography and dark surfaces." },
+              { name: "Neutral Gray", hex: "#9D9D9D", usage: "Borders, cards, and background separation." },
             ],
         fonts: [
           {
@@ -216,6 +223,15 @@ function Phase3() {
         footerBusinessType: v.brand.industry || "",
         footerProjectNote: "",
       });
+
+      // Merge in any previously saved Phase 3 progress so users don't lose edits.
+      try {
+        const saved = await loadPhase3KitData({ data: { brandProfileId: id } });
+        if (saved?.data && typeof saved.data === "object") {
+          setDoc((d) => (d ? { ...d, ...(saved.data as Partial<KitDoc>) } : d));
+        }
+        setSavedAt(saved?.savedAt ?? null);
+      } catch { /* ignore */ }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load");
     } finally {
@@ -224,6 +240,20 @@ function Phase3() {
   };
 
   const refresh = async () => { if (selectedId) await load(selectedId); };
+
+  const saveProgress = async () => {
+    if (!kit || !doc) return;
+    setSaving(true);
+    try {
+      const r = await savePhase3KitData({ data: { brandProfileId: kit.profileId, data: doc } });
+      setSavedAt(r.savedAt);
+      toast.success("Brand Kit progress saved.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const update = (patch: Partial<KitDoc>) => setDoc((d) => (d ? { ...d, ...patch } : d));
   const updateColor = (i: number, patch: Partial<KitDoc["colors"][number]>) =>
@@ -286,10 +316,10 @@ function Phase3() {
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 px-6 py-4">
           <div className="flex items-center gap-3">
-            <img src={abLogo} alt="Anaglyph" className="h-9 w-auto" />
+            <img src={abLogo} alt="Anaglyph Branding" className="h-9 w-auto" />
             <div className="leading-tight">
-              <div className="text-sm font-semibold tracking-tight">Phase 3 — AB Brand Kit Builder</div>
-              <div className="text-xs text-muted-foreground">Build the official Anaglyph Branding Brand Kit. All sections editable.</div>
+              <div className="text-base font-bold tracking-tight">Anaglyph Branding</div>
+              <div className="text-[11px] text-muted-foreground">Phase 3 — Official Brand Kit Builder</div>
             </div>
           </div>
           <PhaseStepper current="/phase-3" completed={{ "/phase-3": Boolean(kit?.adminView?.brandKitExportedAt) }} />
@@ -300,16 +330,23 @@ function Phase3() {
         <aside className="space-y-4">
           <section>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1.5">
-              <Database className="h-3.5 w-3.5" /> Project
+              <Database className="h-3.5 w-3.5" /> Pick a Saved Profile
             </h2>
-            <Select value={selectedId} onValueChange={load}>
-              <SelectTrigger><SelectValue placeholder="Pick a project" /></SelectTrigger>
-              <SelectContent>
-                {profiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.business_name || "Untitled"} · {p.client_name || "—"}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SavedProfilesPicker
+              profiles={profiles}
+              selectedId={selectedId}
+              onSelect={load}
+              onDeleted={(ids) => {
+                setProfiles((rows) => rows.filter((r) => !ids.includes(r.id)));
+                if (ids.includes(selectedId)) {
+                  setSelectedId("");
+                  setKit(null);
+                  setDoc(null);
+                  setPrimaryLogo(null);
+                  storeProjectId("");
+                }
+              }}
+            />
             {kit && (
               <Button size="sm" variant="outline" className="mt-2 w-full" onClick={refresh} disabled={loading}>
                 <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
@@ -319,6 +356,15 @@ function Phase3() {
 
           {kit && doc && (
             <section className="space-y-2">
+              <Button
+                className="w-full"
+                style={{ background: RED, color: "#fff" }}
+                onClick={saveProgress}
+                disabled={saving}
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Save className="h-4 w-4 mr-1.5" />}
+                Save Brand Kit Progress
+              </Button>
               <Button className="w-full" onClick={exportPdf} disabled={exporting === "pdf"}>
                 {exporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
                 Save Brand Kit as PDF
@@ -327,6 +373,11 @@ function Phase3() {
                 {exporting === "zip" ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
                 Download Asset ZIP
               </Button>
+              {savedAt && (
+                <div className="text-[10px] text-muted-foreground text-center">
+                  Last saved {new Date(savedAt).toLocaleString()}
+                </div>
+              )}
             </section>
           )}
 
@@ -380,7 +431,12 @@ function BrandKitEditor({
     >
       {/* Cover */}
       <div className="px-10 py-12 text-center border-b" style={{ borderColor: "#1F1F1F" }}>
-        <div className="text-xs tracking-[0.4em]" style={{ color: GOLD }}>ANAGLYPH BRANDING</div>
+        <div className="inline-flex items-center justify-center gap-3">
+          <img src={abLogo} alt="Anaglyph Branding" className="h-8 w-auto" />
+          <span className="text-base font-bold tracking-tight" style={{ color: "#fff" }}>
+            Anaglyph Branding
+          </span>
+        </div>
         <div className="mt-6 text-4xl font-bold tracking-tight">
           <Input
             value={businessName}
@@ -637,7 +693,12 @@ function BrandKitEditor({
 
       {/* 9. Final AB Brand Statement Footer */}
       <div className="px-10 py-12 text-center border-t" style={{ borderColor: "#1F1F1F", background: "#000" }}>
-        <div className="text-xs tracking-[0.4em] mb-4" style={{ color: GOLD }}>ANAGLYPH BRANDING</div>
+        <div className="inline-flex items-center justify-center gap-3 mb-4">
+          <img src={abLogo} alt="Anaglyph Branding" className="h-7 w-auto" />
+          <span className="text-sm font-bold tracking-tight" style={{ color: "#fff" }}>
+            Anaglyph Branding
+          </span>
+        </div>
         <div className="mx-auto max-w-3xl text-2xl md:text-3xl font-bold leading-tight tracking-tight" style={{ color: "#fff" }}>
           {AB_STATEMENT}
         </div>
@@ -1222,12 +1283,17 @@ async function buildAbBrandKitPdf(d: {
         const h = 24;
         const w = (props.width / props.height) * h;
         pdf.addImage(d.abLogoDataUrl.dataUrl, d.abLogoDataUrl.format, margin, 11, w, h);
+        // "Anaglyph Branding" text next to the AB logo.
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.text("Anaglyph Branding", margin + w + 8, 28);
       } catch { /* skip */ }
     } else {
       pdf.setTextColor(gr, gg, gb);
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(9);
-      pdf.text("ANAGLYPH BRANDING", margin, 28, { charSpace: 2 });
+      pdf.setFontSize(11);
+      pdf.text("Anaglyph Branding", margin, 28);
     }
     pdf.setTextColor(220, 220, 220);
     pdf.setFont("helvetica", "bold");

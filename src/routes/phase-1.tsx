@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PhaseStepper } from "@/components/PhaseStepper";
@@ -15,13 +14,14 @@ import { getMissingRequiredFields } from "@/lib/profile.shared";
 import { PhaseChecklist, buildPhase1Checklist, derivePhase1Message, deriveBadge, deriveProjectStatus } from "@/components/brand-kit/PhaseChecklist";
 import abLogo from "@/assets/ab-logo.png";
 import { getStoredProjectId, storeProjectId } from "@/lib/selected-project";
+import { SavedProfilesPicker } from "@/components/SavedProfilesPicker";
 
 export const Route = createFileRoute("/phase-1")({
   head: () => ({ meta: [{ title: "Phase 1 — Complete Intake | AB Brand Kit" }] }),
   component: Phase1,
 });
 
-type ProfileRow = { id: string; business_name: string | null; client_name: string | null; phase_1_completed_at?: string | null };
+type ProfileRow = { id: string; business_name: string | null; client_name: string | null; phase_1_completed_at?: string | null; updated_at?: string | null };
 
 const TEXT_FIELDS: Array<{ key: string; label: string; long?: boolean; placeholder?: string }> = [
   { key: "business_name", label: "Business name", placeholder: "Big Dog Day Care" },
@@ -127,17 +127,22 @@ function Phase1() {
         <aside className="space-y-4">
           <section>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1.5">
-              <Database className="h-3.5 w-3.5" /> Existing profile
+              <Database className="h-3.5 w-3.5" /> Pick a Saved Profile
             </h2>
-            <Select value={selectedId} onValueChange={load}>
-              <SelectTrigger><SelectValue placeholder={profiles.length ? "Pick a profile or start new" : "No saved profiles"} /></SelectTrigger>
-              <SelectContent>
-                {profiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.business_name || "Untitled"} · {p.client_name || "—"}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" className="mt-2 w-full" onClick={() => { setSelectedId(""); setProfile({}); }}>+ New intake</Button>
+            <SavedProfilesPicker
+              profiles={profiles}
+              selectedId={selectedId}
+              onSelect={load}
+              onDeleted={(ids) => {
+                setProfiles((rows) => rows.filter((r) => !ids.includes(r.id)));
+                if (ids.includes(selectedId)) {
+                  setSelectedId("");
+                  setProfile({});
+                  storeProjectId("");
+                }
+              }}
+            />
+            <Button variant="outline" size="sm" className="mt-2 w-full" onClick={() => { setSelectedId(""); setProfile({}); storeProjectId(""); }}>+ New intake</Button>
           </section>
 
           <PhaseChecklist
