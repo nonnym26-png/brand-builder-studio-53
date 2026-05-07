@@ -291,10 +291,10 @@ function Phase3() {
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 px-6 py-4">
           <div className="flex items-center gap-3">
-            <img src={abLogo} alt="Anaglyph" className="h-9 w-auto" />
+            <img src={abLogo} alt="Anaglyph Branding" className="h-9 w-auto" />
             <div className="leading-tight">
-              <div className="text-sm font-semibold tracking-tight">Phase 3 — AB Brand Kit Builder</div>
-              <div className="text-xs text-muted-foreground">Build the official Anaglyph Branding Brand Kit. All sections editable.</div>
+              <div className="text-base font-bold tracking-tight">Anaglyph Branding</div>
+              <div className="text-[11px] text-muted-foreground">Phase 3 — Official Brand Kit Builder</div>
             </div>
           </div>
           <PhaseStepper current="/phase-3" completed={{ "/phase-3": Boolean(kit?.adminView?.brandKitExportedAt) }} />
@@ -305,16 +305,23 @@ function Phase3() {
         <aside className="space-y-4">
           <section>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1.5">
-              <Database className="h-3.5 w-3.5" /> Project
+              <Database className="h-3.5 w-3.5" /> Pick a Saved Profile
             </h2>
-            <Select value={selectedId} onValueChange={load}>
-              <SelectTrigger><SelectValue placeholder="Pick a project" /></SelectTrigger>
-              <SelectContent>
-                {profiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.business_name || "Untitled"} · {p.client_name || "—"}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SavedProfilesPicker
+              profiles={profiles}
+              selectedId={selectedId}
+              onSelect={load}
+              onDeleted={(ids) => {
+                setProfiles((rows) => rows.filter((r) => !ids.includes(r.id)));
+                if (ids.includes(selectedId)) {
+                  setSelectedId("");
+                  setKit(null);
+                  setDoc(null);
+                  setPrimaryLogo(null);
+                  storeProjectId("");
+                }
+              }}
+            />
             {kit && (
               <Button size="sm" variant="outline" className="mt-2 w-full" onClick={refresh} disabled={loading}>
                 <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
@@ -324,6 +331,15 @@ function Phase3() {
 
           {kit && doc && (
             <section className="space-y-2">
+              <Button
+                className="w-full"
+                style={{ background: RED, color: "#fff" }}
+                onClick={saveProgress}
+                disabled={saving}
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Save className="h-4 w-4 mr-1.5" />}
+                Save Brand Kit Progress
+              </Button>
               <Button className="w-full" onClick={exportPdf} disabled={exporting === "pdf"}>
                 {exporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
                 Save Brand Kit as PDF
@@ -332,6 +348,11 @@ function Phase3() {
                 {exporting === "zip" ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
                 Download Asset ZIP
               </Button>
+              {savedAt && (
+                <div className="text-[10px] text-muted-foreground text-center">
+                  Last saved {new Date(savedAt).toLocaleString()}
+                </div>
+              )}
             </section>
           )}
 
