@@ -625,6 +625,62 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+type VisualEl = KitDoc["visualElements"][number];
+
+function VisualElementSlot({
+  element, onChange, onFile,
+}: {
+  element: VisualEl;
+  onChange: (patch: Partial<VisualEl>) => void;
+  onFile: (file: File | null) => void;
+}) {
+  const inputId = `ve-${element.title.replace(/\s+/g, "-")}-${Math.random().toString(36).slice(2, 6)}`;
+  return (
+    <div className="rounded-lg border overflow-hidden" style={{ borderColor: "#2A2A2A", background: "#111" }}>
+      <div className="aspect-square grid place-items-center" style={{ background: "#FFFFFF" }}>
+        {element.dataUrl ? (
+          <img src={element.dataUrl} alt={element.title} className="max-h-full max-w-full object-contain p-4" />
+        ) : (
+          <label htmlFor={inputId} className="cursor-pointer text-center px-3 text-[11px]" style={{ color: "#999" }}>
+            <div className="font-semibold mb-1" style={{ color: "#666" }}>Upload</div>
+            <div>Click to add image</div>
+          </label>
+        )}
+      </div>
+      <div className="p-2 space-y-1.5">
+        <DarkInput value={element.title} onChange={(v) => onChange({ title: v })} />
+        <DarkTextarea rows={3} value={element.explanation} onChange={(v) => onChange({ explanation: v })} small />
+        <div className="flex gap-1.5">
+          <label
+            htmlFor={inputId}
+            className="flex-1 text-center text-[10px] tracking-wider py-1 rounded cursor-pointer border"
+            style={{ borderColor: "#2A2A2A", color: GOLD }}
+          >
+            {element.dataUrl ? "REPLACE" : "UPLOAD"}
+          </label>
+          {element.dataUrl && (
+            <button
+              type="button"
+              onClick={() => onFile(null)}
+              className="text-[10px] tracking-wider py-1 px-2 rounded border"
+              style={{ borderColor: "#2A2A2A", color: "#bbb" }}
+            >
+              CLEAR
+            </button>
+          )}
+        </div>
+        <input
+          id={inputId}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+        />
+      </div>
+    </div>
+  );
+}
+
 /* --------------------------------- PDF --------------------------------- */
 
 async function fetchAsDataUrl(url: string): Promise<{ dataUrl: string; format: "PNG" | "JPEG" } | null> {
