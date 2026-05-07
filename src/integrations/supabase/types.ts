@@ -154,6 +154,7 @@ export type Database = {
           internal_production_notes: string | null
           is_complete: boolean | null
           is_draft: boolean | null
+          logo_direction: string | null
           logo_direction_notes: string | null
           logo_type_preferences: string[] | null
           logo_version_needs: string[] | null
@@ -291,6 +292,7 @@ export type Database = {
           internal_production_notes?: string | null
           is_complete?: boolean | null
           is_draft?: boolean | null
+          logo_direction?: string | null
           logo_direction_notes?: string | null
           logo_type_preferences?: string[] | null
           logo_version_needs?: string[] | null
@@ -428,6 +430,7 @@ export type Database = {
           internal_production_notes?: string | null
           is_complete?: boolean | null
           is_draft?: boolean | null
+          logo_direction?: string | null
           logo_direction_notes?: string | null
           logo_type_preferences?: string[] | null
           logo_version_needs?: string[] | null
