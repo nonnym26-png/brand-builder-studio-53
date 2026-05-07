@@ -556,6 +556,8 @@ function Phase2() {
             }}
           />
 
+          <BrandPackageBuilder brandProfileId={selectedId || null} />
+
           <div id="client-proof-queue">
             <ClientProofQueue onOpenProject={(id) => setSelectedId(id)} externalFilter={proofFilter} />
           </div>
