@@ -38,7 +38,20 @@ const QUICK_REVISIONS = [
   "Start over",
 ];
 
-export function AbCreativeEngine({ brandProfileId }: { brandProfileId: string | null }) {
+export function AbCreativeEngine({
+  brandProfileId,
+  designDna,
+  extras,
+}: {
+  brandProfileId: string | null;
+  designDna?: { mustHave?: string; avoid?: string; qualityBar?: string; formula?: string };
+  extras?: {
+    fonts?: { heading?: string; body?: string; accent?: string };
+    chosenSlogan?: string | null;
+    elements?: string[];
+    mascot?: { enabled?: boolean; style?: string; idea?: string };
+  };
+}) {
   const [designs, setDesigns] = useState<Design[]>([]);
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState(-1);
@@ -76,7 +89,7 @@ export function AbCreativeEngine({ brandProfileId }: { brandProfileId: string | 
     if (!brandProfileId) { toast.error("Select a brand profile first"); return; }
     await runProgress(async () => {
       try {
-        await generateAbDesign({ data: { brandProfileId, backgroundChoice: background } });
+        await generateAbDesign({ data: { brandProfileId, backgroundChoice: background, designDna, extras } });
         toast.success("Design generated");
         await refresh();
       } catch (e) {
@@ -118,8 +131,8 @@ export function AbCreativeEngine({ brandProfileId }: { brandProfileId: string | 
           <h2 className="text-lg font-semibold tracking-tight inline-flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" /> AB Creative Engine
           </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Two-stage AI: writes the creative brief and the image prompt, then renders the design. Revisions preserve direction.
+          <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
+            This is the renderer. It pulls <strong>everything</strong> you set above — Phase 1 intake, colors, fonts, slogan, brand elements, mascot, and your Design DNA Rules — sends it to AI in two stages (creative brief → master prompt → image), and saves the result to the gallery. Use <strong>Revise</strong> on a card to iterate without losing direction.
           </p>
         </div>
         <div className="flex items-center gap-2">
