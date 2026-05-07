@@ -20,6 +20,7 @@ import { DesignDnaRuleEditor, useDesignDna } from "@/components/brand-kit/Design
 import { AbCreativeEngine, type AbCreativeEngineHandle } from "@/components/brand-kit/AbCreativeEngine";
 import { ClientProofQueue } from "@/components/brand-kit/ClientProofQueue";
 import { FinalDeliveryTracker } from "@/components/brand-kit/FinalDeliveryTracker";
+import { AbStudioDashboard, type DashboardFocus } from "@/components/brand-kit/AbStudioDashboard";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -61,6 +62,19 @@ function Phase2() {
   const [generating, setGenerating] = useState(false);
   const [outputCount, setOutputCount] = useState<number>(1);
   const engineRef = useRef<AbCreativeEngineHandle | null>(null);
+  const [proofFilter, setProofFilter] = useState<"all" | "pending" | "approve_final" | "minor_revision" | "full_redesign" | undefined>(undefined);
+  const [deliveryFilter, setDeliveryFilter] = useState<"all" | "needs_final_kit" | "kit_prepared" | "sent" | "delivered" | undefined>(undefined);
+
+  const onDashboardFocus = (focus: DashboardFocus) => {
+    if (!focus) return;
+    if (focus.queue === "proof") {
+      setProofFilter(focus.status || "all");
+      setTimeout(() => document.getElementById("client-proof-queue")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    } else if (focus.queue === "delivery") {
+      setDeliveryFilter(focus.status || "all");
+      setTimeout(() => document.getElementById("final-delivery-tracker")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    }
+  };
 
   // Initial deterministic generation
   useEffect(() => {
