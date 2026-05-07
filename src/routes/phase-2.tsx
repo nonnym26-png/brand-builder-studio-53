@@ -20,6 +20,7 @@ import { DesignDnaEditor } from "@/components/DesignDnaEditor";
 import { PhaseStepper } from "@/components/PhaseStepper";
 import { PALETTES } from "@/components/brand-kit/palettes";
 import { FONTS, type FontKey } from "@/components/brand-kit/types";
+import { CustomFontUploader, useCustomFonts } from "@/components/brand-kit/CustomFontUploader";
 
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
@@ -48,6 +49,7 @@ function Phase2() {
 
   // New Phase 2 creative selections
   const [fonts, setFonts] = useState<{ heading: FontKey; body: FontKey; accent: FontKey }>({ heading: "playfair", body: "inter", accent: "bebas" });
+  const customFonts = useCustomFonts();
   const [slogans, setSlogans] = useState<string[]>([]);
   const [chosenSlogan, setChosenSlogan] = useState<string>("");
   const [sloganBusy, setSloganBusy] = useState(false);
@@ -271,12 +273,32 @@ function Phase2() {
                             <span className="ml-2 text-[10px] text-muted-foreground">{FONTS[k].category}</span>
                           </SelectItem>
                         ))}
+                        {customFonts.fonts.length > 0 && (
+                          <>
+                            <div className="my-1 border-t border-border" />
+                            <div className="px-2 py-1 text-[10px] uppercase tracking-widest text-muted-foreground">Your uploads</div>
+                            {customFonts.fonts.map((f) => (
+                              <SelectItem key={f.id} value={`custom:${f.family}` as unknown as FontKey}>
+                                <span style={{ fontFamily: `"${f.family}", system-ui` }}>{f.label}</span>
+                                <span className="ml-2 text-[10px] text-muted-foreground">Custom</span>
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Custom font uploader */}
+            <CustomFontUploader
+              fonts={customFonts.fonts}
+              onAdd={customFonts.add}
+              onRemove={customFonts.remove}
+              previewText={profile.business_name || "Aa Bb Cc 123"}
+            />
 
             {/* Slogans */}
             <div className="rounded-xl border border-border bg-card p-5 md:col-span-2">
