@@ -414,6 +414,8 @@ export type Database = {
       }
       client_proofs: {
         Row: {
+          acted_at: string | null
+          acted_kind: string | null
           asset_ids: string[]
           brand_profile_id: string
           business_name: string | null
@@ -428,6 +430,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acted_at?: string | null
+          acted_kind?: string | null
           asset_ids?: string[]
           brand_profile_id: string
           business_name?: string | null
@@ -442,6 +446,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acted_at?: string | null
+          acted_kind?: string | null
           asset_ids?: string[]
           brand_profile_id?: string
           business_name?: string | null
