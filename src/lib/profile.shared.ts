@@ -66,6 +66,7 @@ export function buildBrandProfileSummary(p: ProfileLike): string {
   const logoTypes = get("logo_type_preferences");
   const usage = get("digital_usage");
   const tagline = get("tagline_ideas");
+  const logoDirection = get("logo_direction");
 
   const parts: string[] = [];
 
@@ -78,6 +79,11 @@ export function buildBrandProfileSummary(p: ProfileLike): string {
   }
 
   if (description) parts.push(`## The Business\n${description}`);
+
+  if (logoDirection) {
+    const label = logoDirection === "rework_existing" ? "Rework Existing Logo" : logoDirection === "design_new" ? "Design New Logo" : logoDirection;
+    parts.push(`## Logo Direction\n${label}`);
+  }
 
   const audienceBlock = [
     audience && `Audience — ${audience}`,
