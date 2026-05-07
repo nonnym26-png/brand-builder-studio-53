@@ -1581,12 +1581,11 @@ async function buildAbBrandKitPdf(d: {
   /* ----- Section 5: Brand Application Recommendations (anchored to bottom of page 1) ----- */
   const apps = d.doc.applications.filter((a) => a.selected && a.dataUrl);
   if (apps.length > 0) {
-    const cardsH = 170;
+    const cardsH = 160;
     const HEADER_H_P1 = 22;
     // Anchor to bottom of page 1 (leave room for footer).
     const FOOTER_SAFE_P1 = 70;
-    const bottomY = pageH - FOOTER_SAFE_P1 - cardsH;
-    const py1 = Math.max(y, bottomY);
+    const py1 = pageH - FOOTER_SAFE_P1 - cardsH - HEADER_H_P1;
     sectionHeader("5", "Brand Application Recommendations", margin, py1, contentW);
     card(margin, py1 + HEADER_H_P1, contentW, cardsH - HEADER_H_P1);
     const inner = { x: margin + 12, y: py1 + 32, w: contentW - 24, h: cardsH - 50 };
