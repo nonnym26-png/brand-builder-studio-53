@@ -1,6 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Database, Download, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import {
+  Database, Download, Loader2, RefreshCw, Sparkles,
+  Search, Compass, Palette, Package, Layers, Eye,
+  Award, ShieldCheck, Briefcase,
+} from "lucide-react";
 import JSZip from "jszip";
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
@@ -47,28 +51,43 @@ type KitDoc = {
     selected: boolean;
   }>;
   // 6. Strategic Branding Process
-  process: string;
+  processSteps: Array<{ title: string; explanation: string; icon: ProcessIconKey }>;
   // 7. Slogan / Brand Message
-  slogan: string;
-  brandMessage: string;
+  slogans: Array<{ headline: string; explanation: string }>;
   // 8. Why Branding Matters
-  whyBranding: string;
+  whyBlocks: Array<{ title: string; explanation: string; icon: WhyIconKey }>;
   // 9. Final AB Brand Statement Footer
-  footerStatement: string;
+  footerBusinessName: string;
+  footerBusinessType: string;
+  footerProjectNote: string;
 };
 
-const DEFAULT_PROCESS =
-  "Phase 1 — Discovery & Intake: We capture the business story, audience, and visual direction.\n" +
-  "Phase 2 — Logo Generation & Refinement: We design, revise, and approve a signature mark.\n" +
-  "Phase 3 — Brand Kit Delivery: We assemble the complete brand system for production-ready use.";
+const AB_STATEMENT = "WE DESIGN THE BRAND FIRST, THEN BUILD THE MATERIALS THAT MAKE IT VISIBLE.";
 
-const DEFAULT_WHY =
-  "Branding is more than a logo — it is the visual promise your business makes every time a customer sees you. " +
-  "A consistent, professional brand builds trust, commands premium pricing, and turns first-time buyers into loyal advocates.";
+type ProcessIconKey = "search" | "compass" | "palette" | "package" | "layers" | "eye";
+type WhyIconKey = "award" | "shield" | "briefcase";
 
-const DEFAULT_FOOTER =
-  "This Brand Kit is the official Anaglyph Branding identity system for your business. " +
-  "Every element has been crafted for print, digital, signage, and apparel. Use it consistently — and your brand will speak before you do.";
+const PROCESS_ICONS: Record<ProcessIconKey, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+  search: Search, compass: Compass, palette: Palette, package: Package, layers: Layers, eye: Eye,
+};
+const WHY_ICONS: Record<WhyIconKey, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+  award: Award, shield: ShieldCheck, briefcase: Briefcase,
+};
+
+const DEFAULT_PROCESS: KitDoc["processSteps"] = [
+  { icon: "search",   title: "Discovery",          explanation: "We capture the business story, audience, market, and visual direction." },
+  { icon: "compass",  title: "Strategy",           explanation: "We define positioning, tone, and the visual language that will guide every decision." },
+  { icon: "palette",  title: "Identity Design",    explanation: "We design a signature logo system, color palette, and typography built for recognition." },
+  { icon: "package",  title: "Brand Assets",       explanation: "We deliver every approved logo lockup, color, font, and supporting visual element." },
+  { icon: "layers",   title: "Applications",       explanation: "We extend the brand into print, signage, apparel, vehicles, packaging, and digital." },
+  { icon: "eye",      title: "Visibility & Trust", explanation: "We position the brand to be seen, remembered, and chosen by the right customers." },
+];
+
+const DEFAULT_WHY: KitDoc["whyBlocks"] = [
+  { icon: "award",     title: "Recognition",          explanation: "A consistent visual identity makes your business instantly recognisable across every touchpoint — print, digital, signage, and apparel." },
+  { icon: "shield",    title: "Trust",                explanation: "Customers trust brands that look intentional. A professional identity signals quality, credibility, and longevity." },
+  { icon: "briefcase", title: "Professional Presence",explanation: "A complete brand system positions you alongside the most established names in your industry — and commands premium pricing." },
+];
 
 function Phase3() {
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
@@ -163,12 +182,12 @@ function Phase3() {
           buildIconNotes(v),
         visualElements: buildVisualElements(v),
         applications: buildApplications(v),
-        process: DEFAULT_PROCESS,
-        slogan: pickSlogan(v),
-        brandMessage:
-          buildBrandMessage(v),
-        whyBranding: DEFAULT_WHY,
-        footerStatement: DEFAULT_FOOTER,
+        processSteps: DEFAULT_PROCESS.map((s) => ({ ...s })),
+        slogans: buildSlogans(v),
+        whyBlocks: DEFAULT_WHY.map((b) => ({ ...b })),
+        footerBusinessName: v.brand.businessName || "",
+        footerBusinessType: v.brand.industry || "",
+        footerProjectNote: "",
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load");
@@ -472,38 +491,94 @@ function BrandKitEditor({
 
       {/* 6. Strategic Branding Process */}
       <Section title="06 · Strategic Branding Process">
-        <DarkTextarea rows={6} value={doc.process} onChange={(v) => update({ process: v })} />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {doc.processSteps.map((step, i) => {
+            const Icon = PROCESS_ICONS[step.icon];
+            return (
+              <div key={i} className="rounded-lg border p-4 space-y-2" style={{ borderColor: "#2A2A2A", background: "#111" }}>
+                <div className="flex items-center gap-2">
+                  <div className="h-9 w-9 grid place-items-center rounded" style={{ background: "#000", border: `1px solid ${GOLD}` }}>
+                    <Icon className="h-4 w-4" style={{ color: GOLD }} />
+                  </div>
+                  <div className="text-[10px] tracking-[0.25em]" style={{ color: GOLD }}>STEP {String(i + 1).padStart(2, "0")}</div>
+                </div>
+                <DarkInput value={step.title} onChange={(v) => {
+                  const next = doc.processSteps.slice(); next[i] = { ...next[i], title: v }; update({ processSteps: next });
+                }} />
+                <DarkTextarea rows={3} value={step.explanation} small onChange={(v) => {
+                  const next = doc.processSteps.slice(); next[i] = { ...next[i], explanation: v }; update({ processSteps: next });
+                }} />
+              </div>
+            );
+          })}
+        </div>
       </Section>
 
       {/* 7. Slogan / Brand Message */}
       <Section title="07 · Slogan / Brand Message">
-        <div className="space-y-3">
-          <div>
-            <Lbl>Slogan</Lbl>
-            <DarkInput value={doc.slogan} onChange={(v) => update({ slogan: v })} placeholder="Optional tagline" />
-          </div>
-          <div>
-            <Lbl>Brand Message</Lbl>
-            <DarkTextarea rows={5} value={doc.brandMessage} onChange={(v) => update({ brandMessage: v })} />
-          </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {doc.slogans.map((s, i) => (
+            <div key={i} className="rounded-lg border p-5 space-y-3" style={{ borderColor: "#2A2A2A", background: "#111" }}>
+              <div className="text-[10px] tracking-[0.25em]" style={{ color: GOLD }}>OPTION {i + 1}</div>
+              <div className="text-2xl font-bold leading-tight" style={{ color: "#fff" }}>
+                <DarkInput value={s.headline} placeholder="Slogan headline" onChange={(v) => {
+                  const next = doc.slogans.slice(); next[i] = { ...next[i], headline: v }; update({ slogans: next });
+                }} />
+              </div>
+              <div>
+                <Lbl>Why it fits</Lbl>
+                <DarkTextarea rows={4} value={s.explanation} onChange={(v) => {
+                  const next = doc.slogans.slice(); next[i] = { ...next[i], explanation: v }; update({ slogans: next });
+                }} small />
+              </div>
+            </div>
+          ))}
         </div>
       </Section>
 
       {/* 8. Why Branding Matters */}
       <Section title="08 · Why Branding Matters">
-        <DarkTextarea rows={6} value={doc.whyBranding} onChange={(v) => update({ whyBranding: v })} />
+        <div className="grid gap-3 md:grid-cols-3">
+          {doc.whyBlocks.map((b, i) => {
+            const Icon = WHY_ICONS[b.icon];
+            return (
+              <div key={i} className="rounded-lg border p-5 space-y-3 text-center" style={{ borderColor: "#2A2A2A", background: "#111" }}>
+                <div className="mx-auto h-12 w-12 grid place-items-center rounded-full" style={{ background: "#000", border: `1px solid ${GOLD}` }}>
+                  <Icon className="h-5 w-5" style={{ color: GOLD }} />
+                </div>
+                <DarkInput value={b.title} onChange={(v) => {
+                  const next = doc.whyBlocks.slice(); next[i] = { ...next[i], title: v }; update({ whyBlocks: next });
+                }} />
+                <DarkTextarea rows={4} value={b.explanation} small centered onChange={(v) => {
+                  const next = doc.whyBlocks.slice(); next[i] = { ...next[i], explanation: v }; update({ whyBlocks: next });
+                }} />
+              </div>
+            );
+          })}
+        </div>
       </Section>
 
       {/* 9. Final AB Brand Statement Footer */}
-      <div className="px-10 py-10 text-center border-t" style={{ borderColor: "#1F1F1F", background: "#000" }}>
-        <div className="text-xs tracking-[0.4em] mb-3" style={{ color: GOLD }}>ANAGLYPH BRANDING</div>
-        <DarkTextarea
-          rows={4}
-          value={doc.footerStatement}
-          onChange={(v) => update({ footerStatement: v })}
-          centered
-        />
-        <div className="mt-4 h-[2px] w-24 mx-auto" style={{ background: RED }} />
+      <div className="px-10 py-12 text-center border-t" style={{ borderColor: "#1F1F1F", background: "#000" }}>
+        <div className="text-xs tracking-[0.4em] mb-4" style={{ color: GOLD }}>ANAGLYPH BRANDING</div>
+        <div className="mx-auto max-w-3xl text-2xl md:text-3xl font-bold leading-tight tracking-tight" style={{ color: "#fff" }}>
+          {AB_STATEMENT}
+        </div>
+        <div className="mt-5 h-[2px] w-24 mx-auto" style={{ background: RED }} />
+        <div className="mt-6 grid gap-3 md:grid-cols-2 max-w-2xl mx-auto text-left">
+          <div>
+            <Lbl>Business Name</Lbl>
+            <DarkInput value={doc.footerBusinessName} onChange={(v) => update({ footerBusinessName: v })} />
+          </div>
+          <div>
+            <Lbl>Business Type / Industry</Lbl>
+            <DarkInput value={doc.footerBusinessType} onChange={(v) => update({ footerBusinessType: v })} />
+          </div>
+          <div className="md:col-span-2">
+            <Lbl>Project Note (optional)</Lbl>
+            <DarkTextarea rows={3} value={doc.footerProjectNote} onChange={(v) => update({ footerProjectNote: v })} />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -931,6 +1006,35 @@ function pickSlogan(v: PV): string {
   return v.brand.selectedDirection || "";
 }
 
+function buildSlogans(v: PV): KitDoc["slogans"] {
+  const list: string[] = [];
+  const s = v.phase2?.slogans as unknown;
+  if (typeof s === "string" && s.trim()) list.push(s.trim());
+  else if (Array.isArray(s)) {
+    for (const item of s) {
+      if (typeof item === "string" && item.trim()) list.push(item.trim());
+      else if (item && typeof item === "object" && "text" in item) {
+        const t = String((item as { text: unknown }).text || "").trim();
+        if (t) list.push(t);
+      }
+    }
+  }
+  if (v.brand.selectedDirection && !list.includes(v.brand.selectedDirection)) {
+    list.push(v.brand.selectedDirection);
+  }
+  const business = v.brand.businessName || "Your Brand";
+  const fallback = [
+    { headline: `${business}. Built to be remembered.`, explanation: "Anchors the brand around recognition and longevity — speaks to customers who value quality and consistency." },
+    { headline: `${business}. Designed for trust.`,     explanation: "Positions the brand as a credible, professional choice — supports premium pricing and repeat business." },
+  ];
+  const out: KitDoc["slogans"] = [];
+  for (let i = 0; i < 2; i++) {
+    if (list[i]) out.push({ headline: list[i], explanation: fallback[i].explanation });
+    else out.push(fallback[i]);
+  }
+  return out;
+}
+
 function buildBrandMessage(v: PV): string {
   const parts: string[] = [];
   if (v.brand.shortDescription || v.brand.description) {
@@ -1306,44 +1410,132 @@ async function buildAbBrandKitPdf(d: {
 
   /* Section 6 — Process */
   sectionHeader("06 · Strategic Branding Process");
-  paragraph(d.doc.process);
+  {
+    const cols = 3;
+    const gap = 12;
+    const cardW = (contentW - gap * (cols - 1)) / cols;
+    const cardH = 90;
+    for (let i = 0; i < d.doc.processSteps.length; i++) {
+      const col = i % cols;
+      if (col === 0) ensure(cardH + 10);
+      const rowY = y;
+      const x = margin + col * (cardW + gap);
+      const step = d.doc.processSteps[i];
+      pdf.setFillColor(20, 20, 20);
+      pdf.rect(x, rowY, cardW, cardH, "F");
+      pdf.setDrawColor(gr, gg, gb);
+      pdf.setLineWidth(0.5);
+      pdf.rect(x + 8, rowY + 8, 18, 18);
+      pdf.setTextColor(gr, gg, gb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8);
+      pdf.text(String(i + 1).padStart(2, "0"), x + 17, rowY + 20, { align: "center" });
+      pdf.setFontSize(9);
+      pdf.text((step.title || "").toUpperCase(), x + 32, rowY + 20);
+      pdf.setTextColor(220, 220, 220);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      const lines = pdf.splitTextToSize(step.explanation || "", cardW - 16);
+      pdf.text(lines.slice(0, 5), x + 8, rowY + 38);
+      if (col === cols - 1 || i === d.doc.processSteps.length - 1) y = rowY + cardH + 10;
+    }
+  }
 
   /* Section 7 — Slogan / Brand Message */
   sectionHeader("07 · Slogan / Brand Message");
-  if (d.doc.slogan) {
-    ensure(28);
-    pdf.setTextColor(gr, gg, gb);
-    pdf.setFont("helvetica", "bolditalic");
-    pdf.setFontSize(16);
-    pdf.text(`"${d.doc.slogan}"`, margin, y);
-    y += 22;
+  {
+    const cols = 2;
+    const gap = 14;
+    const cardW = (contentW - gap) / cols;
+    const cardH = 110;
+    ensure(cardH + 10);
+    const rowY = y;
+    for (let i = 0; i < d.doc.slogans.length; i++) {
+      const s = d.doc.slogans[i];
+      const x = margin + i * (cardW + gap);
+      pdf.setFillColor(20, 20, 20);
+      pdf.rect(x, rowY, cardW, cardH, "F");
+      pdf.setTextColor(gr, gg, gb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8);
+      pdf.text(`OPTION ${i + 1}`, x + 10, rowY + 16);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bolditalic");
+      pdf.setFontSize(14);
+      const head = pdf.splitTextToSize(`"${s.headline}"`, cardW - 20);
+      pdf.text(head.slice(0, 3), x + 10, rowY + 36);
+      pdf.setTextColor(200, 200, 200);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      const exp = pdf.splitTextToSize(s.explanation || "", cardW - 20);
+      pdf.text(exp.slice(0, 5), x + 10, rowY + 36 + Math.min(head.length, 3) * 16 + 6);
+    }
+    y = rowY + cardH + 10;
   }
-  paragraph(d.doc.brandMessage);
 
   /* Section 8 — Why */
   sectionHeader("08 · Why Branding Matters");
-  paragraph(d.doc.whyBranding);
+  {
+    const cols = 3;
+    const gap = 12;
+    const cardW = (contentW - gap * (cols - 1)) / cols;
+    const cardH = 110;
+    ensure(cardH + 10);
+    const rowY = y;
+    for (let i = 0; i < d.doc.whyBlocks.length; i++) {
+      const b = d.doc.whyBlocks[i];
+      const x = margin + i * (cardW + gap);
+      pdf.setFillColor(20, 20, 20);
+      pdf.rect(x, rowY, cardW, cardH, "F");
+      pdf.setDrawColor(gr, gg, gb);
+      pdf.setLineWidth(0.5);
+      pdf.circle(x + cardW / 2, rowY + 22, 10);
+      pdf.setTextColor(gr, gg, gb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(11);
+      pdf.text((b.title || "").toUpperCase(), x + cardW / 2, rowY + 50, { align: "center" });
+      pdf.setTextColor(220, 220, 220);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      const lines = pdf.splitTextToSize(b.explanation || "", cardW - 16);
+      pdf.text(lines.slice(0, 6), x + cardW / 2, rowY + 64, { align: "center" });
+    }
+    y = rowY + cardH + 10;
+  }
 
   /* Section 9 — Footer */
   startPage();
   pdf.setTextColor(gr, gg, gb);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(10);
-  pdf.text("ANAGLYPH BRANDING", pageW / 2, pageH / 2 - 40, { align: "center", charSpace: 4 });
+  pdf.text("ANAGLYPH BRANDING", pageW / 2, pageH / 2 - 80, { align: "center", charSpace: 4 });
   pdf.setTextColor(255, 255, 255);
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(11);
-  const footLines = pdf.splitTextToSize(d.doc.footerStatement, contentW - 40);
-  let fy = pageH / 2;
-  for (const line of footLines) {
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(20);
+  const stmtLines = pdf.splitTextToSize(AB_STATEMENT, contentW - 40);
+  let fy = pageH / 2 - 30;
+  for (const line of stmtLines) {
     pdf.text(line, pageW / 2, fy, { align: "center" });
-    fy += 16;
+    fy += 26;
   }
   pdf.setFillColor(rr, rg, rb);
-  pdf.rect(pageW / 2 - 20, fy + 12, 40, 3, "F");
-  pdf.setTextColor(150, 150, 150);
-  pdf.setFontSize(8);
-  pdf.text(`${d.businessName} · Official Brand Kit`, pageW / 2, fy + 36, { align: "center" });
+  pdf.rect(pageW / 2 - 20, fy + 4, 40, 3, "F");
+  fy += 30;
+  pdf.setTextColor(220, 220, 220);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(12);
+  if (d.doc.footerBusinessName) { pdf.text(d.doc.footerBusinessName, pageW / 2, fy, { align: "center" }); fy += 16; }
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+  pdf.setTextColor(170, 170, 170);
+  if (d.doc.footerBusinessType) { pdf.text(d.doc.footerBusinessType, pageW / 2, fy, { align: "center" }); fy += 14; }
+  if (d.doc.footerProjectNote) {
+    pdf.setFontSize(9);
+    pdf.setTextColor(150, 150, 150);
+    const noteLines = pdf.splitTextToSize(d.doc.footerProjectNote, contentW - 80);
+    fy += 6;
+    for (const l of noteLines) { pdf.text(l, pageW / 2, fy, { align: "center" }); fy += 12; }
+  }
 
   const safe = (d.businessName || "Brand").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "Brand";
   pdf.save(`${safe}-AB-Brand-Kit.pdf`);
