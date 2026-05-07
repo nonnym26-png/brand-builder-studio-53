@@ -1,47 +1,44 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-  Database, Download, Copy, ExternalLink, Loader2, RefreshCw, Send, Check, RotateCcw, Sparkles, Lock, ShieldCheck, Eye,
-} from "lucide-react";
+import { Database, Download, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import JSZip from "jszip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { PhaseStepper } from "@/components/PhaseStepper";
 import { listBrandProfiles } from "@/api/phase2.functions";
-import {
-  loadBrandKit,
-  createBrandKitReviewLink,
-  markBrandKitExported,
-  reopenPhase2,
-  saveBrandKitQaOverride,
-} from "@/api/brandKit.functions";
-import { adminApproveProof } from "@/api/clientProof.functions";
-import { PhaseChecklist, buildPhase3Checklist, derivePhase3Message, deriveBadge, deriveProjectStatus } from "@/components/brand-kit/PhaseChecklist";
+import { loadBrandKit, markBrandKitExported } from "@/api/brandKit.functions";
 import abLogo from "@/assets/ab-logo.png";
-import { AlertTriangle, ShieldAlert } from "lucide-react";
 
 export const Route = createFileRoute("/phase-3")({
-  head: () => ({ meta: [{ title: "Phase 3 — Brand Kit Review | Anaglyph Branding" }] }),
+  head: () => ({ meta: [{ title: "Phase 3 — Brand Kit Builder | Anaglyph Branding" }] }),
   component: Phase3,
 });
 
 type ProfileRow = { id: string; business_name: string | null; client_name: string | null };
-
 type BrandKit = Awaited<ReturnType<typeof loadBrandKit>>;
+type LogoAsset = { id: string; image_url: string; design_type: string | null };
+
+const MAX_KITS = 3;
+
+type KitEdits = {
+  brandSummary: string;
+  slogan: string;
+  usageNotes: string;
+  productionRecs: string;
+};
 
 function Phase3() {
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [kit, setKit] = useState<BrandKit | null>(null);
   const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [reviewToken, setReviewToken] = useState<string | null>(null);
-  const [reopenReason, setReopenReason] = useState("");
-  const [overrideOpen, setOverrideOpen] = useState(false);
-  const [overrideReason, setOverrideReason] = useState("");
+  const [exporting, setExporting] = useState<string | null>(null);
+  const [edits, setEdits] = useState<Record<string, KitEdits>>({});
 
   useEffect(() => {
     listBrandProfiles().then((rows) => setProfiles(rows as ProfileRow[])).catch(() => {});
@@ -50,7 +47,7 @@ function Phase3() {
   const load = async (id: string) => {
     setSelectedId(id);
     setKit(null);
-    setReviewToken(null);
+    setEdits({});
     if (!id) return;
     setLoading(true);
     try {
@@ -63,151 +60,106 @@ function Phase3() {
     }
   };
 
-  const refresh = async () => {
-    if (selectedId) await load(selectedId);
-  };
+  const refresh = async () => { if (selectedId) await load(selectedId); };
 
-  const reviewUrl = useMemo(() => {
-    if (!reviewToken && !kit?.adminView?.latestProof?.token) return null;
-    const t = reviewToken || kit?.adminView?.latestProof?.token;
-    if (typeof window === "undefined" || !t) return null;
-    return `${window.location.origin}/proof/${t}`;
-  }, [reviewToken, kit]);
-
-  const sendReviewLink = async (override?: { reason: string; missing: string[] }) => {
-    if (!selectedId) return;
-    setBusy("link");
-    try {
-      if (override) {
-        await saveBrandKitQaOverride({ data: { brandProfileId: selectedId, reason: override.reason, missing: override.missing } });
-      }
-      const r = await createBrandKitReviewLink({ data: { brandProfileId: selectedId } });
-      setReviewToken(r.token);
-      toast.success(r.reused ? "Existing pending review link refreshed" : "Review link created");
-      setOverrideOpen(false);
-      setOverrideReason("");
-      await refresh();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
-    } finally {
-      setBusy(null);
+  // Build up to MAX_KITS approved logos to turn into kits
+  const approvedLogos = useMemo<LogoAsset[]>(() => {
+    if (!kit?.adminView) return [];
+    const all = kit.adminView.allApprovedAssets || [];
+    const seen = new Set<string>();
+    const list: LogoAsset[] = [];
+    if (kit.publicView.primary) {
+      list.push({
+        id: kit.publicView.primary.id,
+        image_url: kit.publicView.primary.image_url,
+        design_type: kit.publicView.primary.design_type ?? null,
+      });
+      seen.add(kit.publicView.primary.id);
     }
+    for (const a of all) {
+      if (seen.has(a.id)) continue;
+      list.push({ id: a.id, image_url: a.image_url, design_type: a.design_type });
+      seen.add(a.id);
+      if (list.length >= MAX_KITS) break;
+    }
+    return list.slice(0, MAX_KITS);
+  }, [kit]);
+
+  const getEdits = (logoId: string): KitEdits => {
+    if (edits[logoId]) return edits[logoId];
+    const v = kit?.publicView;
+    return {
+      brandSummary: v?.brand.description || "",
+      slogan: v?.brand.selectedDirection || "",
+      usageNotes: v?.usageGuide?.primary || "",
+      productionRecs: (v?.productionRecommendations || []).map((r) => `${r.surface}: ${r.note}`).join("\n"),
+    };
   };
 
-  const copyLink = async () => {
-    if (!reviewUrl) return;
-    await navigator.clipboard.writeText(reviewUrl);
-    toast.success("Review link copied");
+  const setEdit = (logoId: string, patch: Partial<KitEdits>) => {
+    setEdits((e) => ({ ...e, [logoId]: { ...getEdits(logoId), ...patch } }));
   };
 
-  const markApproved = async () => {
-    if (!kit?.adminView?.latestProof) return;
-    setBusy("approve");
-    try {
-      await adminApproveProof({ data: { proofId: kit.adminView.latestProof.id, notes: "Approved by AB on client behalf" } });
-      toast.success("Marked approved");
-      await refresh();
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
-    finally { setBusy(null); }
-  };
-
-  const exportZip = async () => {
+  const exportKit = async (logo: LogoAsset, index: number) => {
     if (!kit) return;
-    setBusy("export");
+    setExporting(logo.id);
     try {
       const zip = new JSZip();
-      const slug = (kit.publicView.brand.businessName || "brand").toLowerCase().replace(/\s+/g, "-");
-      const root = zip.folder(slug)!;
-      const logos = root.folder("logos")!;
+      const v = kit.publicView;
+      const slug = (v.brand.businessName || "brand").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const root = zip.folder(`${slug}-brand-kit-${index + 1}`)!;
+      const e = getEdits(logo.id);
 
-      const fetchAsBlob = async (url: string) => (await fetch(url)).blob();
-      const addAsset = async (folder: JSZip, label: string, url: string | undefined) => {
-        if (!url) return;
-        try {
-          const blob = await fetchAsBlob(url);
-          const ext = (url.split("?")[0].split(".").pop() || "png").slice(0, 4);
-          folder.file(`${label}.${ext}`, blob);
-        } catch { /* skip on failure */ }
-      };
+      // Logo image
+      try {
+        const blob = await (await fetch(logo.image_url)).blob();
+        const ext = (logo.image_url.split("?")[0].split(".").pop() || "png").slice(0, 4);
+        root.file(`logo.${ext}`, blob);
+      } catch { /* skip */ }
 
-      if (kit.publicView.primary) await addAsset(logos, "primary-logo", kit.publicView.primary.image_url);
-      for (const v of kit.publicView.variations) {
-        if (!v) continue;
-        await addAsset(logos, slugify(v.label), v.image_url);
-      }
+      // HTML brand kit summary
+      root.file("Brand-Kit.html", buildHtmlKit({
+        businessName: v.brand.businessName || "",
+        industry: v.brand.industry || "",
+        slogan: e.slogan,
+        brandSummary: e.brandSummary,
+        usageNotes: e.usageNotes,
+        productionRecs: e.productionRecs,
+        palette: v.palette,
+        typography: v.typography,
+        logoFile: `logo.${(logo.image_url.split("?")[0].split(".").pop() || "png").slice(0, 4)}`,
+      }));
 
-      // HTML summary (client-friendly, no internals)
-      root.file("Brand-Kit-Summary.html", buildHtmlSummary(kit));
-
-      // Manifest (no internal prompts/DNA)
-      const manifest = {
-        businessName: kit.publicView.brand.businessName,
-        industry: kit.publicView.brand.industry,
-        selectedDirection: kit.publicView.brand.selectedDirection,
-        palette: kit.publicView.palette,
-        typography: kit.publicView.typography,
-        variations: kit.publicView.variations.filter(Boolean).map((v: any) => ({ label: v.label, use: v.use })),
-        usageGuide: kit.publicView.usageGuide,
-        productionRecommendations: kit.publicView.productionRecommendations,
+      // Manifest
+      root.file("manifest.json", JSON.stringify({
+        businessName: v.brand.businessName,
+        industry: v.brand.industry,
+        slogan: e.slogan,
+        brandSummary: e.brandSummary,
+        palette: v.palette,
+        typography: v.typography,
+        usageNotes: e.usageNotes,
+        productionRecommendations: e.productionRecs.split("\n").filter(Boolean),
         generatedAt: new Date().toISOString(),
-      };
-      root.file("manifest.json", JSON.stringify(manifest, null, 2));
+      }, null, 2));
 
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = `${slug}-brand-kit.zip`; a.click();
+      a.href = url;
+      a.download = `${(v.brand.businessName || "brand").replace(/\s+/g, "-")}-Brand-Kit-${index + 1}.zip`;
+      a.click();
       URL.revokeObjectURL(url);
 
       await markBrandKitExported({ data: { brandProfileId: kit.profileId } });
       toast.success("Brand kit exported");
       await refresh();
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Export failed"); }
-    finally { setBusy(null); }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(null);
+    }
   };
-
-  const reopen = async () => {
-    if (!selectedId) return;
-    setBusy("reopen");
-    try {
-      await reopenPhase2({ data: { brandProfileId: selectedId, reason: reopenReason || undefined } });
-      toast.success("Phase 2 reopened for new direction");
-      window.location.href = "/phase-2";
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
-    finally { setBusy(null); }
-  };
-
-  const status = kit?.status.clientProofStatus;
-  const approved = status === "approve_final";
-
-  const qa = kit ? evaluateQaGate(kit) : { passes: true, missing: [] as QaIssue[] };
-
-  const checklistItems = kit ? buildPhase3Checklist({
-    profile: { business_name: kit.publicView.brand.businessName, industry: kit.publicView.brand.industry } as Record<string, unknown>,
-    hasPrimary: Boolean(kit.publicView.primary),
-    hasVariations: kit.publicView.variations.filter(Boolean).length > 0,
-    hasPalette: kit.publicView.palette.length > 0,
-    hasTypography: Boolean(kit.publicView.typography?.heading || kit.publicView.typography?.body),
-    hasReviewLink: Boolean(kit.adminView?.latestProof?.token),
-    approvalStatus: status ?? null,
-    exportedAt: kit.adminView?.brandKitExportedAt ?? null,
-  }) : [];
-  const phase3Msg = kit ? derivePhase3Message(checklistItems, status) : { tone: "info" as const, text: "" };
-  const phase3Badge = deriveBadge({
-    approvalStatus: status ?? null,
-    exportedAt: kit?.adminView?.brandKitExportedAt ?? null,
-    reviewLinkSent: Boolean(kit?.adminView?.latestProof?.token),
-    phaseReady: Boolean(kit && kit.publicView.primary),
-  });
-  const projectStatus = kit ? deriveProjectStatus({
-    phase1Done: true,
-    phase2ConceptsCount: kit.status.approvedCount,
-    phase2Selected: kit.status.approvedCount > 0,
-    phase3Ready: Boolean(kit.publicView.primary),
-    reviewLinkSent: Boolean(kit.adminView?.latestProof?.token),
-    approvalStatus: status ?? null,
-    exportedAt: kit.adminView?.brandKitExportedAt ?? null,
-  }) : undefined;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -216,15 +168,15 @@ function Phase3() {
           <div className="flex items-center gap-3">
             <img src={abLogo} alt="Anaglyph" className="h-9 w-auto" />
             <div className="leading-tight">
-              <div className="text-sm font-semibold tracking-tight">Phase 3 — Brand Kit Review</div>
-              <div className="text-xs text-muted-foreground">Polished client deliverable. Admin view.</div>
+              <div className="text-sm font-semibold tracking-tight">Phase 3 — Brand Kit Builder</div>
+              <div className="text-xs text-muted-foreground">Build and export a brand kit for each approved logo (max {MAX_KITS}).</div>
             </div>
           </div>
-          <PhaseStepper current="/phase-3" completed={{ "/phase-3": Boolean(kit?.status.phase3CompletedAt) }} />
+          <PhaseStepper current="/phase-3" completed={{ "/phase-3": Boolean(kit?.adminView?.brandKitExportedAt) }} />
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1400px] gap-6 px-6 py-8 lg:grid-cols-[320px_1fr]">
+      <main className="mx-auto grid max-w-[1400px] gap-6 px-6 py-8 lg:grid-cols-[300px_1fr]">
         <aside className="space-y-4">
           <section>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1.5">
@@ -238,244 +190,121 @@ function Phase3() {
                 ))}
               </SelectContent>
             </Select>
+            {kit && (
+              <Button size="sm" variant="outline" className="mt-2 w-full" onClick={refresh} disabled={loading}>
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
+              </Button>
+            )}
           </section>
 
-          {kit && (
-            <>
-              <PhaseChecklist
-                title="Phase 3 — Brand Kit Review"
-                items={checklistItems}
-                message={phase3Msg}
-                badge={phase3Badge}
-                projectStatus={projectStatus}
-              />
-
-              <section className="rounded-lg border border-border bg-card p-4 space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Status</div>
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <Badge variant={approved ? "default" : "outline"}>
-                    {approved ? <Check className="h-3 w-3 mr-1" /> : null}
-                    {labelStatus(status)}
-                  </Badge>
-                  <Badge variant="outline">{kit.status.approvedCount} approved assets</Badge>
-                  {kit.adminView?.qualityAvg != null && <Badge variant="outline">Quality {kit.adminView.qualityAvg}/10</Badge>}
-                  {kit.adminView?.brandKitExportedAt && <Badge variant="outline"><Download className="h-3 w-3 mr-1" />Exported</Badge>}
-                </div>
-              </section>
-
-              <section className="rounded-lg border border-border bg-card p-4 space-y-3">
-                <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Admin actions</div>
-                <Button size="sm" variant="outline" className="w-full" onClick={refresh} disabled={loading}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Regenerate Brand Kit Preview
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => sendReviewLink()}
-                  disabled={busy === "link" || !qa.passes}
-                  title={qa.passes ? undefined : "Brand Kit is not ready to send. Complete the missing items below."}
-                >
-                  {busy === "link" ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Send className="h-3.5 w-3.5 mr-1.5" />}
-                  Send Client Review Link
-                </Button>
-                {!qa.passes && (
-                  <QaGatePanel
-                    issues={qa.missing}
-                    onRefresh={refresh}
-                    overrideOpen={overrideOpen}
-                    setOverrideOpen={setOverrideOpen}
-                    overrideReason={overrideReason}
-                    setOverrideReason={setOverrideReason}
-                    onSendAnyway={() => sendReviewLink({ reason: overrideReason, missing: qa.missing.map((m) => m.label) })}
-                    busy={busy === "link"}
-                  />
-                )}
-                {reviewUrl && (
-                  <div className="rounded-md border border-dashed border-border p-2 space-y-1.5">
-                    <div className="text-[10px] uppercase text-muted-foreground">Client review link</div>
-                    <div className="text-[11px] break-all font-mono">{reviewUrl}</div>
-                    <div className="flex gap-1.5">
-                      <Button size="sm" variant="outline" className="flex-1" onClick={copyLink}><Copy className="h-3 w-3 mr-1" />Copy</Button>
-                      <Button size="sm" variant="outline" className="flex-1" asChild>
-                        <a href={reviewUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-3 w-3 mr-1" />Open</a>
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                {!approved && kit.adminView?.latestProof && (
-                  <Button size="sm" variant="outline" className="w-full" onClick={markApproved} disabled={busy === "approve"}>
-                    <ShieldCheck className="h-3.5 w-3.5 mr-1.5" /> Mark Approved Manually
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  className="w-full"
-                  variant={approved ? "default" : "outline"}
-                  onClick={exportZip}
-                  disabled={busy === "export"}
-                >
-                  {busy === "export" ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Download className="h-3.5 w-3.5 mr-1.5" />}
-                  Export Brand Kit (ZIP)
-                </Button>
-                {!approved && (
-                  <p className="text-[10px] text-muted-foreground leading-snug">
-                    Tip: Export becomes the primary action once the client approves the brand kit.
-                  </p>
-                )}
-              </section>
-
-              <section className="rounded-lg border border-border bg-card p-4 space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground inline-flex items-center gap-1.5">
-                  <RotateCcw className="h-3.5 w-3.5" /> Reopen Phase 2
-                </div>
-                <p className="text-[11px] text-muted-foreground">If the client asked for a new direction, reopen Phase 2 to start a fresh concept group. Existing history is preserved.</p>
-                <Textarea rows={2} placeholder="Reason / direction notes" value={reopenReason} onChange={(e) => setReopenReason(e.target.value)} />
-                <Button size="sm" variant="outline" className="w-full" onClick={reopen} disabled={busy === "reopen"}>
-                  Reopen Phase 2
-                </Button>
-              </section>
-
-              {kit.adminView?.latestProof && (
-                <section className="rounded-lg border border-border bg-card p-4 space-y-2">
-                  <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Client review</div>
-                  <div className="text-xs">
-                    <div>Status: <strong>{labelStatus(kit.adminView.latestProof.status)}</strong></div>
-                    {kit.adminView.latestProof.submitted_at && (
-                      <div className="text-muted-foreground">Submitted {new Date(kit.adminView.latestProof.submitted_at).toLocaleString()}</div>
-                    )}
-                  </div>
-                  {kit.adminView.latestProof.response_notes && (
-                    <div className="rounded border border-border bg-muted/30 p-2 text-xs whitespace-pre-wrap">
-                      {kit.adminView.latestProof.response_notes}
-                    </div>
-                  )}
-                </section>
-              )}
-
-              {kit.adminView?.revisionHistory?.length ? (
-                <section className="rounded-lg border border-border bg-card p-4 space-y-2">
-                  <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Revision history</div>
-                  <ul className="space-y-1.5 text-xs">
-                    {kit.adminView.revisionHistory.slice(0, 8).map((r) => (
-                      <li key={r.id} className="border-l-2 border-border pl-2">
-                        <div className="text-muted-foreground text-[10px]">{new Date(r.at).toLocaleDateString()}</div>
-                        <div>{r.request}</div>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ) : null}
-            </>
-          )}
+          <section className="rounded-lg border border-border bg-card p-4 text-xs space-y-2">
+            <div className="font-semibold">How Phase 3 works</div>
+            <p className="text-muted-foreground leading-relaxed">
+              One brand kit per approved logo, up to {MAX_KITS}. Each kit auto-fills business name, logo, colors, fonts, and slogan. Edit the brand summary, usage notes, and production recommendations, then export as a ZIP containing the logo and a printable HTML brand guide.
+            </p>
+          </section>
         </aside>
 
         <section className="space-y-6">
           {!kit ? (
             <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground">
               <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-40" />
-              <p className="text-sm">Pick a project that has approved Phase 2 assets to assemble its brand kit.</p>
-              <p className="text-xs mt-2">No approvals yet? Head back to <Link to="/phase-2" className="underline">Phase 2</Link>.</p>
+              <p className="text-sm">Pick a project with approved logos to build its brand kit.</p>
+              <p className="text-xs mt-2">Need to approve logos? Head to <Link to="/phase-2" className="underline">Phase 2</Link>.</p>
             </div>
-          ) : approved ? (
-            <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm">
-                <Lock className="h-4 w-4 text-emerald-600" />
-                <span><strong>Brand kit approved.</strong> The client signed off — ready for final export.</span>
+          ) : approvedLogos.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground">
+              <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-40" />
+              <p className="text-sm">No approved logos yet for this project.</p>
+              <p className="text-xs mt-2">Approve up to 3 logos in <Link to="/phase-2" className="underline">Phase 2</Link>.</p>
+            </div>
+          ) : (
+            <>
+              <div className="rounded-xl border border-border bg-card p-5">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground">Brand Overview</div>
+                <h1 className="text-2xl font-semibold mt-1">{kit.publicView.brand.businessName}</h1>
+                {kit.publicView.brand.industry && <div className="text-sm text-muted-foreground">{kit.publicView.brand.industry}</div>}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Badge variant="outline">{approvedLogos.length} approved logo{approvedLogos.length === 1 ? "" : "s"}</Badge>
+                  <Badge variant="outline">{kit.publicView.palette.length} colors</Badge>
+                  {kit.adminView?.brandKitExportedAt && (
+                    <Badge variant="outline"><Download className="h-3 w-3 mr-1" />Exported</Badge>
+                  )}
+                </div>
               </div>
-              <Button size="sm" onClick={exportZip} disabled={busy === "export"}>
-                {busy === "export" ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Download className="h-3.5 w-3.5 mr-1.5" />}
-                Export Brand Kit (ZIP)
-              </Button>
-            </div>
-          ) : null}
 
-          {kit && <BrandKitPreview kit={kit} />}
+              {approvedLogos.map((logo, i) => (
+                <BrandKitCard
+                  key={logo.id}
+                  index={i}
+                  logo={logo}
+                  kit={kit}
+                  edits={getEdits(logo.id)}
+                  onChange={(p) => setEdit(logo.id, p)}
+                  onExport={() => exportKit(logo, i)}
+                  exporting={exporting === logo.id}
+                />
+              ))}
+            </>
+          )}
         </section>
       </main>
     </div>
   );
 }
 
-function BrandKitPreview({ kit }: { kit: BrandKit }) {
+function BrandKitCard({
+  index, logo, kit, edits, onChange, onExport, exporting,
+}: {
+  index: number;
+  logo: LogoAsset;
+  kit: BrandKit;
+  edits: KitEdits;
+  onChange: (p: Partial<KitEdits>) => void;
+  onExport: () => void;
+  exporting: boolean;
+}) {
   const v = kit.publicView;
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="text-xs uppercase tracking-widest text-muted-foreground">Brand Overview</div>
-        <h1 className="text-3xl font-semibold mt-1">{v.brand.businessName}</h1>
-        {v.brand.industry && <div className="text-sm text-muted-foreground mt-1">{v.brand.industry}</div>}
-        {v.brand.description && <p className="mt-3 text-sm leading-relaxed">{v.brand.description}</p>}
-        <div className="grid sm:grid-cols-2 gap-3 mt-4 text-sm">
-          {v.brand.targetAudience && (
-            <div><div className="text-[10px] uppercase tracking-widest text-muted-foreground">Target audience</div>{v.brand.targetAudience}</div>
-          )}
-          {v.brand.personality?.length ? (
-            <div><div className="text-[10px] uppercase tracking-widest text-muted-foreground">Brand personality</div>{(v.brand.personality as string[]).join(", ")}</div>
-          ) : null}
+    <div className="rounded-xl border border-border bg-card p-6 space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">Brand Kit {index + 1}</div>
+          <div className="text-lg font-semibold">{v.brand.businessName}</div>
         </div>
-        {v.brand.selectedDirection && (
-          <div className="mt-4 border-t border-border pt-3">
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Selected direction</div>
-            <div className="text-sm">{v.brand.selectedDirection}</div>
-          </div>
-        )}
+        <Button onClick={onExport} disabled={exporting}>
+          {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
+          Save Brand Kit as PDF
+        </Button>
       </div>
 
-      {v.primary && (
-        <div className="rounded-xl border border-border bg-card p-6">
-          <div className="text-xs uppercase tracking-widest text-muted-foreground">Primary Logo</div>
-          <div className="aspect-[16/10] w-full bg-muted/40 rounded-xl grid place-items-center overflow-hidden mt-3">
-            <img src={v.primary.image_url} alt="Primary logo" className="max-h-full max-w-full object-contain p-8" />
+      <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
+        <div className="rounded-lg bg-muted/40 grid place-items-center aspect-square overflow-hidden">
+          <img src={logo.image_url} alt={`Approved logo ${index + 1}`} className="max-h-full max-w-full object-contain p-6" />
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <Label>Slogan</Label>
+            <Input className="mt-1.5" value={edits.slogan} onChange={(e) => onChange({ slogan: e.target.value })} placeholder="Optional tagline for this kit" />
           </div>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap break-words">{v.whyThisDirection}</p>
-          <div className="mt-3 text-xs"><strong>Recommended use:</strong> {v.usageGuide.primary}</div>
-        </div>
-      )}
-
-      {!v.primary && (
-        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
-          <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-40" />
-          <div className="text-sm font-medium">No primary logo selected yet</div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Approve a refined concept in Phase 2 to populate the brand kit preview.
-          </p>
-        </div>
-      )}
-
-      {v.variations.length > 0 && (
-        <div>
-          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Logo Variations</div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
-            {v.variations.filter(Boolean).map((va: any) => (
-              <div key={va.id} className="rounded-xl border border-border bg-card overflow-hidden">
-                <div className="aspect-square bg-muted/40 grid place-items-center">
-                  <img src={va.image_url} alt={va.label} className="max-h-full max-w-full object-contain p-6" />
-                </div>
-                <div className="p-4 space-y-1">
-                  <div className="font-semibold text-sm">{va.label}</div>
-                  <div className="text-xs text-muted-foreground">{va.use}</div>
-                  <a className="text-xs underline inline-flex items-center gap-1" href={va.image_url} target="_blank" rel="noreferrer">
-                    <Download className="h-3 w-3" /> Download
-                  </a>
-                </div>
-              </div>
-            ))}
+          <div>
+            <Label>Brand summary</Label>
+            <Textarea className="mt-1.5" rows={3} value={edits.brandSummary} onChange={(e) => onChange({ brandSummary: e.target.value })} />
           </div>
         </div>
-      )}
+      </div>
 
       {v.palette.length > 0 && (
         <div>
-          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Color Palette</div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Color palette</div>
+          <div className="grid gap-2 sm:grid-cols-4">
             {v.palette.map((c) => (
-              <div key={c.hex!} className="rounded-xl border border-border bg-card overflow-hidden">
-                <div className="h-24" style={{ background: c.hex! }} />
-                <div className="p-3">
-                  <div className="text-sm font-medium">{c.name || c.role}</div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-widest">{c.role}</div>
-                  <div className="text-xs font-mono uppercase mt-0.5">{c.hex}</div>
+              <div key={c.hex!} className="rounded-lg border border-border overflow-hidden">
+                <div className="h-16" style={{ background: c.hex! }} />
+                <div className="p-2">
+                  <div className="text-xs font-medium">{c.name || c.role}</div>
+                  <div className="text-[10px] font-mono uppercase text-muted-foreground">{c.hex}</div>
                 </div>
               </div>
             ))}
@@ -484,216 +313,66 @@ function BrandKitPreview({ kit }: { kit: BrandKit }) {
       )}
 
       {(v.typography?.heading || v.typography?.body) && (
-        <div className="rounded-xl border border-border bg-card p-6">
-          <div className="text-xs uppercase tracking-widest text-muted-foreground">Typography</div>
-          <div className="mt-3 space-y-2 text-sm">
-            {v.typography.heading && <div><span className="text-muted-foreground">Heading:</span> <strong>{v.typography.heading}</strong> — use for titles, hero copy, signage.</div>}
-            {v.typography.body && <div><span className="text-muted-foreground">Body:</span> <strong>{v.typography.body}</strong> — use for paragraphs, captions, UI.</div>}
-            {v.typography.accent && <div><span className="text-muted-foreground">Accent:</span> <strong>{v.typography.accent}</strong> — use sparingly for emphasis.</div>}
+        <div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Typography</div>
+          <div className="text-sm space-y-1">
+            {v.typography.heading && <div><span className="text-muted-foreground">Heading:</span> <strong>{v.typography.heading}</strong></div>}
+            {v.typography.body && <div><span className="text-muted-foreground">Body:</span> <strong>{v.typography.body}</strong></div>}
+            {v.typography.accent && <div><span className="text-muted-foreground">Accent:</span> <strong>{v.typography.accent}</strong></div>}
           </div>
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="text-xs uppercase tracking-widest text-muted-foreground">Brand Usage Guide</div>
-        <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-          <div><strong>Primary:</strong> {v.usageGuide.primary}</div>
-          <div><strong>Transparent:</strong> {v.usageGuide.transparent}</div>
-          <div><strong>Embroidery:</strong> {v.usageGuide.embroidery}</div>
-          <div><strong>Badge / Emblem:</strong> {v.usageGuide.badge}</div>
-          <div className="sm:col-span-2"><strong>Social / Favicon:</strong> {v.usageGuide.social}</div>
-        </div>
-        <div className="mt-4">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Do not</div>
-          <ul className="mt-1 list-disc pl-5 text-sm text-muted-foreground space-y-0.5">
-            {v.usageGuide.avoid.map((a) => <li key={a}>{a}</li>)}
-          </ul>
-        </div>
+      <div>
+        <Label>Logo usage notes</Label>
+        <Textarea className="mt-1.5" rows={3} value={edits.usageNotes} onChange={(e) => onChange({ usageNotes: e.target.value })} />
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="text-xs uppercase tracking-widest text-muted-foreground">Production Recommendations</div>
-        <p className="text-xs text-muted-foreground mt-1">Recommendations only — production / orders are arranged separately by Anaglyph Branding.</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {v.productionRecommendations.map((r) => (
-            <div key={r.surface} className="rounded-md border border-border p-3">
-              <div className="text-sm font-semibold">{r.surface}</div>
-              <div className="text-xs text-muted-foreground">{r.note}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-dashed border-border bg-card p-6 text-xs text-muted-foreground inline-flex items-center gap-2">
-        <Eye className="h-4 w-4" /> The client review page mirrors the sections above without internal notes, prompts, or model details.
+      <div>
+        <Label>Recommended printing products (one per line)</Label>
+        <Textarea className="mt-1.5" rows={4} value={edits.productionRecs} onChange={(e) => onChange({ productionRecs: e.target.value })} />
       </div>
     </div>
   );
 }
 
-function labelStatus(s?: string | null) {
-  if (s === "approve_final") return "Approved as Final";
-  if (s === "minor_revision") return "Minor Revision Requested";
-  if (s === "full_redesign") return "New Direction Requested";
-  if (s === "pending") return "Awaiting Client Review";
-  return s || "Not Sent";
-}
-
-function slugify(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}
-
-type QaIssue = { label: string; action: string; href: string };
-type QaResult = { passes: boolean; missing: QaIssue[] };
-
-function evaluateQaGate(kit: BrandKit): QaResult {
-  const v = kit.publicView;
-  const issues: QaIssue[] = [];
-  const push = (label: string, action: string, href: string) => issues.push({ label, action, href });
-
-  // Phase 1 intake
-  if (!v.brand.businessName || !v.brand.industry || !v.brand.targetAudience) {
-    push("Phase 1 intake incomplete", "Complete Intake", "/phase-1");
-  }
-  // Phase 2 — selected concept + approval
-  if (kit.status.approvedCount === 0) {
-    push("No approved concept selected", "Select Logo Direction", "/phase-2");
-  }
-  // Premium / refined primary
-  const primaryType = (v.primary?.design_type || "").toLowerCase();
-  const hasRefined = !!v.primary && /refined|premium|main|wordmark|combination/.test(primaryType);
-  if (!hasRefined) {
-    push("Premium refined logo missing", "Create Premium Refined Version", "/phase-2");
-  }
-  // Transparent production logo
-  const hasTransparent = v.variations.some((va) => va && /Transparent/i.test((va as { label: string }).label));
-  if (!hasTransparent) {
-    push("Transparent production logo missing", "Create Transparent Production Logo", "/phase-2");
-  }
-  // Phase 3 brand overview
-  if (!v.brand.description) {
-    push("Brand overview missing", "Regenerate Brand Kit Preview", "/phase-1");
-  }
-  // Primary logo included
-  if (!v.primary) {
-    push("Primary logo not included", "Generate Concepts", "/phase-2");
-  }
-  // Color palette
-  if (v.palette.length === 0) {
-    push("Color palette missing", "Add Color Palette", "/phase-1");
-  }
-  // Typography
-  if (!v.typography?.heading && !v.typography?.body) {
-    push("Typography direction missing", "Add Typography Direction", "/phase-2");
-  }
-  // Usage guide / production recs are always generated, but verify
-  if (!v.usageGuide?.primary) push("Brand usage guide missing", "Add Usage Guide", "/phase-3");
-  if (!v.productionRecommendations?.length) push("Production recommendations missing", "Add Production Recommendations", "/phase-3");
-
-  return { passes: issues.length === 0, missing: issues };
-}
-
-function QaGatePanel({
-  issues, onRefresh, overrideOpen, setOverrideOpen, overrideReason, setOverrideReason, onSendAnyway, busy,
-}: {
-  issues: QaIssue[];
-  onRefresh: () => void;
-  overrideOpen: boolean;
-  setOverrideOpen: (b: boolean) => void;
-  overrideReason: string;
-  setOverrideReason: (s: string) => void;
-  onSendAnyway: () => void;
-  busy: boolean;
+function buildHtmlKit(d: {
+  businessName: string;
+  industry: string;
+  slogan: string;
+  brandSummary: string;
+  usageNotes: string;
+  productionRecs: string;
+  palette: Array<{ role: string; name: string | null; hex: string | null }>;
+  typography: Record<string, string>;
+  logoFile: string;
 }) {
-  return (
-    <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
-      <div className="flex items-start gap-2">
-        <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
-        <div className="text-xs font-medium">Brand Kit is not ready to send. Complete the missing items below.</div>
-      </div>
-      <ul className="space-y-1.5">
-        {issues.map((i) => (
-          <li key={i.label} className="flex items-center justify-between gap-2 text-xs">
-            <span className="text-muted-foreground">• {i.label}</span>
-            {i.action === "Regenerate Brand Kit Preview" ? (
-              <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={onRefresh}>{i.action}</Button>
-            ) : (
-              <Button asChild size="sm" variant="outline" className="h-6 px-2 text-[10px]">
-                <Link to={i.href}>{i.action}</Link>
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
-      <div className="border-t border-amber-500/30 pt-2">
-        {!overrideOpen ? (
-          <Button size="sm" variant="ghost" className="w-full text-xs text-amber-600 hover:text-amber-700" onClick={() => setOverrideOpen(true)}>
-            <ShieldAlert className="h-3.5 w-3.5 mr-1.5" /> Send Anyway (admin override)
-          </Button>
-        ) : (
-          <div className="space-y-2">
-            <div className="text-[11px] text-muted-foreground">A reason is required and will be saved to the project record.</div>
-            <Textarea rows={2} placeholder="Why is this incomplete kit being sent?" value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} />
-            <div className="flex gap-1.5">
-              <Button size="sm" variant="outline" className="flex-1" onClick={() => { setOverrideOpen(false); setOverrideReason(""); }}>Cancel</Button>
-              <Button size="sm" className="flex-1" onClick={onSendAnyway} disabled={busy || overrideReason.trim().length < 5}>
-                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Confirm Send"}
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function buildHtmlSummary(kit: BrandKit) {
-  const v = kit.publicView;
-  const escape = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
-  const swatches = v.palette
-    .map(
-      (c) =>
-        `<div style="display:inline-block;width:120px;margin:8px;text-align:center;font-family:system-ui">
-          <div style="height:80px;background:${c.hex};border:1px solid #ddd;border-radius:6px"></div>
-          <div style="font-size:12px;margin-top:6px"><strong>${escape(c.name || c.role)}</strong></div>
-          <div style="font-size:11px;color:#666;font-family:monospace">${(c.hex || "").toUpperCase()}</div>
-        </div>`,
-    )
-    .join("");
-  const variations = (v.variations.filter(Boolean) as any[])
-    .map(
-      (va) =>
-        `<div style="margin:12px 0">
-          <h3 style="margin:0 0 4px 0">${escape(va.label)}</h3>
-          <p style="margin:0 0 6px 0;color:#555;font-size:13px">${escape(va.use)}</p>
-          <img src="logos/${slugify(va.label)}.png" alt="${escape(va.label)}" style="max-width:280px"/>
-        </div>`,
-    )
-    .join("");
-  const usage = Object.entries(v.usageGuide)
-    .filter(([k]) => k !== "avoid")
-    .map(([k, val]) => `<li><strong style="text-transform:capitalize">${k}:</strong> ${escape(String(val))}</li>`)
-    .join("");
-  const recs = v.productionRecommendations
-    .map((r) => `<li><strong>${escape(r.surface)}:</strong> ${escape(r.note)}</li>`)
-    .join("");
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${escape(v.brand.businessName || "Brand Kit")} — Brand Kit</title>
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+  const swatches = d.palette.map((c) => `
+    <div style="display:inline-block;width:140px;margin:8px;text-align:center">
+      <div style="height:80px;background:${c.hex};border:1px solid #ddd;border-radius:6px"></div>
+      <div style="font-size:13px;margin-top:6px"><strong>${esc(c.name || c.role)}</strong></div>
+      <div style="font-size:11px;color:#666;font-family:monospace">${(c.hex || "").toUpperCase()}</div>
+    </div>`).join("");
+  const recs = d.productionRecs.split("\n").filter(Boolean).map((r) => `<li>${esc(r)}</li>`).join("");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(d.businessName)} — Brand Kit</title>
 <style>body{font-family:system-ui,Segoe UI,Roboto,sans-serif;max-width:900px;margin:40px auto;padding:0 24px;color:#111}
-h1{font-size:32px;margin-bottom:4px}h2{margin-top:32px;border-bottom:1px solid #eee;padding-bottom:6px}
-.muted{color:#666}img{display:block}</style></head><body>
-<h1>${escape(v.brand.businessName || "Brand Kit")}</h1>
-<div class="muted">${escape(v.brand.industry || "")}</div>
-${v.brand.description ? `<p>${escape(v.brand.description)}</p>` : ""}
-<h2>Primary Logo</h2>
-<img src="logos/primary-logo.png" alt="Primary logo" style="max-width:480px"/>
-<p>${escape(v.whyThisDirection)}</p>
-<h2>Logo Variations</h2>${variations || "<p class='muted'>None.</p>"}
+h1{font-size:32px;margin:0 0 4px}h2{margin-top:32px;border-bottom:1px solid #eee;padding-bottom:6px}
+.muted{color:#666}img{display:block;max-width:360px}</style></head><body>
+<h1>${esc(d.businessName)}</h1>
+<div class="muted">${esc(d.industry)}</div>
+${d.slogan ? `<p style="font-style:italic;margin-top:8px">"${esc(d.slogan)}"</p>` : ""}
+<h2>Logo</h2>
+<img src="${esc(d.logoFile)}" alt="Logo" />
+${d.brandSummary ? `<h2>Brand Summary</h2><p>${esc(d.brandSummary)}</p>` : ""}
 <h2>Color Palette</h2>${swatches}
-<h2>Typography</h2>
-<ul>${v.typography.heading ? `<li><strong>Heading:</strong> ${escape(v.typography.heading)}</li>` : ""}${v.typography.body ? `<li><strong>Body:</strong> ${escape(v.typography.body)}</li>` : ""}${v.typography.accent ? `<li><strong>Accent:</strong> ${escape(v.typography.accent)}</li>` : ""}</ul>
-<h2>Brand Usage Guide</h2><ul>${usage}</ul>
-<h3>Do not</h3><ul>${v.usageGuide.avoid.map((a) => `<li>${escape(a)}</li>`).join("")}</ul>
-<h2>Production Recommendations</h2><ul>${recs}</ul>
-<p class="muted" style="margin-top:40px;font-size:12px">Prepared by Anaglyph Branding.</p>
+<h2>Typography</h2><ul>
+${d.typography.heading ? `<li><strong>Heading:</strong> ${esc(d.typography.heading)}</li>` : ""}
+${d.typography.body ? `<li><strong>Body:</strong> ${esc(d.typography.body)}</li>` : ""}
+${d.typography.accent ? `<li><strong>Accent:</strong> ${esc(d.typography.accent)}</li>` : ""}
+</ul>
+${d.usageNotes ? `<h2>Logo Usage</h2><p>${esc(d.usageNotes)}</p>` : ""}
+${recs ? `<h2>Recommended Printing Products</h2><ul>${recs}</ul>` : ""}
+<p class="muted" style="margin-top:48px;font-size:12px">Prepared by Anaglyph Branding.</p>
 </body></html>`;
 }
