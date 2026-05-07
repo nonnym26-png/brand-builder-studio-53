@@ -555,9 +555,13 @@ function Phase2() {
             }}
           />
 
-          <ClientProofQueue onOpenProject={(id) => setSelectedId(id)} />
+          <div id="client-proof-queue">
+            <ClientProofQueue onOpenProject={(id) => setSelectedId(id)} externalFilter={proofFilter} />
+          </div>
 
-          <FinalDeliveryTracker onOpenProject={(id) => setSelectedId(id)} />
+          <div id="final-delivery-tracker">
+            <FinalDeliveryTracker onOpenProject={(id) => setSelectedId(id)} externalFilter={deliveryFilter} />
+          </div>
         </section>
       </main>
     </div>
