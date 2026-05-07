@@ -253,7 +253,7 @@ function Phase3() {
 }
 
 function BrandKitCard({
-  index, logo, kit, edits, onChange, onExport, exporting,
+  index, logo, kit, edits, onChange, onExport, onExportZip, exporting, exportingZip,
 }: {
   index: number;
   logo: LogoAsset;
@@ -261,7 +261,9 @@ function BrandKitCard({
   edits: KitEdits;
   onChange: (p: Partial<KitEdits>) => void;
   onExport: () => void;
+  onExportZip: () => void;
   exporting: boolean;
+  exportingZip: boolean;
 }) {
   const v = kit.publicView;
   return (
@@ -271,10 +273,16 @@ function BrandKitCard({
           <div className="text-xs uppercase tracking-widest text-muted-foreground">Brand Kit {index + 1}</div>
           <div className="text-lg font-semibold">{v.brand.businessName}</div>
         </div>
-        <Button onClick={onExport} disabled={exporting}>
-          {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
-          Save Brand Kit as PDF
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={onExport} disabled={exporting}>
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
+            Save Brand Kit as PDF
+          </Button>
+          <Button variant="outline" onClick={onExportZip} disabled={exportingZip}>
+            {exportingZip ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Download className="h-4 w-4 mr-1.5" />}
+            Download Asset ZIP
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
