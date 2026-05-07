@@ -235,6 +235,7 @@ function Phase3() {
         processSteps: DEFAULT_PROCESS.map((s) => ({ ...s })),
         slogans: buildSlogans(v),
         whyBlocks: DEFAULT_WHY.map((b) => ({ ...b })),
+        stats: DEFAULT_STATS.map((s) => ({ ...s })),
         footerBusinessName: v.brand.businessName || "",
         footerBusinessType: v.brand.industry || "",
         footerProjectNote: "",
