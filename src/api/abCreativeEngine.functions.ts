@@ -1,5 +1,22 @@
 import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { runLogoPipeline } from "@/lib/logo-engine/logoPipeline";
+import { classifyRevision } from "@/lib/logo-engine/revisionEngine";
+import type { OutputMode, DesignDnaStrategy } from "@/lib/logo-engine/types";
+
+function backgroundChoiceToMode(bg?: string): OutputMode {
+  switch ((bg || "").toLowerCase()) {
+    case "transparent":
+      return "transparent_production";
+    case "dark":
+      return "dark_background_preview";
+    case "one-color":
+    case "one_color":
+      return "one_color_test";
+    default:
+      return "presentation_preview";
+  }
+}
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const TEXT_MODEL = "openai/gpt-5";
@@ -167,178 +184,98 @@ export const generateAbDesign = createServerFn({ method: "POST" })
     };
   }) => d)
   .handler(async ({ data }) => {
-    const { data: profile, error } = await supabaseAdmin.from("brand_profiles").select("*").eq("id", data.brandProfileId).single();
-    if (error || !profile) throw new Error("Brand profile not found");
-    const summary = summarizeProfile(profile as Record<string, unknown>);
-    const background = data.backgroundChoice || "white";
+    // NEW PIPELINE — delegates to src/lib/logo-engine.
+    // Old per-call brief/prompt/image steps are replaced by runLogoPipeline,
+    // which: builds DNA strategy → compiles prompt → renders premium image →
+    // runs the quality gatekeeper → regenerates failed concepts up to 2× →
+    // persists each concept to generated_designs (with quality fields).
+    const result = await runLogoPipeline({
+      brandProfileId: data.brandProfileId,
+      outputCount: data.outputCount ?? 1,
+      outputMode: backgroundChoiceToMode(data.backgroundChoice),
+    });
 
-    // Pull the saved Design DNA row (Phase 2 designer notes) for richer direction
-    const { data: dnaRow } = await supabaseAdmin
-      .from("design_dna")
-      .select("*")
-      .eq("brand_profile_id", data.brandProfileId)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const dna = data.designDna || {};
-    const extras = data.extras || {};
-    const dnaBlock = `DESIGN DNA RULES (must follow on every render):
-- MUST HAVE: ${dna.mustHave || "clear readability · balanced composition · limited palette · strong contrast"}.
-- AVOID: ${dna.avoid || "generic clipart · busy backgrounds · misspelled words · mockup scenes"}.
-- QUALITY BAR: ${dna.qualityBar || "every metric ≥ 8/10"}.
-- FORMULA: ${dna.formula || "strong symbol + clean typography + limited palette + balanced layout"}.`;
-
-    const extrasBlock = `PHASE 2 SELECTIONS:
-- Fonts: heading=${extras.fonts?.heading || "—"}, body=${extras.fonts?.body || "—"}, accent=${extras.fonts?.accent || "—"}.
-- Tagline (if used): ${extras.chosenSlogan || "—"}.
-- Brand elements to consider: ${(extras.elements || []).join(", ") || "—"}.
-- Mascot: ${extras.mascot?.enabled ? `${extras.mascot?.style || ""} — ${extras.mascot?.idea || ""}` : "none"}.`;
-
-    const dbDnaBlock = dnaRow
-      ? `SAVED DESIGN DNA (designer-authored):
-- Style: ${dnaRow.design_style || "—"}
-- Personality: ${dnaRow.brand_personality_summary || "—"}
-- Visual tone: ${dnaRow.visual_tone || "—"}
-- Typography: ${dnaRow.typography_direction || "—"} | primary ${dnaRow.primary_font_style || "—"} / secondary ${dnaRow.secondary_font_style || "—"} / spacing ${dnaRow.letter_spacing_style || "—"}
-- Monogram: ${dnaRow.monogram_direction || "—"}
-- Symbol: ${dnaRow.symbol_direction || "—"}
-- Shape language: ${dnaRow.shape_language || "—"} | line ${dnaRow.line_style || "—"}
-- Spacing: ${dnaRow.spacing_rules || "—"}
-- Color hierarchy: ${dnaRow.color_hierarchy || "—"} | accent usage: ${dnaRow.accent_color_usage || "—"}
-- Layout: ${dnaRow.layout_system || "—"} | composition: ${dnaRow.composition_notes || "—"}
-- Premium rules: ${dnaRow.premium_design_rules || "—"}
-- Production rules: ${dnaRow.production_rules || "—"}
-- Logo variations: ${dnaRow.logo_variation_rules || "—"}
-- Avoidance: ${dnaRow.avoidance_rules || "—"}
-- Designer notes: ${dnaRow.designer_notes || "—"}`
-      : "";
-
-    // Step A — creative brief
-    const brief = await callGatewayJson(
-      [
-        { role: "system", content: `You are the Anaglyph Branding senior creative director. Produce a tight, agency-grade creative brief that a designer could execute from. ${QUALITY_RULES}\n\n${dnaBlock}` },
-        { role: "user", content: `Build a creative brief for this brand. Background must be: ${background}.\n\nFULL INTAKE JSON:\n${JSON.stringify(summary, null, 2)}\n\n${extrasBlock}\n\n${dbDnaBlock}` },
-      ],
-      { name: "creative_brief", schema: BRIEF_SCHEMA },
-    );
-
-    // Step B — image prompt
-    const promptObj = await callGatewayJson(
-      [
-        { role: "system", content: `You are a master prompt engineer for premium logo image generation. Convert a creative brief into ONE highly detailed image prompt that will produce an agency-grade logo. ${QUALITY_RULES}\n\n${dnaBlock}\n\nAlways: include the EXACT business name "${summary.business_name}", explicit layout, explicit typography style (respect Phase 2 font choices), explicit colors (use hex when provided), explicit background, and a strong negative prompt. The output background MUST be: ${background}.` },
-        { role: "user", content: `Brief:\n${JSON.stringify(brief, null, 2)}\n\nBrand colors hex (use these unless brief overrides): primary ${summary.primary_hex || "(none)"}, accent ${summary.accent_hex || "(none)"}, neutral ${summary.neutral_hex || "(none)"}.\n\n${extrasBlock}\n\n${dbDnaBlock}\n\nReturn the final_prompt, negative_prompt, and a short design_type label.` },
-      ],
-      { name: "image_prompt", schema: PROMPT_SCHEMA },
-    );
-
-    // Step C — render
-    const fullPrompt = `${promptObj.final_prompt}\n\nNEGATIVE: ${promptObj.negative_prompt}`;
-    const dataUrl = await callGatewayImage(fullPrompt);
-    const publicUrl = await uploadDataUrl(dataUrl, data.brandProfileId);
-
-    const { data: briefRow, error: briefErr } = await supabaseAdmin
-      .from("creative_briefs")
-      .insert({ brand_profile_id: data.brandProfileId, brief_json: brief, final_prompt: promptObj.final_prompt, negative_prompt: promptObj.negative_prompt })
-      .select()
-      .single();
-    if (briefErr) throw new Error(briefErr.message);
-
-    const { data: designRow, error: designErr } = await supabaseAdmin
-      .from("generated_designs")
-      .insert({
-        brand_profile_id: data.brandProfileId,
-        creative_brief_id: briefRow.id,
-        image_url: publicUrl,
-        prompt_used: fullPrompt,
-        design_type: promptObj.design_type,
-        revision_number: 0,
-      })
-      .select()
-      .single();
-    if (designErr) throw new Error(designErr.message);
-
-    return { design: designRow, brief: briefRow };
+    // Maintain the legacy { design, brief } return shape so the existing
+    // Phase-2 UI keeps working. We hand back the FIRST persisted row (the
+    // primary concept) plus the brief stub the pipeline wrote.
+    const primary = (result.designRows[0] || {}) as Record<string, unknown>;
+    const briefRow = primary.creative_brief_id
+      ? (
+          await supabaseAdmin
+            .from("creative_briefs")
+            .select("*")
+            .eq("id", primary.creative_brief_id as string)
+            .maybeSingle()
+        ).data
+      : null;
+    return {
+      design: primary,
+      brief: briefRow,
+      // New fields available to upgraded UIs (ignored by current Phase-2 UI):
+      concepts: result.concepts,
+      designDna: result.designDna,
+      conceptGroupId: result.conceptGroupId,
+    };
   });
 
 export const reviseAbDesign = createServerFn({ method: "POST" })
   .inputValidator((d: { generatedDesignId: string; userRequest: string }) => d)
   .handler(async ({ data }) => {
-    if (/start over/i.test(data.userRequest)) {
-      const { data: parent } = await supabaseAdmin.from("generated_designs").select("brand_profile_id").eq("id", data.generatedDesignId).single();
-      if (!parent) throw new Error("Design not found");
-      const fresh = await generateAbDesign({ data: { brandProfileId: parent.brand_profile_id } });
-      await supabaseAdmin.from("revision_requests").insert({
-        brand_profile_id: parent.brand_profile_id,
-        generated_design_id: data.generatedDesignId,
-        user_request: data.userRequest,
-        revised_prompt: fresh.design.prompt_used,
-        revised_image_url: fresh.design.image_url,
-        new_design_id: fresh.design.id,
-      });
-      return fresh;
-    }
-
+    // NEW PIPELINE — delegates to revisionEngine + runLogoPipeline.
     const { data: parent, error } = await supabaseAdmin
       .from("generated_designs")
-      .select("*, creative_briefs(*)")
+      .select("*")
       .eq("id", data.generatedDesignId)
       .single();
     if (error || !parent) throw new Error("Design not found");
-    const brief = (parent as { creative_briefs: { brief_json: unknown; final_prompt: string; negative_prompt: string } }).creative_briefs;
+    const parentRow = parent as Record<string, unknown>;
 
-    const intents = detectIntents(data.userRequest);
-    const intentBlock = intents.length ? `Recognized intent translations:\n- ${intents.join("\n- ")}` : "";
+    const lockedDna = (parentRow.design_dna_snapshot as DesignDnaStrategy | null) || undefined;
+    if (!lockedDna) {
+      // No DNA snapshot exists on legacy rows → run a fresh pipeline.
+      const fresh = await runLogoPipeline({
+        brandProfileId: parentRow.brand_profile_id as string,
+        outputCount: 1,
+      });
+      const primary = fresh.designRows[0] as Record<string, unknown>;
+      await supabaseAdmin.from("revision_requests").insert({
+        brand_profile_id: parentRow.brand_profile_id,
+        generated_design_id: data.generatedDesignId,
+        user_request: data.userRequest,
+        revised_prompt: primary.prompt_used as string,
+        revised_image_url: primary.image_url as string,
+        new_design_id: primary.id,
+      });
+      return { design: primary, brief: null, concepts: fresh.concepts };
+    }
 
-    const promptObj = await callGatewayJson(
-      [
-        { role: "system", content: `You revise a logo prompt while PRESERVING the locked design direction. Keep the business name, mark type, palette, and core composition unless the user explicitly asks to change them. Only mutate what the user requests. Always improve polish, balance, spacing, and readability. ${QUALITY_RULES}` },
-        { role: "user", content: `Locked brief:\n${JSON.stringify(brief.brief_json, null, 2)}\n\nPrevious final prompt:\n${brief.final_prompt}\n\nUser revision request:\n"${data.userRequest}"\n\n${intentBlock}\n\nReturn the new final_prompt, negative_prompt, and a short design_type label.` },
-      ],
-      { name: "image_prompt", schema: PROMPT_SCHEMA },
-    );
-
-    const fullPrompt = `${promptObj.final_prompt}\n\nNEGATIVE: ${promptObj.negative_prompt}`;
-    const dataUrl = await callGatewayImage(fullPrompt);
-    const publicUrl = await uploadDataUrl(dataUrl, parent.brand_profile_id);
-
-    const { data: newBrief } = await supabaseAdmin
-      .from("creative_briefs")
-      .insert({
-        brand_profile_id: parent.brand_profile_id,
-        brief_json: brief.brief_json as never,
-        final_prompt: promptObj.final_prompt,
-        negative_prompt: promptObj.negative_prompt,
-        revision_of: parent.creative_brief_id,
-      })
-      .select()
-      .single();
-
-    const { data: newDesign, error: dErr } = await supabaseAdmin
-      .from("generated_designs")
-      .insert({
-        brand_profile_id: parent.brand_profile_id,
-        creative_brief_id: newBrief?.id,
-        image_url: publicUrl,
-        prompt_used: fullPrompt,
-        design_type: promptObj.design_type,
-        revision_number: (parent.revision_number || 0) + 1,
-        parent_design_id: parent.id,
-      })
-      .select()
-      .single();
-    if (dErr) throw new Error(dErr.message);
-
-    await supabaseAdmin.from("revision_requests").insert({
-      brand_profile_id: parent.brand_profile_id,
-      generated_design_id: data.generatedDesignId,
-      user_request: data.userRequest,
-      revised_prompt: fullPrompt,
-      revised_image_url: publicUrl,
-      new_design_id: newDesign.id,
+    const classified = classifyRevision({
+      userRequest: data.userRequest,
+      parentDna: lockedDna,
+      parentPrompt: parentRow.prompt_used as string,
+      parentConceptId: parentRow.id as string,
     });
 
-    return { design: newDesign, brief: newBrief };
+    const result = await runLogoPipeline({
+      brandProfileId: parentRow.brand_profile_id as string,
+      outputCount: 1,
+      outputMode: classified.outputModeOverride ?? (parentRow.output_mode as OutputMode) ?? "presentation_preview",
+      // Full-redesign means rebuild DNA; otherwise lock the previous DNA.
+      lockedDna: classified.isFullRedesign ? undefined : lockedDna,
+      revisionContext: classified.context,
+    });
+    const primary = result.designRows[0] as Record<string, unknown>;
+
+    await supabaseAdmin.from("revision_requests").insert({
+      brand_profile_id: parentRow.brand_profile_id,
+      generated_design_id: data.generatedDesignId,
+      user_request: data.userRequest,
+      revised_prompt: primary.prompt_used as string,
+      revised_image_url: primary.image_url as string,
+      new_design_id: primary.id,
+    });
+
+    return { design: primary, brief: null, concepts: result.concepts };
   });
 
 export const listAbDesigns = createServerFn({ method: "GET" })
