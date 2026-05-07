@@ -343,7 +343,20 @@ function BrandKitCard({
   );
 }
 
-function buildHtmlKit(d: {
+async function fetchAsDataUrl(url: string): Promise<{ dataUrl: string; format: "PNG" | "JPEG" } | null> {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const format: "PNG" | "JPEG" = blob.type.includes("jpeg") || blob.type.includes("jpg") ? "JPEG" : "PNG";
+  const dataUrl: string = await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+  return { dataUrl, format };
+}
+
+async function buildBrandKitPdf(d: {
   businessName: string;
   industry: string;
   slogan: string;
@@ -352,34 +365,213 @@ function buildHtmlKit(d: {
   productionRecs: string;
   palette: Array<{ role: string; name: string | null; hex: string | null }>;
   typography: Record<string, string>;
-  logoFile: string;
+  logoDataUrl: { dataUrl: string; format: "PNG" | "JPEG" } | null;
+  index: number;
 }) {
-  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
-  const swatches = d.palette.map((c) => `
-    <div style="display:inline-block;width:140px;margin:8px;text-align:center">
-      <div style="height:80px;background:${c.hex};border:1px solid #ddd;border-radius:6px"></div>
-      <div style="font-size:13px;margin-top:6px"><strong>${esc(c.name || c.role)}</strong></div>
-      <div style="font-size:11px;color:#666;font-family:monospace">${(c.hex || "").toUpperCase()}</div>
-    </div>`).join("");
-  const recs = d.productionRecs.split("\n").filter(Boolean).map((r) => `<li>${esc(r)}</li>`).join("");
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(d.businessName)} — Brand Kit</title>
-<style>body{font-family:system-ui,Segoe UI,Roboto,sans-serif;max-width:900px;margin:40px auto;padding:0 24px;color:#111}
-h1{font-size:32px;margin:0 0 4px}h2{margin-top:32px;border-bottom:1px solid #eee;padding-bottom:6px}
-.muted{color:#666}img{display:block;max-width:360px}</style></head><body>
-<h1>${esc(d.businessName)}</h1>
-<div class="muted">${esc(d.industry)}</div>
-${d.slogan ? `<p style="font-style:italic;margin-top:8px">"${esc(d.slogan)}"</p>` : ""}
-<h2>Logo</h2>
-<img src="${esc(d.logoFile)}" alt="Logo" />
-${d.brandSummary ? `<h2>Brand Summary</h2><p>${esc(d.brandSummary)}</p>` : ""}
-<h2>Color Palette</h2>${swatches}
-<h2>Typography</h2><ul>
-${d.typography.heading ? `<li><strong>Heading:</strong> ${esc(d.typography.heading)}</li>` : ""}
-${d.typography.body ? `<li><strong>Body:</strong> ${esc(d.typography.body)}</li>` : ""}
-${d.typography.accent ? `<li><strong>Accent:</strong> ${esc(d.typography.accent)}</li>` : ""}
-</ul>
-${d.usageNotes ? `<h2>Logo Usage</h2><p>${esc(d.usageNotes)}</p>` : ""}
-${recs ? `<h2>Recommended Printing Products</h2><ul>${recs}</ul>` : ""}
-<p class="muted" style="margin-top:48px;font-size:12px">Prepared by Anaglyph Branding.</p>
-</body></html>`;
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 48;
+  let y = margin;
+
+  const ensure = (needed: number) => {
+    if (y + needed > pageH - margin - 24) {
+      drawFooter();
+      doc.addPage();
+      y = margin;
+      drawHeader();
+    }
+  };
+
+  const drawHeader = () => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text("ANAGLYPH BRANDING", margin, 28);
+    doc.setFont("helvetica", "normal");
+    doc.text("Brand Kit", pageW - margin, 28, { align: "right" });
+    doc.setDrawColor(220);
+    doc.line(margin, 34, pageW - margin, 34);
+    doc.setTextColor(20);
+  };
+
+  const drawFooter = () => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(140);
+    doc.text(
+      `Prepared by Anaglyph Branding · ${d.businessName} · Brand Kit ${d.index + 1}`,
+      pageW / 2,
+      pageH - 24,
+      { align: "center" },
+    );
+    doc.setTextColor(20);
+  };
+
+  const heading = (text: string) => {
+    ensure(36);
+    y += 12;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(20);
+    doc.text(text, margin, y);
+    y += 6;
+    doc.setDrawColor(230);
+    doc.line(margin, y, pageW - margin, y);
+    y += 14;
+  };
+
+  const paragraph = (text: string, size = 10) => {
+    if (!text) return;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(size);
+    doc.setTextColor(40);
+    const lines = doc.splitTextToSize(text, pageW - margin * 2);
+    for (const line of lines) {
+      ensure(size + 4);
+      doc.text(line, margin, y);
+      y += size + 4;
+    }
+  };
+
+  drawHeader();
+
+  // Title
+  y = margin + 24;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(26);
+  doc.text(d.businessName, margin, y);
+  y += 18;
+  if (d.industry) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(110);
+    doc.text(d.industry, margin, y);
+    y += 14;
+    doc.setTextColor(20);
+  }
+  if (d.slogan) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(12);
+    doc.setTextColor(70);
+    doc.text(`"${d.slogan}"`, margin, y + 8);
+    y += 22;
+    doc.setTextColor(20);
+  }
+
+  // Logo
+  if (d.logoDataUrl) {
+    heading("Approved Logo");
+    const maxW = 240;
+    const maxH = 180;
+    try {
+      const props = doc.getImageProperties(d.logoDataUrl.dataUrl);
+      const ratio = Math.min(maxW / props.width, maxH / props.height);
+      const w = props.width * ratio;
+      const h = props.height * ratio;
+      ensure(h + 8);
+      doc.addImage(d.logoDataUrl.dataUrl, d.logoDataUrl.format, margin, y, w, h);
+      y += h + 6;
+    } catch { /* skip */ }
+  }
+
+  if (d.brandSummary) {
+    heading("Brand Summary");
+    paragraph(d.brandSummary);
+  }
+
+  // Palette
+  if (d.palette.length > 0) {
+    heading("Color Palette");
+    const swatchW = 110;
+    const swatchH = 60;
+    const gap = 12;
+    const perRow = Math.max(1, Math.floor((pageW - margin * 2 + gap) / (swatchW + gap)));
+    let col = 0;
+    let rowY = y;
+    ensure(swatchH + 32);
+    rowY = y;
+    for (const c of d.palette) {
+      if (col === perRow) {
+        col = 0;
+        y = rowY + swatchH + 32;
+        ensure(swatchH + 32);
+        rowY = y;
+      }
+      const x = margin + col * (swatchW + gap);
+      const hex = (c.hex || "#cccccc").replace("#", "");
+      const r = parseInt(hex.slice(0, 2), 16) || 0;
+      const g = parseInt(hex.slice(2, 4), 16) || 0;
+      const b = parseInt(hex.slice(4, 6), 16) || 0;
+      doc.setFillColor(r, g, b);
+      doc.setDrawColor(220);
+      doc.roundedRect(x, rowY, swatchW, swatchH, 4, 4, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(40);
+      doc.text(c.name || c.role || "Color", x, rowY + swatchH + 12);
+      doc.setFont("courier", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(110);
+      doc.text((c.hex || "").toUpperCase(), x, rowY + swatchH + 24);
+      doc.setTextColor(20);
+      col += 1;
+    }
+    y = rowY + swatchH + 32;
+  }
+
+  // Typography
+  if (d.typography?.heading || d.typography?.body || d.typography?.accent) {
+    heading("Typography");
+    const fontRow = (label: string, name: string | undefined) => {
+      if (!name) return;
+      ensure(34);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(110);
+      doc.text(label.toUpperCase(), margin, y);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(20);
+      doc.text(name, margin + 70, y);
+      y += 14;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(14);
+      doc.setTextColor(60);
+      doc.text("AaBbCc 1234 — The quick brown fox", margin + 70, y);
+      y += 14;
+    };
+    fontRow("Heading", d.typography.heading);
+    fontRow("Body", d.typography.body);
+    fontRow("Accent", d.typography.accent);
+    doc.setTextColor(20);
+  }
+
+  if (d.usageNotes) {
+    heading("Logo Usage Notes");
+    paragraph(d.usageNotes);
+  }
+
+  heading("Logo Do's & Don'ts");
+  paragraph("Do — preserve clear space around the logo equal to the height of its primary mark.");
+  paragraph("Do — use the approved color palette on appropriate backgrounds for legibility.");
+  paragraph("Don't — stretch, skew, recolor, or rotate the logo.");
+  paragraph("Don't — place the logo on busy imagery or low-contrast backgrounds without a container.");
+
+  const recs = d.productionRecs.split("\n").map((s) => s.trim()).filter(Boolean);
+  if (recs.length > 0) {
+    heading("Recommended Printing Products");
+    for (const r of recs) {
+      ensure(16);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`•  ${r}`, margin, y);
+      y += 14;
+    }
+  }
+
+  drawFooter();
+
+  const safe = (d.businessName || "Brand").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "Brand";
+  doc.save(`${safe}-Brand-Kit-${d.index + 1}.pdf`);
 }
