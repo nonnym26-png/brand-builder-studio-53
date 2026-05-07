@@ -196,7 +196,9 @@ export type Database = {
           phase_2_slogans: Json | null
           phase_2_uploaded_logos: Json | null
           phase_3_assets: Json | null
+          phase_3_brand_kit_data: Json | null
           phase_3_completed_at: string | null
+          phase_3_saved_at: string | null
           phone_number: string | null
           preferred_contact_method: string | null
           primary_color_name: string | null
@@ -341,7 +343,9 @@ export type Database = {
           phase_2_slogans?: Json | null
           phase_2_uploaded_logos?: Json | null
           phase_3_assets?: Json | null
+          phase_3_brand_kit_data?: Json | null
           phase_3_completed_at?: string | null
+          phase_3_saved_at?: string | null
           phone_number?: string | null
           preferred_contact_method?: string | null
           primary_color_name?: string | null
@@ -486,7 +490,9 @@ export type Database = {
           phase_2_slogans?: Json | null
           phase_2_uploaded_logos?: Json | null
           phase_3_assets?: Json | null
+          phase_3_brand_kit_data?: Json | null
           phase_3_completed_at?: string | null
+          phase_3_saved_at?: string | null
           phone_number?: string | null
           preferred_contact_method?: string | null
           primary_color_name?: string | null
