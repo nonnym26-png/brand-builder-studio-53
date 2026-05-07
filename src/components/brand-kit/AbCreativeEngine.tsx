@@ -1,5 +1,5 @@
 import { useEffect, useImperativeHandle, useState, forwardRef } from "react";
-import { Loader2, Sparkles, RefreshCw, Download, Check, FileText, Wand2, ShieldCheck, AlertTriangle, XCircle, Cpu, Layers, Package } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, Download, Check, FileText, Wand2, ShieldCheck, AlertTriangle, XCircle, Cpu, Layers, Package, Send, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { generateAbDesign, reviseAbDesign, listAbDesigns, approveAbDesign, exportBrandKit } from "@/api/abCreativeEngine.functions";
+import { createClientProof } from "@/api/clientProof.functions";
 
 type Design = {
   id: string;
@@ -76,6 +77,8 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
   const [reviseTarget, setReviseTarget] = useState<Design | null>(null);
   const [reviseText, setReviseText] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [proofUrl, setProofUrl] = useState<string | null>(null);
+  const [creatingProof, setCreatingProof] = useState(false);
 
   const refresh = async () => {
     if (!brandProfileId) return;
@@ -167,6 +170,21 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
     }
   };
 
+  const onCreateProof = async () => {
+    if (!brandProfileId) { toast.error("Select a brand profile first"); return; }
+    setCreatingProof(true);
+    try {
+      const res = await createClientProof({ data: { brandProfileId } });
+      const url = `${window.location.origin}/proof/${res.token}`;
+      setProofUrl(url);
+      toast.success("Client proof created");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to create proof");
+    } finally {
+      setCreatingProof(false);
+    }
+  };
+
   return (
     <section className="rounded-2xl border border-border bg-card p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -199,6 +217,10 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
           <Button variant="outline" onClick={onExport} disabled={exporting || !brandProfileId || designs.filter((d) => d.is_approved).length === 0}>
             {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
             Export Brand Kit
+          </Button>
+          <Button variant="outline" onClick={onCreateProof} disabled={creatingProof || !brandProfileId || designs.filter((d) => d.is_approved).length === 0}>
+            {creatingProof ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Create Client Proof
           </Button>
         </div>
       </div>
@@ -362,6 +384,26 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!proofUrl} onOpenChange={(o) => !o && setProofUrl(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="inline-flex items-center gap-2"><Send className="h-4 w-4" /> Client Proof Link</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">Share this link with the client. They'll see a clean, branded proof page (no internal prompts, DNA, or model details) and can approve, request a minor revision, or ask for a new direction.</p>
+            <div className="flex items-center gap-2">
+              <input readOnly value={proofUrl ?? ""} className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-xs" />
+              <Button size="sm" variant="outline" onClick={() => { if (proofUrl) { navigator.clipboard.writeText(proofUrl); toast.success("Link copied"); } }}>
+                <Copy className="h-3 w-3" /> Copy
+              </Button>
+              <Button size="sm" asChild>
+                <a href={proofUrl ?? "#"} target="_blank" rel="noreferrer">Open</a>
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </section>

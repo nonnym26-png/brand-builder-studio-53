@@ -41,6 +41,7 @@ export type Database = {
           client_name: string | null
           client_nice_to_have_elements: string | null
           client_original_ideas: string | null
+          client_proof_status: string | null
           color_mood: string[] | null
           color_notes: string | null
           colors_to_avoid: string | null
@@ -169,6 +170,7 @@ export type Database = {
           client_name?: string | null
           client_nice_to_have_elements?: string | null
           client_original_ideas?: string | null
+          client_proof_status?: string | null
           color_mood?: string[] | null
           color_notes?: string | null
           colors_to_avoid?: string | null
@@ -297,6 +299,7 @@ export type Database = {
           client_name?: string | null
           client_nice_to_have_elements?: string | null
           client_original_ideas?: string | null
+          client_proof_status?: string | null
           color_mood?: string[] | null
           color_notes?: string | null
           colors_to_avoid?: string | null
@@ -408,6 +411,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      client_proofs: {
+        Row: {
+          asset_ids: string[]
+          brand_profile_id: string
+          business_name: string | null
+          created_at: string
+          id: string
+          response_kind: string | null
+          response_notes: string | null
+          selected_direction: string | null
+          status: string
+          submitted_at: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          asset_ids?: string[]
+          brand_profile_id: string
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          response_kind?: string | null
+          response_notes?: string | null
+          selected_direction?: string | null
+          status?: string
+          submitted_at?: string | null
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          asset_ids?: string[]
+          brand_profile_id?: string
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          response_kind?: string | null
+          response_notes?: string | null
+          selected_direction?: string | null
+          status?: string
+          submitted_at?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       creative_briefs: {
         Row: {
