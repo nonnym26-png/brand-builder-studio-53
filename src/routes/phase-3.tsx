@@ -516,6 +516,110 @@ function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+type QaIssue = { label: string; action: string; href: string };
+type QaResult = { passes: boolean; missing: QaIssue[] };
+
+function evaluateQaGate(kit: BrandKit): QaResult {
+  const v = kit.publicView;
+  const issues: QaIssue[] = [];
+  const push = (label: string, action: string, href: string) => issues.push({ label, action, href });
+
+  // Phase 1 intake
+  if (!v.brand.businessName || !v.brand.industry || !v.brand.targetAudience) {
+    push("Phase 1 intake incomplete", "Complete Intake", "/phase-1");
+  }
+  // Phase 2 — selected concept + approval
+  if (kit.status.approvedCount === 0) {
+    push("No approved concept selected", "Select Logo Direction", "/phase-2");
+  }
+  // Premium / refined primary
+  const primaryType = (v.primary?.design_type || "").toLowerCase();
+  const hasRefined = !!v.primary && /refined|premium|main|wordmark|combination/.test(primaryType);
+  if (!hasRefined) {
+    push("Premium refined logo missing", "Create Premium Refined Version", "/phase-2");
+  }
+  // Transparent production logo
+  const hasTransparent = v.variations.some((va) => va && /Transparent/i.test((va as { label: string }).label));
+  if (!hasTransparent) {
+    push("Transparent production logo missing", "Create Transparent Production Logo", "/phase-2");
+  }
+  // Phase 3 brand overview
+  if (!v.brand.description) {
+    push("Brand overview missing", "Regenerate Brand Kit Preview", "/phase-1");
+  }
+  // Primary logo included
+  if (!v.primary) {
+    push("Primary logo not included", "Generate Concepts", "/phase-2");
+  }
+  // Color palette
+  if (v.palette.length === 0) {
+    push("Color palette missing", "Add Color Palette", "/phase-1");
+  }
+  // Typography
+  if (!v.typography?.heading && !v.typography?.body) {
+    push("Typography direction missing", "Add Typography Direction", "/phase-2");
+  }
+  // Usage guide / production recs are always generated, but verify
+  if (!v.usageGuide?.primary) push("Brand usage guide missing", "Add Usage Guide", "/phase-3");
+  if (!v.productionRecommendations?.length) push("Production recommendations missing", "Add Production Recommendations", "/phase-3");
+
+  return { passes: issues.length === 0, missing: issues };
+}
+
+function QaGatePanel({
+  issues, onRefresh, overrideOpen, setOverrideOpen, overrideReason, setOverrideReason, onSendAnyway, busy,
+}: {
+  issues: QaIssue[];
+  onRefresh: () => void;
+  overrideOpen: boolean;
+  setOverrideOpen: (b: boolean) => void;
+  overrideReason: string;
+  setOverrideReason: (s: string) => void;
+  onSendAnyway: () => void;
+  busy: boolean;
+}) {
+  return (
+    <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
+        <div className="text-xs font-medium">Brand Kit is not ready to send. Complete the missing items below.</div>
+      </div>
+      <ul className="space-y-1.5">
+        {issues.map((i) => (
+          <li key={i.label} className="flex items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground">• {i.label}</span>
+            {i.action === "Regenerate Brand Kit Preview" ? (
+              <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={onRefresh}>{i.action}</Button>
+            ) : (
+              <Button asChild size="sm" variant="outline" className="h-6 px-2 text-[10px]">
+                <Link to={i.href}>{i.action}</Link>
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+      <div className="border-t border-amber-500/30 pt-2">
+        {!overrideOpen ? (
+          <Button size="sm" variant="ghost" className="w-full text-xs text-amber-600 hover:text-amber-700" onClick={() => setOverrideOpen(true)}>
+            <ShieldAlert className="h-3.5 w-3.5 mr-1.5" /> Send Anyway (admin override)
+          </Button>
+        ) : (
+          <div className="space-y-2">
+            <div className="text-[11px] text-muted-foreground">A reason is required and will be saved to the project record.</div>
+            <Textarea rows={2} placeholder="Why is this incomplete kit being sent?" value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} />
+            <div className="flex gap-1.5">
+              <Button size="sm" variant="outline" className="flex-1" onClick={() => { setOverrideOpen(false); setOverrideReason(""); }}>Cancel</Button>
+              <Button size="sm" className="flex-1" onClick={onSendAnyway} disabled={busy || overrideReason.trim().length < 5}>
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Confirm Send"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function buildHtmlSummary(kit: BrandKit) {
   const v = kit.publicView;
   const escape = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
