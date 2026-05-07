@@ -2,6 +2,13 @@ import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { deleteBrandProfiles } from "@/api/brandKit.functions";
 
@@ -58,33 +65,40 @@ export function SavedProfilesPicker({
 
   return (
     <div className="space-y-2">
-      <div className="max-h-64 overflow-y-auto rounded-md border border-border divide-y divide-border bg-card">
-        {profiles.map((p) => {
-          const isSel = p.id === selectedId;
-          const date = p.updated_at ? new Date(p.updated_at).toLocaleDateString() : "";
-          return (
-            <div
-              key={p.id}
-              className={`flex items-center gap-2 px-2 py-1.5 text-xs ${isSel ? "bg-muted" : ""}`}
-            >
-              <Checkbox
-                checked={!!marked[p.id]}
-                onCheckedChange={(v) => toggle(p.id, !!v)}
-                aria-label="Mark for deletion"
-              />
-              <button
-                type="button"
-                onClick={() => onSelect(p.id)}
-                className="flex-1 text-left truncate hover:underline"
-              >
-                <div className="font-medium truncate">{p.business_name || "Untitled"}</div>
-                <div className="text-[10px] text-muted-foreground truncate">
-                  {p.client_name || "—"}{date ? ` · ${date}` : ""}
-                </div>
-              </button>
-            </div>
-          );
-        })}
+      <Select value={selectedId || undefined} onValueChange={(v) => onSelect(v)}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Pick a saved profile…" />
+        </SelectTrigger>
+        <SelectContent>
+          {profiles.map((p) => {
+            const date = p.updated_at ? new Date(p.updated_at).toLocaleDateString() : "";
+            return (
+              <SelectItem key={p.id} value={p.id}>
+                <span className="font-medium">{p.business_name || "Untitled"}</span>
+                {(p.client_name || date) && (
+                  <span className="text-muted-foreground">
+                    {" "}· {p.client_name || "—"}{date ? ` · ${date}` : ""}
+                  </span>
+                )}
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
+      <div className="max-h-40 overflow-y-auto rounded-md border border-border divide-y divide-border bg-card">
+        {profiles.map((p) => (
+          <label
+            key={p.id}
+            className="flex items-center gap-2 px-2 py-1.5 text-xs cursor-pointer hover:bg-muted/50"
+          >
+            <Checkbox
+              checked={!!marked[p.id]}
+              onCheckedChange={(v) => toggle(p.id, !!v)}
+              aria-label="Mark for deletion"
+            />
+            <span className="flex-1 truncate">{p.business_name || "Untitled"}</span>
+          </label>
+        ))}
       </div>
       {markedIds.length > 0 && (
         <Button
