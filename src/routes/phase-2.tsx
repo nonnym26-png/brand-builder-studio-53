@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Database, Download, RefreshCw, Save, Sparkles, Wand2, MessageSquare, Type, Palette as PaletteIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,13 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ConceptMark } from "@/components/brand-kit/ConceptRenderer";
 import { generateConcepts } from "@/components/brand-kit/conceptEngine";
 import type { LogoConcept, ProfileLite } from "@/components/brand-kit/conceptTypes";
-import { exportConceptPDF } from "@/components/brand-kit/exportConceptPdf";
 import { listBrandProfiles, loadBrandProfile, saveConcepts, generateSlogans, savePhase2Selections, markPhaseComplete } from "@/api/phase2.functions";
-import { generatePremiumLogoImage } from "@/api/premiumLogoImage.functions";
-import { toPng } from "html-to-image";
 import abLogo from "@/assets/ab-logo.png";
 import { DesignDnaEditor } from "@/components/DesignDnaEditor";
 import { PhaseStepper } from "@/components/PhaseStepper";
@@ -60,11 +56,6 @@ function Phase2() {
   const [mascotEnabled, setMascotEnabled] = useState(false);
   const [mascotStyle, setMascotStyle] = useState<string>("geometric");
   const [mascotIdea, setMascotIdea] = useState("");
-
-  // Premium AI image rendering
-  const [premiumImage, setPremiumImage] = useState<string | null>(null);
-  const [premiumBusy, setPremiumBusy] = useState(false);
-  const [premiumDescriptor, setPremiumDescriptor] = useState("CONSULTING");
 
   // Initial deterministic generation
   useEffect(() => {
@@ -422,106 +413,6 @@ function Phase2() {
           />
         </section>
       </main>
-    </div>
-  );
-}
-
-function ConceptCard({ concept, selected, onSelect }: { concept: LogoConcept; selected: boolean; onSelect: () => void }) {
-  const refs = {
-    light: useRef<HTMLDivElement>(null),
-    dark: useRef<HTMLDivElement>(null),
-    brand: useRef<HTMLDivElement>(null),
-    mono: useRef<HTMLDivElement>(null),
-    mark: useRef<HTMLDivElement>(null),
-  };
-  const [exporting, setExporting] = useState(false);
-
-  const downloadPDF = async () => {
-    setExporting(true);
-    try {
-      const opts = { pixelRatio: 2, cacheBust: true };
-      const [light, dark, brand, mono, mark] = await Promise.all([
-        toPng(refs.light.current!, opts),
-        toPng(refs.dark.current!, opts),
-        toPng(refs.brand.current!, opts),
-        toPng(refs.mono.current!, opts),
-        toPng(refs.mark.current!, opts),
-      ]);
-      await exportConceptPDF(concept, { light, dark, brand, mono, mark });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Export failed");
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const downloadSVG = (mode: "light" | "dark" | "brand") => {
-    const node = refs[mode].current?.querySelector("svg");
-    if (!node) { toast.error("No SVG to export for this layout"); return; }
-    const xml = new XMLSerializer().serializeToString(node);
-    const blob = new Blob([xml], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${concept.brandName.toLowerCase().replace(/\s+/g, "-")}-${concept.id}-${mode}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  return (
-    <div className={`rounded-xl border bg-card transition ${selected ? "border-foreground ring-2 ring-foreground/10" : "border-border"}`}>
-      <div className="flex items-start justify-between gap-3 border-b border-border p-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">#{concept.id}</span>
-            <Badge variant="outline" className="text-[10px] uppercase">{concept.markType}</Badge>
-            {concept.moodWords.slice(0, 2).map((m) => (
-              <Badge key={m} variant="secondary" className="text-[10px] uppercase">{m}</Badge>
-            ))}
-          </div>
-          <h3 className="mt-1.5 text-lg font-semibold tracking-tight">{concept.name}</h3>
-          {concept.tagline && <p className="text-xs text-muted-foreground">{concept.tagline}</p>}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Button size="sm" variant={selected ? "default" : "outline"} onClick={onSelect}>
-            {selected ? "Selected" : "Select"}
-          </Button>
-          <Button size="sm" variant="outline" onClick={downloadPDF} disabled={exporting}>
-            <Download className="mr-1.5 h-3.5 w-3.5" /> {exporting ? "…" : "PDF"}
-          </Button>
-        </div>
-      </div>
-
-      <div className="p-4 space-y-3">
-        <div ref={refs.light} className="overflow-hidden rounded-lg">
-          <ConceptMark concept={concept} mode="light" size={420} />
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <div ref={refs.dark} className="overflow-hidden rounded-md"><ConceptMark concept={concept} mode="dark" size={180} /></div>
-          <div ref={refs.brand} className="overflow-hidden rounded-md"><ConceptMark concept={concept} mode="brand" size={180} /></div>
-          <div ref={refs.mono} className="overflow-hidden rounded-md"><ConceptMark concept={concept} mode="mono" size={180} /></div>
-        </div>
-        <div ref={refs.mark} className="hidden">
-          <ConceptMark concept={concept} mode="light" size={300} showName={false} />
-        </div>
-
-        <p className="text-xs leading-relaxed text-muted-foreground">{concept.rationale}</p>
-
-        <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          {(["light", "dark", "brand"] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => downloadSVG(m)}
-              className="rounded-md border border-border px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
-            >
-              SVG · {m}
-            </button>
-          ))}
-          <span className="ml-auto text-[10px] text-muted-foreground">
-            {concept.palette.primary.toUpperCase()} · {concept.palette.dark.toUpperCase()}
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
