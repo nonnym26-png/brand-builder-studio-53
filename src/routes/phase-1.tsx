@@ -93,7 +93,8 @@ function Phase1() {
     }
   };
 
-  const sections = ["Basics", "Audience", "Voice", "Vision", "Direction"];
+  const logoDirection = getStr("logo_direction");
+  const setLogoDirection = (v: string) => setProfile((p) => ({ ...p, logo_direction: v }));
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -147,29 +148,61 @@ function Phase1() {
         </aside>
 
         <section className="space-y-8">
-          {sections.map((s) => (
-            <div key={s} className="rounded-xl border border-border bg-card p-5">
-              <h2 className="mb-4 text-sm font-semibold tracking-tight">{s}</h2>
-              <div className="grid gap-4 md:grid-cols-2">
-                {TEXT_FIELDS.filter((f) => f.section === s).map((f) => (
-                  <div key={f.key} className={f.long ? "md:col-span-2" : ""}>
-                    <Label>{f.label}</Label>
-                    {f.long ? (
-                      <Textarea className="mt-1.5" rows={3} value={getStr(f.key)} onChange={(e) => setText(f.key, e.target.value)} />
-                    ) : (
-                      <Input className="mt-1.5" value={getStr(f.key)} onChange={(e) => setText(f.key, e.target.value)} />
-                    )}
-                  </div>
-                ))}
-                {ARRAY_FIELDS.filter((f) => f.section === s).map((f) => (
-                  <div key={f.key}>
-                    <Label>{f.label} <span className="text-muted-foreground">(comma-separated)</span></Label>
-                    <Input className="mt-1.5" placeholder={f.placeholder} value={getArr(f.key)} onChange={(e) => setArr(f.key, e.target.value)} />
-                  </div>
-                ))}
-              </div>
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h2 className="mb-1 text-sm font-semibold tracking-tight">Business information</h2>
+            <p className="mb-4 text-xs text-muted-foreground">Practical details we'll use to shape the logo and Brand Kit.</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              {TEXT_FIELDS.map((f) => (
+                <div key={f.key} className={f.long ? "md:col-span-2" : ""}>
+                  <Label>{f.label}</Label>
+                  {f.long ? (
+                    <Textarea className="mt-1.5" rows={3} placeholder={f.placeholder} value={getStr(f.key)} onChange={(e) => setText(f.key, e.target.value)} />
+                  ) : (
+                    <Input className="mt-1.5" placeholder={f.placeholder} value={getStr(f.key)} onChange={(e) => setText(f.key, e.target.value)} />
+                  )}
+                </div>
+              ))}
+              {ARRAY_FIELDS.map((f) => (
+                <div key={f.key} className="md:col-span-2">
+                  <Label>{f.label} <span className="text-muted-foreground">(comma-separated)</span></Label>
+                  <Input className="mt-1.5" placeholder={f.placeholder} value={getArr(f.key)} onChange={(e) => setArr(f.key, e.target.value)} />
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h2 className="mb-1 text-sm font-semibold tracking-tight">Logo direction</h2>
+            <p className="mb-4 text-xs text-muted-foreground">Pick how Phase 2 should approach the logo.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                { value: "rework_existing", label: "Rework Existing Logo", desc: "Refine and modernize the current mark.", Icon: RefreshCw },
+                { value: "design_new", label: "Design New Logo", desc: "Start fresh with brand-new concepts.", Icon: Sparkles },
+              ].map(({ value, label, desc, Icon }) => {
+                const active = logoDirection === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setLogoDirection(value)}
+                    className={cn(
+                      "group relative flex flex-col items-start gap-2 rounded-lg border p-4 text-left transition-colors",
+                      active
+                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                        : "border-border bg-background hover:border-foreground/40 hover:bg-accent",
+                    )}
+                  >
+                    <div className="flex w-full items-center justify-between">
+                      <Icon className="h-5 w-5 text-foreground" />
+                      {active && <Check className="h-4 w-4 text-primary" />}
+                    </div>
+                    <div className="text-sm font-semibold">{label}</div>
+                    <div className="text-xs text-muted-foreground">{desc}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="flex items-center justify-end gap-2">
             <Link to="/phase-2" className="text-xs text-muted-foreground hover:text-foreground">Skip for now →</Link>
