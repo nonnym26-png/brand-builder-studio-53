@@ -189,6 +189,7 @@ export type Database = {
           phase_2_elements: Json | null
           phase_2_fonts: Json | null
           phase_2_logo_concepts: Json | null
+          phase_2_logo_inclusions: Json | null
           phase_2_mascot: Json | null
           phase_2_refinement_notes: string | null
           phase_2_rendering_status: string | null
@@ -333,6 +334,7 @@ export type Database = {
           phase_2_elements?: Json | null
           phase_2_fonts?: Json | null
           phase_2_logo_concepts?: Json | null
+          phase_2_logo_inclusions?: Json | null
           phase_2_mascot?: Json | null
           phase_2_refinement_notes?: string | null
           phase_2_rendering_status?: string | null
@@ -477,6 +479,7 @@ export type Database = {
           phase_2_elements?: Json | null
           phase_2_fonts?: Json | null
           phase_2_logo_concepts?: Json | null
+          phase_2_logo_inclusions?: Json | null
           phase_2_mascot?: Json | null
           phase_2_refinement_notes?: string | null
           phase_2_rendering_status?: string | null

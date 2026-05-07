@@ -195,3 +195,16 @@ export const removePhase2Logo = createServerFn({ method: "POST" })
     if (dbErr) throw new Error(dbErr.message);
     return { ok: true as const, logos: next };
   });
+
+/** Set which Phase-2 logo slots are included in the Phase-3 Brand Kit. */
+export const setPhase2LogoInclusions = createServerFn({ method: "POST" })
+  .inputValidator((input: { brandProfileId: string; inclusions: Record<string, boolean> }) => input)
+  .handler(async ({ data }) => {
+    const sb = getAdminClient();
+    const { error: dbErr } = await sb
+      .from("brand_profiles")
+      .update({ phase_2_logo_inclusions: data.inclusions, updated_at: new Date().toISOString() } as never)
+      .eq("id", data.brandProfileId);
+    if (dbErr) throw new Error(dbErr.message);
+    return { ok: true as const, inclusions: data.inclusions };
+  });
