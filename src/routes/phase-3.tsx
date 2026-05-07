@@ -1261,297 +1261,318 @@ async function buildAbBrandKitPdf(d: {
   logoDataUrl: { dataUrl: string; format: "PNG" | "JPEG" } | null;
   abLogoDataUrl?: { dataUrl: string; format: "PNG" | "JPEG" } | null;
 }) {
-  // Compact, AB-branded 1–2 page Brand Kit. Skips empty/unfilled fields entirely.
+  // Premium AB-branded Brand Kit modeled on the Lady J Consulting reference.
+  // Black background, white content cards, RED + GOLD accents, numbered sections.
   const pdf = new jsPDF({ unit: "pt", format: "letter", compress: true });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
-  const margin = 36;
+  const margin = 28;
   const contentW = pageW - margin * 2;
-  const [gr, gg, gb] = hexToRgb(GOLD);
+  const GOLD_HEX = "#C79A2B";
+  const [gr, gg, gb] = hexToRgb(GOLD_HEX);
   const [rr, rg, rb] = hexToRgb(RED);
   let pageNum = 0;
 
-  const drawChrome = () => {
-    pdf.setFillColor(10, 10, 10);
+  const drawBg = () => {
+    pdf.setFillColor(8, 8, 10);
     pdf.rect(0, 0, pageW, pageH, "F");
-    // Top bar with AB logo + business name
-    pdf.setFillColor(0, 0, 0);
-    pdf.rect(0, 0, pageW, 46, "F");
-    if (d.abLogoDataUrl) {
-      try {
-        const props = pdf.getImageProperties(d.abLogoDataUrl.dataUrl);
-        const h = 24;
-        const w = (props.width / props.height) * h;
-        pdf.addImage(d.abLogoDataUrl.dataUrl, d.abLogoDataUrl.format, margin, 11, w, h);
-        // "Anaglyph Branding" text next to the AB logo.
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(11);
-        pdf.text("Anaglyph Branding", margin + w + 8, 28);
-      } catch { /* skip */ }
-    } else {
-      pdf.setTextColor(gr, gg, gb);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(11);
-      pdf.text("Anaglyph Branding", margin, 28);
-    }
-    pdf.setTextColor(220, 220, 220);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.text((d.businessName || "").toUpperCase(), pageW - margin, 22, { align: "right", charSpace: 1 });
-    if (d.industry) {
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(7);
-      pdf.setTextColor(160, 160, 160);
-      pdf.text(d.industry, pageW - margin, 32, { align: "right" });
-    }
-    // Gold + red accent strip
-    pdf.setFillColor(gr, gg, gb);
-    pdf.rect(0, 46, pageW / 2, 3, "F");
+  };
+  const drawFooter = () => {
+    // Bottom AB statement bar
+    const fy = pageH - 56;
     pdf.setFillColor(rr, rg, rb);
-    pdf.rect(pageW / 2, 46, pageW / 2, 3, "F");
-    // Footer
-    pdf.setTextColor(120, 120, 120);
+    pdf.rect(margin, fy, contentW, 28, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text(AB_STATEMENT, pageW / 2, fy + 18, { align: "center" });
+    // Tiny credit line
+    pdf.setTextColor(160, 160, 160);
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(7);
-    pdf.text("OFFICIAL BRAND KIT  ·  ANAGLYPH BRANDING", margin, pageH - 18);
-    pdf.text(`PAGE ${pageNum}`, pageW - margin, pageH - 18, { align: "right" });
+    const credit = `${d.doc.footerBusinessName || d.businessName || "Brand"}  ·  Professional branding by Anaglyph Branding  ·  Page ${pageNum}`;
+    pdf.text(credit, pageW / 2, pageH - 14, { align: "center" });
   };
-
   const newPage = () => {
-    if (pageNum > 0) pdf.addPage();
+    if (pageNum > 0) {
+      drawFooter();
+      pdf.addPage();
+    }
     pageNum += 1;
-    drawChrome();
+    drawBg();
   };
 
-  const sectionTitle = (title: string, x: number, yy: number, w: number) => {
-    pdf.setTextColor(gr, gg, gb);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(8);
-    pdf.text(title.toUpperCase(), x, yy, { charSpace: 1.5 });
+  // Numbered section header bar (gold border + gold tab with white text)
+  const sectionHeader = (n: string, title: string, x: number, yy: number, w: number) => {
+    // Outer gold border tab
     pdf.setDrawColor(gr, gg, gb);
-    pdf.setLineWidth(0.4);
-    pdf.line(x, yy + 3, x + Math.min(40, w), yy + 3);
+    pdf.setLineWidth(0.7);
+    pdf.roundedRect(x, yy, w, 18, 2, 2, "S");
+    // Tab label fill
+    const labelW = Math.min(220, w * 0.55);
+    pdf.setFillColor(gr, gg, gb);
+    pdf.roundedRect(x, yy, labelW, 18, 2, 2, "F");
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.text(`${n}.  ${title.toUpperCase()}`, x + 8, yy + 12, { charSpace: 0.6 });
   };
 
-  const wrapped = (text: string, w: number, size: number) => {
-    pdf.setFontSize(size);
-    return pdf.splitTextToSize(text, w);
+  // White card with subtle gold border
+  const card = (x: number, yy: number, w: number, h: number) => {
+    pdf.setFillColor(255, 255, 255);
+    pdf.setDrawColor(gr, gg, gb);
+    pdf.setLineWidth(0.5);
+    pdf.roundedRect(x, yy, w, h, 4, 4, "FD");
   };
 
-  /* ---------- PAGE 1: Hero + Logos + Colors + Fonts ---------- */
+  /* ============== PAGE 1 — Header + Logo System + Palette ============== */
   newPage();
 
-  // Hero band
-  let y = 70;
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(26);
-  pdf.text(d.businessName || "Brand", margin, y);
-  y += 8;
-  pdf.setFillColor(rr, rg, rb);
-  pdf.rect(margin, y, 36, 2, "F");
-  y += 16;
-  if (d.industry) {
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
-    pdf.setTextColor(180, 180, 180);
-    pdf.text(d.industry, margin, y);
-    y += 14;
-  }
-
-  // Two-column layout: left = primary logo, right = logo notes
-  const heroH = 140;
-  const leftW = contentW * 0.42;
-  const rightW = contentW - leftW - 14;
-  // Logo card (white)
-  pdf.setFillColor(255, 255, 255);
-  pdf.rect(margin, y, leftW, heroH, "F");
-  if (d.logoDataUrl) {
+  // Top header band: AB logo left | title block right
+  const headerH = 96;
+  // Left logo well
+  const logoWellW = 150;
+  if (d.abLogoDataUrl) {
     try {
-      const props = pdf.getImageProperties(d.logoDataUrl.dataUrl);
-      const pad = 14;
-      const ratio = Math.min((leftW - pad * 2) / props.width, (heroH - pad * 2) / props.height);
+      const props = pdf.getImageProperties(d.abLogoDataUrl.dataUrl);
+      const ratio = Math.min((logoWellW - 16) / props.width, (headerH - 16) / props.height);
       const w = props.width * ratio;
       const h = props.height * ratio;
-      pdf.addImage(d.logoDataUrl.dataUrl, d.logoDataUrl.format, margin + (leftW - w) / 2, y + (heroH - h) / 2, w, h);
+      pdf.addImage(d.abLogoDataUrl.dataUrl, d.abLogoDataUrl.format, margin + (logoWellW - w) / 2, margin + (headerH - h) / 2, w, h);
     } catch { /* skip */ }
   }
-  // Right: logo notes (only if present)
-  const rx = margin + leftW + 14;
-  let ry = y;
-  sectionTitle("01 · Core Logo System", rx, ry, rightW);
-  ry += 14;
-  if (d.doc.coreLogoNotes && d.doc.coreLogoNotes.trim()) {
-    pdf.setTextColor(220, 220, 220);
-    pdf.setFont("helvetica", "normal");
-    const lines = wrapped(d.doc.coreLogoNotes.trim(), rightW, 8.5);
-    for (const ln of lines.slice(0, 14)) { pdf.text(ln, rx, ry); ry += 11; }
-  }
-  y += heroH + 18;
+  // Vertical gold divider
+  pdf.setDrawColor(gr, gg, gb);
+  pdf.setLineWidth(1);
+  pdf.line(margin + logoWellW + 8, margin + 6, margin + logoWellW + 8, margin + headerH - 6);
 
-  // Logo variations strip — only uploaded ones
+  const tx = margin + logoWellW + 22;
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(13);
+  pdf.text((d.businessName || "Your Brand").toUpperCase(), tx, margin + 22, { charSpace: 1 });
+  pdf.setFontSize(20);
+  pdf.text("NEW BUSINESS IDENTITY", tx, margin + 46, { charSpace: 0.5 });
+  pdf.setTextColor(gr, gg, gb);
+  pdf.setFontSize(36);
+  pdf.text("BRANDING ", tx, margin + 80);
+  const bw = pdf.getTextWidth("BRANDING ");
+  pdf.setTextColor(rr, rg, rb);
+  pdf.text("KIT", tx + bw, margin + 80);
+  pdf.setTextColor(220, 220, 220);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8.5);
+  pdf.text("Built to strengthen recognition, trust, and a professional brand presence.", tx, margin + 94);
+
+  let y = margin + headerH + 14;
+
+  /* ----- Section 1: Core Logo System ----- */
   const slots = d.doc.logoSlots.filter((s) => !!s.dataUrl);
+  const colors = d.doc.colors.filter((c) => c.hex && /^#[0-9a-f]{3,6}$/i.test(c.hex.trim()));
+
+  // Two-column row: logos card (left, ~62%) + palette card (right)
+  const row1H = 200;
+  const lw = contentW * 0.62 - 6;
+  const rw = contentW - lw - 12;
+
+  // LOGO SYSTEM CARD
+  sectionHeader("1", "Core Logo System", margin, y, lw);
+  card(margin, y + 22, lw, row1H - 22);
   if (slots.length > 0) {
-    sectionTitle("LOGO VARIATIONS", margin, y, contentW);
-    y += 12;
-    const cols = Math.min(slots.length, 6);
+    const inner = { x: margin + 10, y: y + 30, w: lw - 20, h: row1H - 22 - 16 };
+    const cols = Math.min(slots.length, 5);
     const gap = 8;
-    const slotW = (contentW - gap * (cols - 1)) / cols;
-    const slotH = Math.min(slotW, 70);
+    const slotW = (inner.w - gap * (cols - 1)) / cols;
+    const slotH = inner.h - 28;
     for (let i = 0; i < slots.length; i++) {
       const s = slots[i];
       const col = i % cols;
-      const row = Math.floor(i / cols);
-      const x = margin + col * (slotW + gap);
-      const cy = y + row * (slotH + 18);
-      const dark = s.label === "White Logo";
-      pdf.setFillColor(dark ? 0 : 255, dark ? 0 : 255, dark ? 0 : 255);
-      pdf.rect(x, cy, slotW, slotH, "F");
+      const x = inner.x + col * (slotW + gap);
+      const cy = inner.y + 4;
+      const dark = /white/i.test(s.label);
+      if (dark) { pdf.setFillColor(15, 15, 15); pdf.rect(x, cy, slotW, slotH, "F"); }
       try {
         const props = pdf.getImageProperties(s.dataUrl!);
-        const pad = 6;
+        const pad = 8;
         const ratio = Math.min((slotW - pad * 2) / props.width, (slotH - pad * 2) / props.height);
         const w = props.width * ratio;
         const h = props.height * ratio;
         const fmt: "PNG" | "JPEG" = s.dataUrl!.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
         pdf.addImage(s.dataUrl!, fmt, x + (slotW - w) / 2, cy + (slotH - h) / 2, w, h);
       } catch { /* skip */ }
-      pdf.setTextColor(gr, gg, gb);
+      pdf.setTextColor(40, 40, 40);
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(6.5);
-      pdf.text(s.label.toUpperCase(), x, cy + slotH + 10, { charSpace: 0.5 });
+      pdf.text(s.label.toUpperCase(), x + slotW / 2, cy + slotH + 12, { align: "center", charSpace: 0.4 });
     }
-    const rows = Math.ceil(slots.length / cols);
-    y += rows * (slotH + 18) + 6;
+  }
+  if (d.doc.coreLogoNotes && d.doc.coreLogoNotes.trim()) {
+    pdf.setTextColor(70, 70, 70);
+    pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(7.5);
+    const lines = pdf.splitTextToSize(d.doc.coreLogoNotes.trim(), lw - 24);
+    pdf.text(lines.slice(0, 2), margin + lw / 2, y + row1H - 6, { align: "center" });
   }
 
-  // Color palette — only filled colors
-  const colors = d.doc.colors.filter((c) => c.hex && /^#[0-9a-f]{3,6}$/i.test(c.hex.trim()));
+  // PALETTE CARD
+  const px = margin + lw + 12;
+  sectionHeader("2", "Color Palette", px, y, rw);
+  card(px, y + 22, rw, row1H - 22);
   if (colors.length > 0) {
-    sectionTitle("02 · Color Palette", margin, y, contentW);
-    y += 12;
-    const cols = colors.length;
-    const gap = 10;
-    const swW = (contentW - gap * (cols - 1)) / cols;
-    const swH = 56;
+    const inner = { x: px + 10, y: y + 32, w: rw - 20, h: row1H - 56 };
+    const cols = Math.min(colors.length, 5);
+    const gap = 6;
+    const swW = (inner.w - gap * (cols - 1)) / cols;
+    const swH = inner.h - 36;
     for (let i = 0; i < colors.length; i++) {
       const c = colors[i];
       const [cr, cg, cb] = hexToRgb(c.hex);
-      const x = margin + i * (swW + gap);
+      const x = inner.x + i * (swW + gap);
       pdf.setFillColor(cr, cg, cb);
-      pdf.rect(x, y, swW, swH, "F");
-      pdf.setTextColor(255, 255, 255);
+      pdf.setDrawColor(180, 180, 180);
+      pdf.setLineWidth(0.3);
+      pdf.rect(x, inner.y, swW, swH, "FD");
+      pdf.setTextColor(40, 40, 40);
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(8);
-      pdf.text((c.name || "").toUpperCase(), x, y + swH + 11);
+      pdf.setFontSize(6.5);
+      const nm = pdf.splitTextToSize((c.name || "").toUpperCase(), swW);
+      pdf.text(nm.slice(0, 2), x + swW / 2, inner.y + swH + 9, { align: "center" });
       pdf.setFont("courier", "normal");
-      pdf.setTextColor(gr, gg, gb);
-      pdf.setFontSize(7);
-      pdf.text(c.hex.toUpperCase(), x, y + swH + 21);
+      pdf.setFontSize(6);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text(c.hex.toUpperCase(), x + swW / 2, inner.y + swH + 22, { align: "center" });
     }
-    y += swH + 30;
+  }
+  if (d.doc.paletteNotes && d.doc.paletteNotes.trim()) {
+    pdf.setTextColor(70, 70, 70);
+    pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(7);
+    const lines = pdf.splitTextToSize(d.doc.paletteNotes.trim(), rw - 24);
+    pdf.text(lines.slice(0, 2), px + rw / 2, y + row1H - 4, { align: "center" });
   }
 
-  // Fonts — only filled
+  y += row1H + 14;
+
+  /* ----- Section 3 + 4: Fonts (left) + Visual Elements (right) ----- */
   const fonts = d.doc.fonts.filter((f) => (f.name && f.name.trim()) || (f.sample && f.sample.trim()));
+  const visEls = d.doc.visualElements.filter((e) => !!e.dataUrl || (e.title && e.title.trim()));
+
+  const row2H = 220;
+  const fw = contentW * 0.40 - 6;
+  const vw = contentW - fw - 12;
+
+  // FONTS CARD
   if (fonts.length > 0) {
-    sectionTitle("03 · Typography", margin, y, contentW);
-    y += 12;
-    const cols = fonts.length;
-    const gap = 10;
-    const cardW = (contentW - gap * (cols - 1)) / cols;
-    const cardH = 70;
-    for (let i = 0; i < fonts.length; i++) {
-      const f = fonts[i];
-      const x = margin + i * (cardW + gap);
-      pdf.setFillColor(20, 20, 20);
-      pdf.rect(x, y, cardW, cardH, "F");
-      pdf.setTextColor(gr, gg, gb);
+    sectionHeader("3", "Font Selection", margin, y, fw);
+    card(margin, y + 22, fw, row2H - 22);
+    let fy2 = y + 36;
+    for (const f of fonts) {
+      const blockH = (row2H - 30) / fonts.length;
+      // Big "Aa" preview on left
+      pdf.setTextColor(30, 30, 30);
+      pdf.setFont("helvetica", f.style === "italic" ? "bolditalic" : "bold");
+      pdf.setFontSize(28);
+      pdf.text("Aa", margin + 14, fy2 + blockH / 2 + 2);
+      // Label + name
+      pdf.setTextColor(rr, rg, rb);
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(7);
-      pdf.text((f.label || "").toUpperCase(), x + 8, y + 14, { charSpace: 1 });
-      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(7.5);
+      pdf.text((f.label || "").toUpperCase(), margin + 60, fy2 + 6, { charSpace: 0.5 });
+      pdf.setTextColor(20, 20, 20);
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(9);
-      if (f.name) pdf.text(f.name, x + 8, y + 28);
+      pdf.setFontSize(10);
+      pdf.text(f.name || "—", margin + 60, fy2 + 18);
       pdf.setFont("helvetica", f.style === "italic" ? "italic" : "normal");
-      pdf.setFontSize(f.big ? 16 : 12);
-      pdf.setTextColor(220, 220, 220);
-      if (f.sample) pdf.text(pdf.splitTextToSize(f.sample, cardW - 16)[0] || "", x + 8, y + 48);
-      if (f.usage) {
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(6.5);
-        pdf.setTextColor(170, 170, 170);
-        pdf.text(pdf.splitTextToSize(f.usage, cardW - 16).slice(0, 2), x + 8, y + 60);
-      }
+      pdf.setFontSize(7);
+      pdf.setTextColor(90, 90, 90);
+      pdf.text(pdf.splitTextToSize(f.sample || "", fw - 70).slice(0, 1), margin + 60, fy2 + 30);
+      fy2 += blockH;
     }
-    y += cardH + 14;
+    if (d.doc.fontNotes && d.doc.fontNotes.trim()) {
+      pdf.setTextColor(70, 70, 70);
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(7);
+      pdf.text(pdf.splitTextToSize(d.doc.fontNotes, fw - 24).slice(0, 2), margin + fw / 2, y + row2H - 6, { align: "center" });
+    }
   }
 
-  /* ---------- PAGE 2 (only if there's more meaningful content) ---------- */
-  const visEls = d.doc.visualElements.filter((e) => !!e.dataUrl);
-  const apps = d.doc.applications.filter((a) => a.selected && (a.dataUrl || (a.title && a.title.trim())));
-  const slogans = d.doc.slogans.filter((s) => s.headline && s.headline.trim());
-  const hasFooter = d.doc.footerBusinessName || d.doc.footerProjectNote;
-
-  const needsPage2 = visEls.length > 0 || apps.length > 0 || slogans.length > 0 || hasFooter;
-  if (needsPage2) {
-    newPage();
-    let py = 70;
-
-    if (visEls.length > 0) {
-      sectionTitle("04 · Brand Icons / Visual Elements", margin, py, contentW); py += 14;
-      const cols = Math.min(visEls.length, 5);
-      const gap = 10;
-      const slotW = (contentW - gap * (cols - 1)) / cols;
-      const slotH = slotW;
-      for (let i = 0; i < visEls.length; i++) {
-        const el = visEls[i];
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const x = margin + col * (slotW + gap);
-        const cy = py + row * (slotH + 30);
-        pdf.setFillColor(255, 255, 255);
-        pdf.rect(x, cy, slotW, slotH, "F");
+  // VISUAL ELEMENTS CARD
+  if (visEls.length > 0) {
+    sectionHeader("4", "Brand Icons / Visual Elements", margin + fw + 12, y, vw);
+    card(margin + fw + 12, y + 22, vw, row2H - 22);
+    const inner = { x: margin + fw + 22, y: y + 32, w: vw - 20, h: row2H - 56 };
+    const cols = Math.min(visEls.length, 2);
+    const gap = 10;
+    const cardW = (inner.w - gap * (cols - 1)) / cols;
+    for (let i = 0; i < Math.min(visEls.length, 2); i++) {
+      const el = visEls[i];
+      const x = inner.x + (i % cols) * (cardW + gap);
+      const cy = inner.y;
+      const imgH = inner.h - 40;
+      pdf.setFillColor(245, 245, 245);
+      pdf.rect(x, cy, cardW, imgH, "F");
+      if (el.dataUrl) {
         try {
-          const props = pdf.getImageProperties(el.dataUrl!);
-          const pad = 6;
-          const ratio = Math.min((slotW - pad * 2) / props.width, (slotH - pad * 2) / props.height);
+          const props = pdf.getImageProperties(el.dataUrl);
+          const pad = 8;
+          const ratio = Math.min((cardW - pad * 2) / props.width, (imgH - pad * 2) / props.height);
           const w = props.width * ratio;
           const h = props.height * ratio;
-          const fmt: "PNG" | "JPEG" = el.dataUrl!.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
-          pdf.addImage(el.dataUrl!, fmt, x + (slotW - w) / 2, cy + (slotH - h) / 2, w, h);
+          const fmt: "PNG" | "JPEG" = el.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+          pdf.addImage(el.dataUrl, fmt, x + (cardW - w) / 2, cy + (imgH - h) / 2, w, h);
         } catch { /* skip */ }
-        if (el.title) {
-          pdf.setTextColor(gr, gg, gb);
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(7);
-          pdf.text(el.title.toUpperCase(), x, cy + slotH + 10);
-        }
       }
-      const rows = Math.ceil(visEls.length / cols);
-      py += rows * (slotH + 30) + 4;
+      pdf.setTextColor(rr, rg, rb);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7);
+      pdf.text(`CONCEPT OPTION ${i + 1}`, x + cardW / 2, cy + imgH + 12, { align: "center" });
+      if (el.title) {
+        pdf.setTextColor(20, 20, 20);
+        pdf.setFontSize(8);
+        pdf.text(el.title, x + cardW / 2, cy + imgH + 22, { align: "center" });
+      }
+      if (el.explanation) {
+        pdf.setTextColor(80, 80, 80);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(6.5);
+        pdf.text(pdf.splitTextToSize(el.explanation, cardW - 8).slice(0, 2), x + cardW / 2, cy + imgH + 32, { align: "center" });
+      }
     }
+    if (d.doc.iconNotes && d.doc.iconNotes.trim()) {
+      pdf.setTextColor(70, 70, 70);
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(6.5);
+      pdf.text(pdf.splitTextToSize(d.doc.iconNotes, vw - 24).slice(0, 1), margin + fw + 12 + vw / 2, y + row2H - 4, { align: "center" });
+    }
+  }
 
+  /* ============== PAGE 2 — Applications + Process + Slogans + Why ============== */
+  const apps = d.doc.applications.filter((a) => a.selected && (a.title?.trim() || a.dataUrl));
+  const slogans = d.doc.slogans.filter((s) => s.headline && s.headline.trim());
+  const why = d.doc.whyBlocks.filter((w) => w.title?.trim() || w.explanation?.trim());
+  const process = d.doc.processSteps.filter((p) => p.title?.trim());
+
+  if (apps.length > 0 || slogans.length > 0 || why.length > 0 || process.length > 0) {
+    newPage();
+    let py = margin + 6;
+
+    /* ----- Section 5: Brand Application Recommendations ----- */
     if (apps.length > 0) {
-      sectionTitle("05 · Brand Application Recommendations", margin, py, contentW); py += 14;
-      const cols = 4;
-      const gap = 8;
-      const cardW = (contentW - gap * (cols - 1)) / cols;
-      const cardH = 88;
-      for (let i = 0; i < apps.length; i++) {
+      sectionHeader("5", "Brand Application Recommendations", margin, py, contentW);
+      const cardsH = 170;
+      card(margin, py + 22, contentW, cardsH - 22);
+      const inner = { x: margin + 12, y: py + 32, w: contentW - 24, h: cardsH - 50 };
+      const maxCols = Math.min(apps.length, 5);
+      const gap = 10;
+      const cardW = (inner.w - gap * (maxCols - 1)) / maxCols;
+      const imgH = inner.h - 30;
+      for (let i = 0; i < Math.min(apps.length, 5); i++) {
         const a = apps[i];
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const x = margin + col * (cardW + gap);
-        const cy = py + row * (cardH + 8);
+        const x = inner.x + i * (cardW + gap);
         pdf.setFillColor(20, 20, 20);
-        pdf.rect(x, cy, cardW, cardH, "F");
-        const imgH = 50;
+        pdf.rect(x, inner.y, cardW, imgH, "F");
         if (a.dataUrl) {
-          pdf.setFillColor(255, 255, 255);
-          pdf.rect(x, cy, cardW, imgH, "F");
           try {
             const props = pdf.getImageProperties(a.dataUrl);
             const pad = 4;
@@ -1559,69 +1580,141 @@ async function buildAbBrandKitPdf(d: {
             const w = props.width * ratio;
             const h = props.height * ratio;
             const fmt: "PNG" | "JPEG" = a.dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
-            pdf.addImage(a.dataUrl, fmt, x + (cardW - w) / 2, cy + (imgH - h) / 2, w, h);
+            pdf.addImage(a.dataUrl, fmt, x + (cardW - w) / 2, inner.y + (imgH - h) / 2, w, h);
           } catch { /* skip */ }
-        } else {
-          // No image — fill top with brand red strip for visual rhythm
-          pdf.setFillColor(rr, rg, rb);
-          pdf.rect(x, cy, cardW, 4, "F");
         }
-        pdf.setTextColor(gr, gg, gb);
+        pdf.setTextColor(rr, rg, rb);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(7);
+        pdf.text(`${i + 1}.`, x, inner.y + imgH + 12);
+        pdf.setTextColor(20, 20, 20);
+        pdf.text(pdf.splitTextToSize((a.title || "").toUpperCase(), cardW - 12).slice(0, 2), x + 12, inner.y + imgH + 12);
+      }
+      py += cardsH + 10;
+    }
+
+    /* ----- Section 6: Strategic Branding Process ----- */
+    if (process.length > 0) {
+      sectionHeader("6", "The Strategic Branding Process", margin, py, contentW);
+      const h = 100;
+      card(margin, py + 22, contentW, h - 22);
+      const inner = { x: margin + 14, y: py + 32, w: contentW - 28, h: h - 36 };
+      const cols = process.length;
+      const stepW = inner.w / cols;
+      for (let i = 0; i < cols; i++) {
+        const p = process[i];
+        const cx = inner.x + i * stepW + stepW / 2;
+        // Number badge (red circle)
+        pdf.setFillColor(rr, rg, rb);
+        pdf.circle(cx, inner.y + 12, 9, "F");
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.text(String(i + 1), cx, inner.y + 15, { align: "center" });
+        // Arrow connector
+        if (i < cols - 1) {
+          pdf.setDrawColor(gr, gg, gb);
+          pdf.setLineWidth(0.5);
+          pdf.line(cx + 12, inner.y + 12, cx + stepW - 12, inner.y + 12);
+        }
+        pdf.setTextColor(20, 20, 20);
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(7.5);
-        pdf.text((a.title || "").toUpperCase(), x + 6, cy + imgH + 12, { maxWidth: cardW - 12 });
-        if (a.usage) {
-          pdf.setTextColor(200, 200, 200);
-          pdf.setFont("helvetica", "italic");
-          pdf.setFontSize(6);
-          pdf.text(pdf.splitTextToSize(a.usage, cardW - 12).slice(0, 3), x + 6, cy + imgH + 22);
-        }
+        pdf.text(p.title.toUpperCase(), cx, inner.y + 32, { align: "center", charSpace: 0.4 });
+        pdf.setTextColor(80, 80, 80);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(6);
+        const lines = pdf.splitTextToSize(p.explanation || "", stepW - 8);
+        pdf.text(lines.slice(0, 4), cx, inner.y + 42, { align: "center" });
       }
-      const rows = Math.ceil(apps.length / cols);
-      py += rows * (cardH + 8) + 6;
+      py += h + 10;
     }
 
+    /* ----- Section 7: Slogans ----- + Section 8: Why Branding Matters (side by side or stacked) ----- */
     if (slogans.length > 0) {
-      sectionTitle("06 · Brand Message", margin, py, contentW); py += 14;
+      const h = 100;
+      const sw = contentW * 0.55 - 6;
+      sectionHeader("7", "Slogan / Brand Message", margin, py, sw);
+      card(margin, py + 22, sw, h - 22);
       const cols = Math.min(slogans.length, 2);
-      const gap = 12;
-      const cardW = (contentW - gap * (cols - 1)) / cols;
-      const cardH = 70;
-      for (let i = 0; i < slogans.length; i++) {
+      const gap = 8;
+      const inner = { x: margin + 10, y: py + 30, w: sw - 20, h: h - 36 };
+      const subW = (inner.w - gap * (cols - 1)) / cols;
+      for (let i = 0; i < cols; i++) {
         const s = slogans[i];
-        const x = margin + (i % cols) * (cardW + gap);
-        pdf.setFillColor(20, 20, 20);
-        pdf.rect(x, py, cardW, cardH, "F");
+        const x = inner.x + i * (subW + gap);
+        pdf.setFillColor(rr, rg, rb);
+        pdf.roundedRect(x, inner.y, 60, 12, 1, 1, "F");
         pdf.setTextColor(255, 255, 255);
-        pdf.setFont("helvetica", "bolditalic");
-        pdf.setFontSize(11);
-        pdf.text(pdf.splitTextToSize(`"${s.headline}"`, cardW - 16).slice(0, 2), x + 8, py + 22);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(7);
+        pdf.text(`OPTION ${i + 1}`, x + 30, inner.y + 8, { align: "center" });
+        pdf.setTextColor(20, 20, 20);
+        pdf.setFontSize(9);
+        pdf.text(pdf.splitTextToSize(s.headline.toUpperCase(), subW).slice(0, 2), x, inner.y + 26);
         if (s.explanation) {
-          pdf.setTextColor(200, 200, 200);
+          pdf.setTextColor(80, 80, 80);
           pdf.setFont("helvetica", "normal");
-          pdf.setFontSize(7);
-          pdf.text(pdf.splitTextToSize(s.explanation, cardW - 16).slice(0, 4), x + 8, py + 50);
+          pdf.setFontSize(6.5);
+          pdf.text(pdf.splitTextToSize(s.explanation, subW).slice(0, 4), x, inner.y + 50);
         }
       }
-      py += cardH + 10;
-    }
 
-    // Footer statement (only if business name was filled)
-    if (hasFooter) {
-      pdf.setFillColor(0, 0, 0);
-      pdf.rect(margin, py, contentW, 70, "F");
-      pdf.setTextColor(gr, gg, gb);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(8);
-      pdf.text("ANAGLYPH BRANDING", pageW / 2, py + 18, { align: "center", charSpace: 3 });
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(11);
-      pdf.text(pdf.splitTextToSize(AB_STATEMENT, contentW - 60).slice(0, 2), pageW / 2, py + 38, { align: "center" });
-      pdf.setFillColor(rr, rg, rb);
-      pdf.rect(pageW / 2 - 15, py + 56, 30, 2, "F");
+      // Section 8 — Why Branding Matters (right column)
+      if (why.length > 0) {
+        const ww = contentW - sw - 12;
+        const wx = margin + sw + 12;
+        sectionHeader("8", "Why Branding Matters", wx, py, ww);
+        card(wx, py + 22, ww, h - 22);
+        const winner = { x: wx + 10, y: py + 32, w: ww - 20, h: h - 38 };
+        const rowH = winner.h / why.length;
+        for (let i = 0; i < why.length; i++) {
+          const b = why[i];
+          const ry2 = winner.y + i * rowH + rowH / 2;
+          pdf.setFillColor(rr, rg, rb);
+          pdf.circle(winner.x + 10, ry2, 6, "F");
+          pdf.setTextColor(20, 20, 20);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(8);
+          pdf.text(b.title.toUpperCase(), winner.x + 22, ry2 - 2);
+          pdf.setTextColor(80, 80, 80);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(6.5);
+          const lines = pdf.splitTextToSize(b.explanation || "", winner.w - 24);
+          pdf.text(lines.slice(0, 2), winner.x + 22, ry2 + 7);
+        }
+      }
+      py += h + 10;
+    } else if (why.length > 0) {
+      // Why-only row
+      const h = 90;
+      sectionHeader("8", "Why Branding Matters", margin, py, contentW);
+      card(margin, py + 22, contentW, h - 22);
+      const inner = { x: margin + 14, y: py + 30, w: contentW - 28, h: h - 36 };
+      const cols = why.length;
+      const colW = inner.w / cols;
+      for (let i = 0; i < cols; i++) {
+        const b = why[i];
+        const cx = inner.x + i * colW + colW / 2;
+        pdf.setFillColor(rr, rg, rb);
+        pdf.circle(cx, inner.y + 14, 10, "F");
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10);
+        pdf.text("★", cx, inner.y + 18, { align: "center" });
+        pdf.setTextColor(20, 20, 20);
+        pdf.setFontSize(8);
+        pdf.text(b.title.toUpperCase(), cx, inner.y + 36, { align: "center" });
+        pdf.setTextColor(80, 80, 80);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(6.5);
+        pdf.text(pdf.splitTextToSize(b.explanation || "", colW - 12).slice(0, 3), cx, inner.y + 46, { align: "center" });
+      }
+      py += h + 10;
     }
   }
 
+  drawFooter();
   const safe = (d.businessName || "Brand").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "Brand";
   pdf.save(`${safe}-Brand-Kit.pdf`);
 }
