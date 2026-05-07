@@ -647,6 +647,45 @@ function buildIconNotes(v: PV): string {
   );
 }
 
+function buildVisualElements(v: PV): KitDoc["visualElements"] {
+  const slots: KitDoc["visualElements"] = [
+    { title: "Icon Concept 1", explanation: "Primary supporting icon — represents the core service.", dataUrl: null },
+    { title: "Icon Concept 2", explanation: "Secondary icon — supports a key offering or feature.", dataUrl: null },
+    { title: "Supporting Visual Mark", explanation: "Companion mark used alongside the primary logo for variety.", dataUrl: null },
+    { title: "Mascot / Industry Graphic", explanation: "Optional character or industry-specific illustration.", dataUrl: null },
+    { title: "Pattern / Brand Element", explanation: "Optional repeating pattern or texture used on packaging and collateral.", dataUrl: null },
+  ];
+
+  // Auto-fill from Phase 2 elements (array or object with images/urls)
+  const collect = (val: unknown): Array<{ title?: string; description?: string; url?: string }> => {
+    const out: Array<{ title?: string; description?: string; url?: string }> = [];
+    const visit = (x: unknown) => {
+      if (!x) return;
+      if (typeof x === "string" && /^https?:\/\//.test(x)) out.push({ url: x });
+      else if (Array.isArray(x)) x.forEach(visit);
+      else if (typeof x === "object") {
+        const o = x as Record<string, unknown>;
+        const url = (o.image_url || o.imageUrl || o.url || o.src) as string | undefined;
+        const title = (o.name || o.title || o.label) as string | undefined;
+        const description = (o.description || o.note || o.explanation) as string | undefined;
+        if (url || title || description) out.push({ url, title, description });
+        Object.values(o).forEach(visit);
+      }
+    };
+    visit(val);
+    return out;
+  };
+
+  const found = [...collect(v.phase2?.elements), ...collect(v.phase2?.mascot)];
+  for (let i = 0; i < slots.length && i < found.length; i++) {
+    const f = found[i];
+    if (f.url) slots[i].dataUrl = f.url;
+    if (f.title) slots[i].title = f.title;
+    if (f.description) slots[i].explanation = f.description;
+  }
+  return slots;
+}
+
 function buildApplications(v: PV): string {
   const lines = [
     "Apparel & Uniforms — embroidered or printed primary logo, ≥ 1.5 in.",
