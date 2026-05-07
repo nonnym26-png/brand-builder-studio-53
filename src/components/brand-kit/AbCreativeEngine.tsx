@@ -386,6 +386,26 @@ export const AbCreativeEngine = forwardRef<AbCreativeEngineHandle, AbCreativeEng
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!proofUrl} onOpenChange={(o) => !o && setProofUrl(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="inline-flex items-center gap-2"><Send className="h-4 w-4" /> Client Proof Link</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">Share this link with the client. They'll see a clean, branded proof page (no internal prompts, DNA, or model details) and can approve, request a minor revision, or ask for a new direction.</p>
+            <div className="flex items-center gap-2">
+              <input readOnly value={proofUrl ?? ""} className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-xs" />
+              <Button size="sm" variant="outline" onClick={() => { if (proofUrl) { navigator.clipboard.writeText(proofUrl); toast.success("Link copied"); } }}>
+                <Copy className="h-3 w-3" /> Copy
+              </Button>
+              <Button size="sm" asChild>
+                <a href={proofUrl ?? "#"} target="_blank" rel="noreferrer">Open</a>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 });
