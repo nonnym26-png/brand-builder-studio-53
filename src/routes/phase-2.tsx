@@ -517,6 +517,7 @@ function Phase2() {
                             neutralHex: c.palette.primary || profile.neutral_hex || "#3A3A3A",
                             markType: c.markType as any,
                             extraDirection: direction,
+                            designDna: designDna.dna,
                           } });
                           setPremiumImage(out.imageUrl);
                           toast.success("Premium refinement rendered");
