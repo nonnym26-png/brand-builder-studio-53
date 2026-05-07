@@ -3,20 +3,20 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Database, Download, Loader2, RefreshCw, Sparkles,
   Search, Compass, Palette, Package, Layers, Eye,
-  Award, ShieldCheck, Briefcase, Plus, X,
+  Award, ShieldCheck, Briefcase, Plus, X, Save,
 } from "lucide-react";
 import JSZip from "jszip";
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { PhaseStepper } from "@/components/PhaseStepper";
 import { listBrandProfiles } from "@/api/phase2.functions";
-import { loadBrandKit, markBrandKitExported } from "@/api/brandKit.functions";
+import { loadBrandKit, markBrandKitExported, savePhase3KitData, loadPhase3KitData } from "@/api/brandKit.functions";
 import abLogo from "@/assets/ab-logo.png";
 import { getStoredProjectId, storeProjectId } from "@/lib/selected-project";
+import { SavedProfilesPicker } from "@/components/SavedProfilesPicker";
 
 export const Route = createFileRoute("/phase-3")({
   head: () => ({ meta: [{ title: "Phase 3 — AB Brand Kit Builder | Anaglyph Branding" }] }),
@@ -27,8 +27,13 @@ type ProfileRow = { id: string; business_name: string | null; client_name: strin
 type BrandKit = Awaited<ReturnType<typeof loadBrandKit>>;
 type LogoAsset = { id: string; image_url: string; design_type: string | null };
 
-const GOLD = "#C9A24B";
-const RED = "#C8323C";
+// Official Anaglyph Branding Phase-3 palette: Red (primary), Blue (secondary),
+// Black + White (support), Gray (neutral). No gold accents.
+const RED = "#C92222";
+const BLUE = "#1F4FA8";
+// Backwards-compat alias so the rest of this file (and the PDF chrome)
+// keeps working without renaming every reference.
+const GOLD = BLUE;
 
 type KitDoc = {
   // 1. Core Logo System
