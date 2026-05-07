@@ -431,7 +431,12 @@ function BrandKitEditor({
     >
       {/* Cover */}
       <div className="px-10 py-12 text-center border-b" style={{ borderColor: "#1F1F1F" }}>
-        <div className="text-xs tracking-[0.4em]" style={{ color: GOLD }}>ANAGLYPH BRANDING</div>
+        <div className="inline-flex items-center justify-center gap-3">
+          <img src={abLogo} alt="Anaglyph Branding" className="h-8 w-auto" />
+          <span className="text-base font-bold tracking-tight" style={{ color: "#fff" }}>
+            Anaglyph Branding
+          </span>
+        </div>
         <div className="mt-6 text-4xl font-bold tracking-tight">
           <Input
             value={businessName}
@@ -688,7 +693,12 @@ function BrandKitEditor({
 
       {/* 9. Final AB Brand Statement Footer */}
       <div className="px-10 py-12 text-center border-t" style={{ borderColor: "#1F1F1F", background: "#000" }}>
-        <div className="text-xs tracking-[0.4em] mb-4" style={{ color: GOLD }}>ANAGLYPH BRANDING</div>
+        <div className="inline-flex items-center justify-center gap-3 mb-4">
+          <img src={abLogo} alt="Anaglyph Branding" className="h-7 w-auto" />
+          <span className="text-sm font-bold tracking-tight" style={{ color: "#fff" }}>
+            Anaglyph Branding
+          </span>
+        </div>
         <div className="mx-auto max-w-3xl text-2xl md:text-3xl font-bold leading-tight tracking-tight" style={{ color: "#fff" }}>
           {AB_STATEMENT}
         </div>
