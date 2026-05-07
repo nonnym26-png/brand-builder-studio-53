@@ -197,7 +197,7 @@ function Phase3() {
           <section className="rounded-lg border border-border bg-card p-4 text-xs space-y-2">
             <div className="font-semibold">How Phase 3 works</div>
             <p className="text-muted-foreground leading-relaxed">
-              One brand kit per approved logo, up to {MAX_KITS}. Each kit auto-fills business name, logo, colors, fonts, and slogan. Edit the brand summary, usage notes, and production recommendations, then export as a ZIP containing the logo and a printable HTML brand guide.
+              One brand kit per approved logo, up to {MAX_KITS}. Each kit auto-fills the business name, logo, colors, fonts, and slogan from Phase 2. Edit the brand summary, usage notes, and production recommendations, then save a clean client-ready PDF.
             </p>
           </section>
         </aside>
