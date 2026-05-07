@@ -106,6 +106,13 @@ const DEFAULT_WHY: KitDoc["whyBlocks"] = [
   { icon: "briefcase", title: "Professional Presence",explanation: "A complete brand system positions you alongside the most established names in your industry — and commands premium pricing." },
 ];
 
+const DEFAULT_STATS: KitDoc["stats"] = [
+  { title: "GROWTH FROM CONSISTENCY", pct: "10–20%", body: "Consistent brand presentation is associated with a 10–20% increase in overall growth.", source: "Marq / Lucidpress brand consistency findings", kind: "bar", barFill: 0.18 },
+  { title: "BRAND VISIBILITY",        pct: "3–4×",   body: "Consistent brands are 3–4× more likely to receive visibility.", source: "Marq", kind: "compare" },
+  { title: "PURCHASE TRUST",          pct: "81%",    body: "81% of consumers take trust into account when making a purchase decision.", source: "Edelman", kind: "ring", ringPct: 0.81 },
+  { title: "RECOMMENDATION TRUST",    pct: "92%",    body: "92% of consumers trust recommendations from friends and family over other forms of advertising.", source: "Nielsen", kind: "ring", ringPct: 0.92 },
+];
+
 function Phase3() {
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
