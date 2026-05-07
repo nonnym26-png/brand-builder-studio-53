@@ -21,6 +21,8 @@ import { AbCreativeEngine, type AbCreativeEngineHandle } from "@/components/bran
 import { ClientProofQueue } from "@/components/brand-kit/ClientProofQueue";
 import { FinalDeliveryTracker } from "@/components/brand-kit/FinalDeliveryTracker";
 import { AbStudioDashboard, type DashboardFocus } from "@/components/brand-kit/AbStudioDashboard";
+import { PhaseChecklist, buildPhase2Checklist, derivePhase2Message, deriveBadge, deriveProjectStatus } from "@/components/brand-kit/PhaseChecklist";
+import { listAbDesigns } from "@/api/abCreativeEngine.functions";
 export const Route = createFileRoute("/phase-2")({ component: Phase2 });
 
 type ProfileRow = { id: string; business_name: string | null; client_name: string | null; industry: string | null; project_status: string | null; updated_at: string | null };
@@ -63,6 +65,8 @@ function Phase2() {
   const engineRef = useRef<AbCreativeEngineHandle | null>(null);
   const [proofFilter, setProofFilter] = useState<"all" | "pending" | "approve_final" | "minor_revision" | "full_redesign" | undefined>(undefined);
   const [deliveryFilter, setDeliveryFilter] = useState<"all" | "needs_final_kit" | "kit_prepared" | "sent" | "delivered" | undefined>(undefined);
+  const [phase2Designs, setPhase2Designs] = useState<Array<{ id: string; design_type: string | null; quality_score: number | null; is_approved: boolean }>>([]);
+  const [profileFull, setProfileFull] = useState<Record<string, unknown> | null>(null);
 
   const onDashboardFocus = (focus: DashboardFocus) => {
     if (!focus) return;
@@ -91,14 +95,41 @@ function Phase2() {
       const row = (await loadBrandProfile({ data: { id } })) as ProfileLite | null;
       if (row) {
         setProfile(row);
+        setProfileFull(row as unknown as Record<string, unknown>);
         setConcepts(generateConcepts(row));
         setSelectedConceptId(null);
         toast.success("Profile loaded");
       }
+      const { designs } = await listAbDesigns({ data: { brandProfileId: id } });
+      setPhase2Designs((designs as Array<Record<string, unknown>>).map((d) => ({
+        id: String(d.id),
+        design_type: (d.design_type as string | null) ?? null,
+        quality_score: (d.quality_score as number | null) ?? null,
+        is_approved: Boolean(d.is_approved),
+      })));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load");
     }
   };
+
+  const phase2Items = buildPhase2Checklist({ profile: profileFull, designs: phase2Designs });
+  const phase2Msg = derivePhase2Message(phase2Items);
+  const phase2Ready = phase2Msg.tone === "ok";
+  const phase2Badge = deriveBadge({
+    approvalStatus: (profileFull?.client_proof_status as string | null) ?? null,
+    exportedAt: (profileFull?.brand_kit_exported_at as string | null) ?? null,
+    reviewLinkSent: false,
+    phaseReady: phase2Ready,
+  });
+  const projectStatus = deriveProjectStatus({
+    phase1Done: Boolean(profileFull?.phase_1_completed_at),
+    phase2ConceptsCount: phase2Designs.length,
+    phase2Selected: phase2Designs.some((d) => d.is_approved) || Boolean(profileFull?.selected_logo_concept),
+    phase3Ready: phase2Ready,
+    reviewLinkSent: false,
+    approvalStatus: (profileFull?.client_proof_status as string | null) ?? null,
+    exportedAt: (profileFull?.brand_kit_exported_at as string | null) ?? null,
+  });
 
   const regenerate = () => {
     setConcepts(generateConcepts(profile));
@@ -155,6 +186,16 @@ function Phase2() {
               </SelectContent>
             </Select>
           </section>
+
+          {selectedId && (
+            <PhaseChecklist
+              title="Phase 2 — Logo Direction"
+              items={phase2Items}
+              message={phase2Msg}
+              badge={phase2Badge}
+              projectStatus={projectStatus}
+            />
+          )}
 
           <section className="space-y-3">
             <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Override fields</h2>

@@ -18,6 +18,7 @@ import {
   reopenPhase2,
 } from "@/api/brandKit.functions";
 import { adminApproveProof } from "@/api/clientProof.functions";
+import { PhaseChecklist, buildPhase3Checklist, derivePhase3Message, deriveBadge, deriveProjectStatus } from "@/components/brand-kit/PhaseChecklist";
 import abLogo from "@/assets/ab-logo.png";
 
 export const Route = createFileRoute("/phase-3")({
@@ -170,6 +171,33 @@ function Phase3() {
   const status = kit?.status.clientProofStatus;
   const approved = status === "approve_final";
 
+  const checklistItems = kit ? buildPhase3Checklist({
+    profile: { business_name: kit.publicView.brand.businessName, industry: kit.publicView.brand.industry } as Record<string, unknown>,
+    hasPrimary: Boolean(kit.publicView.primary),
+    hasVariations: kit.publicView.variations.filter(Boolean).length > 0,
+    hasPalette: kit.publicView.palette.length > 0,
+    hasTypography: Boolean(kit.publicView.typography?.heading || kit.publicView.typography?.body),
+    hasReviewLink: Boolean(kit.adminView?.latestProof?.token),
+    approvalStatus: status ?? null,
+    exportedAt: kit.adminView?.brandKitExportedAt ?? null,
+  }) : [];
+  const phase3Msg = kit ? derivePhase3Message(checklistItems, status) : { tone: "info" as const, text: "" };
+  const phase3Badge = deriveBadge({
+    approvalStatus: status ?? null,
+    exportedAt: kit?.adminView?.brandKitExportedAt ?? null,
+    reviewLinkSent: Boolean(kit?.adminView?.latestProof?.token),
+    phaseReady: Boolean(kit && kit.publicView.primary),
+  });
+  const projectStatus = kit ? deriveProjectStatus({
+    phase1Done: true,
+    phase2ConceptsCount: kit.status.approvedCount,
+    phase2Selected: kit.status.approvedCount > 0,
+    phase3Ready: Boolean(kit.publicView.primary),
+    reviewLinkSent: Boolean(kit.adminView?.latestProof?.token),
+    approvalStatus: status ?? null,
+    exportedAt: kit.adminView?.brandKitExportedAt ?? null,
+  }) : undefined;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
@@ -203,6 +231,14 @@ function Phase3() {
 
           {kit && (
             <>
+              <PhaseChecklist
+                title="Phase 3 — Brand Kit Review"
+                items={checklistItems}
+                message={phase3Msg}
+                badge={phase3Badge}
+                projectStatus={projectStatus}
+              />
+
               <section className="rounded-lg border border-border bg-card p-4 space-y-2">
                 <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Status</div>
                 <div className="flex flex-wrap gap-2 text-xs">
