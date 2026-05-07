@@ -16,10 +16,12 @@ import {
   createBrandKitReviewLink,
   markBrandKitExported,
   reopenPhase2,
+  saveBrandKitQaOverride,
 } from "@/api/brandKit.functions";
 import { adminApproveProof } from "@/api/clientProof.functions";
 import { PhaseChecklist, buildPhase3Checklist, derivePhase3Message, deriveBadge, deriveProjectStatus } from "@/components/brand-kit/PhaseChecklist";
 import abLogo from "@/assets/ab-logo.png";
+import { AlertTriangle, ShieldAlert } from "lucide-react";
 
 export const Route = createFileRoute("/phase-3")({
   head: () => ({ meta: [{ title: "Phase 3 — Brand Kit Review | Anaglyph Branding" }] }),
@@ -38,6 +40,8 @@ function Phase3() {
   const [busy, setBusy] = useState<string | null>(null);
   const [reviewToken, setReviewToken] = useState<string | null>(null);
   const [reopenReason, setReopenReason] = useState("");
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
 
   useEffect(() => {
     listBrandProfiles().then((rows) => setProfiles(rows as ProfileRow[])).catch(() => {});
@@ -70,13 +74,18 @@ function Phase3() {
     return `${window.location.origin}/proof/${t}`;
   }, [reviewToken, kit]);
 
-  const sendReviewLink = async () => {
+  const sendReviewLink = async (override?: { reason: string; missing: string[] }) => {
     if (!selectedId) return;
     setBusy("link");
     try {
+      if (override) {
+        await saveBrandKitQaOverride({ data: { brandProfileId: selectedId, reason: override.reason, missing: override.missing } });
+      }
       const r = await createBrandKitReviewLink({ data: { brandProfileId: selectedId } });
       setReviewToken(r.token);
       toast.success(r.reused ? "Existing pending review link refreshed" : "Review link created");
+      setOverrideOpen(false);
+      setOverrideReason("");
       await refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
@@ -171,6 +180,8 @@ function Phase3() {
   const status = kit?.status.clientProofStatus;
   const approved = status === "approve_final";
 
+  const qa = kit ? evaluateQaGate(kit) : { passes: true, missing: [] as QaIssue[] };
+
   const checklistItems = kit ? buildPhase3Checklist({
     profile: { business_name: kit.publicView.brand.businessName, industry: kit.publicView.brand.industry } as Record<string, unknown>,
     hasPrimary: Boolean(kit.publicView.primary),
@@ -257,10 +268,29 @@ function Phase3() {
                 <Button size="sm" variant="outline" className="w-full" onClick={refresh} disabled={loading}>
                   <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Regenerate preview
                 </Button>
-                <Button size="sm" variant="outline" className="w-full" onClick={sendReviewLink} disabled={busy === "link"}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => sendReviewLink()}
+                  disabled={busy === "link" || !qa.passes}
+                  title={qa.passes ? undefined : "Brand Kit is not ready to send. Complete the missing items below."}
+                >
                   {busy === "link" ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Send className="h-3.5 w-3.5 mr-1.5" />}
-                  Create / refresh review link
+                  Send Client Review Link
                 </Button>
+                {!qa.passes && (
+                  <QaGatePanel
+                    issues={qa.missing}
+                    onRefresh={refresh}
+                    overrideOpen={overrideOpen}
+                    setOverrideOpen={setOverrideOpen}
+                    overrideReason={overrideReason}
+                    setOverrideReason={setOverrideReason}
+                    onSendAnyway={() => sendReviewLink({ reason: overrideReason, missing: qa.missing.map((m) => m.label) })}
+                    busy={busy === "link"}
+                  />
+                )}
                 {reviewUrl && (
                   <div className="rounded-md border border-dashed border-border p-2 space-y-1.5">
                     <div className="text-[10px] uppercase text-muted-foreground">Client review link</div>
