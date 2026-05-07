@@ -192,19 +192,31 @@ function Phase2() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>Primary</Label>
-                <Input className="mt-1.5" value={profile.primary_hex || ""} onChange={(e) => setProfile({ ...profile, primary_hex: e.target.value })} />
+                <div className="mt-1.5 flex items-center gap-2">
+                  <input type="color" value={profile.primary_hex || "#000000"} onChange={(e) => setProfile({ ...profile, primary_hex: e.target.value })} className="h-9 w-9 rounded border border-border bg-transparent cursor-pointer shrink-0" aria-label="Primary color picker" />
+                  <Input value={profile.primary_hex || ""} onChange={(e) => setProfile({ ...profile, primary_hex: e.target.value })} />
+                </div>
               </div>
               <div>
                 <Label>Secondary</Label>
-                <Input className="mt-1.5" value={profile.secondary_hex || ""} onChange={(e) => setProfile({ ...profile, secondary_hex: e.target.value })} />
+                <div className="mt-1.5 flex items-center gap-2">
+                  <input type="color" value={profile.secondary_hex || "#000000"} onChange={(e) => setProfile({ ...profile, secondary_hex: e.target.value })} className="h-9 w-9 rounded border border-border bg-transparent cursor-pointer shrink-0" aria-label="Secondary color picker" />
+                  <Input value={profile.secondary_hex || ""} onChange={(e) => setProfile({ ...profile, secondary_hex: e.target.value })} />
+                </div>
               </div>
               <div>
                 <Label>Accent</Label>
-                <Input className="mt-1.5" value={profile.accent_hex || ""} onChange={(e) => setProfile({ ...profile, accent_hex: e.target.value })} />
+                <div className="mt-1.5 flex items-center gap-2">
+                  <input type="color" value={profile.accent_hex || "#000000"} onChange={(e) => setProfile({ ...profile, accent_hex: e.target.value })} className="h-9 w-9 rounded border border-border bg-transparent cursor-pointer shrink-0" aria-label="Accent color picker" />
+                  <Input value={profile.accent_hex || ""} onChange={(e) => setProfile({ ...profile, accent_hex: e.target.value })} />
+                </div>
               </div>
               <div>
                 <Label>Dark/neutral</Label>
-                <Input className="mt-1.5" value={profile.neutral_hex || ""} onChange={(e) => setProfile({ ...profile, neutral_hex: e.target.value })} />
+                <div className="mt-1.5 flex items-center gap-2">
+                  <input type="color" value={profile.neutral_hex || "#000000"} onChange={(e) => setProfile({ ...profile, neutral_hex: e.target.value })} className="h-9 w-9 rounded border border-border bg-transparent cursor-pointer shrink-0" aria-label="Neutral color picker" />
+                  <Input value={profile.neutral_hex || ""} onChange={(e) => setProfile({ ...profile, neutral_hex: e.target.value })} />
+                </div>
               </div>
             </div>
 
