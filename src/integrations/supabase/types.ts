@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      approved_concepts: {
+        Row: {
+          approved_at: string
+          approved_prompt: string | null
+          concept_id: string | null
+          id: string
+          image_url: string | null
+          project_id: string
+        }
+        Insert: {
+          approved_at?: string
+          approved_prompt?: string | null
+          concept_id?: string | null
+          id?: string
+          image_url?: string | null
+          project_id: string
+        }
+        Update: {
+          approved_at?: string
+          approved_prompt?: string | null
+          concept_id?: string | null
+          id?: string
+          image_url?: string | null
+          project_id?: string
+        }
+        Relationships: []
+      }
       brand_orders: {
         Row: {
           brand_profile_id: string
@@ -592,6 +619,36 @@ export type Database = {
         }
         Relationships: []
       }
+      concept_revisions: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          original_concept_id: string | null
+          project_id: string
+          prompt: string
+          refinement_instruction: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          original_concept_id?: string | null
+          project_id: string
+          prompt: string
+          refinement_instruction: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          original_concept_id?: string | null
+          project_id?: string
+          prompt?: string
+          refinement_instruction?: string
+        }
+        Relationships: []
+      }
       creative_briefs: {
         Row: {
           brand_profile_id: string
@@ -727,6 +784,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      generated_concepts: {
+        Row: {
+          concept_name: string
+          created_at: string
+          id: string
+          image_url: string | null
+          project_id: string
+          prompt: string
+          status: string | null
+        }
+        Insert: {
+          concept_name: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          project_id: string
+          prompt: string
+          status?: string | null
+        }
+        Update: {
+          concept_name?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          project_id?: string
+          prompt?: string
+          status?: string | null
+        }
+        Relationships: []
       }
       generated_designs: {
         Row: {
